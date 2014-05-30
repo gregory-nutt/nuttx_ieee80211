@@ -330,6 +330,7 @@ endmenu
 
 source "net/icmp/Kconfig"
 source "net/igmp/Kconfig"
+source "net/ieee80211/Kconfig"
 
 config NET_STATISTICS
 	bool "Collect network statistics"
