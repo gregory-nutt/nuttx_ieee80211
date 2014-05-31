@@ -51,7 +51,7 @@
 	((parm##_old * (old) +					\
 	(parm##_denom - parm##_old) * (new)) / parm##_denom)
 
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
 static	struct timeval lastrateadapt;	/* time of last rate adaptation msg */
 static	int currssadaptps = 0;		/* rate-adaptation msgs this second */
 static	int ieee80211_adaptrate = 4;	/* rate-adaptation max msgs/sec */
@@ -121,7 +121,7 @@ ieee80211_rssadapt_choose(struct ieee80211_rssadapt *ra,
 	}
 
 out:
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
 	if (ieee80211_rssadapt_debug && dvname != NULL) {
 		printf("%s: dst %s threshold[%d, %d.%d] %d < %d\n",
 		    dvname, ether_sprintf((uint8_t *)wh->i_addr1), len,
@@ -129,7 +129,7 @@ out:
 		    (rs->rs_rates[rateidx] & IEEE80211_RATE_VAL) * 5 % 10,
 		    (*thrs)[rateidx], ra->ra_avg_rssi);
 	}
-#endif /* IEEE80211_DEBUG */
+#endif /* CONFIG_DEBUG_NET */
 	return rateidx;
 }
 
@@ -154,7 +154,7 @@ void
 ieee80211_rssadapt_input(struct ieee80211com *ic,
     const struct ieee80211_node *ni, struct ieee80211_rssadapt *ra, int rssi)
 {
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
 	int last_avg_rssi = ra->ra_avg_rssi;
 #endif
 
@@ -220,7 +220,7 @@ ieee80211_rssadapt_raise_rate(struct ieee80211com *ic,
 	const struct ieee80211_node *ni = id->id_node;
 	const struct ieee80211_rateset *rs = &ni->ni_rates;
 	int i, rate, top;
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
 	int j;
 #endif
 
@@ -256,7 +256,7 @@ ieee80211_rssadapt_raise_rate(struct ieee80211com *ic,
 		RSSADAPT_PRINTF(("-> %d\n", (*thrs)[id->id_rateidx + 1]));
 	}
 
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
 	if (RSSADAPT_DO_PRINT()) {
 		printf("%s: dst %s thresholds\n", ic->ic_if.if_xname,
 		    ether_sprintf((uint8_t *)ni->ni_macaddr));
@@ -271,5 +271,5 @@ ieee80211_rssadapt_raise_rate(struct ieee80211com *ic,
 			printf("\n");
 		}
 	}
-#endif /* IEEE80211_DEBUG */
+#endif /* CONFIG_DEBUG_NET */
 }

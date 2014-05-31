@@ -149,7 +149,7 @@ ieee80211_print_essid(const uint8_t *essid, int len)
     }
 }
 
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
 void
 ieee80211_dump_pkt(const uint8_t *buf, int len, int rate, int rssi)
 {

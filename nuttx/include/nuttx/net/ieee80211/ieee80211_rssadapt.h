@@ -96,8 +96,8 @@ void	ieee80211_rssadapt_raise_rate(struct ieee80211com *,
 int	ieee80211_rssadapt_choose(struct ieee80211_rssadapt *,
 	    const struct ieee80211_rateset *, const struct ieee80211_frame *,
 	    unsigned int, int, const char *, int);
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
 extern int ieee80211_rssadapt_debug;
-#endif /* IEEE80211_DEBUG */
+#endif /* CONFIG_DEBUG_NET */
 
 #endif /* _NET80211_IEEE80211_RSSADAPT_H_ */

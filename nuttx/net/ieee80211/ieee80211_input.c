@@ -204,7 +204,7 @@ ieee80211_input_print(struct ieee80211com *ic,  struct ifnet *ifp,
         doprint = 1;
         break;
     }
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
     doprint += ieee80211_debug;
 #endif
     if (!doprint)
@@ -1535,7 +1535,7 @@ ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
         &ic->ic_channels[chan], ssid, rxi->rxi_rssi)) != NULL)
         return;
 
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
     if (ieee80211_debug &&
         (ni == NULL || ic->ic_state == IEEE80211_S_SCAN)) {
         printf("%s: %s%s on chan %u (bss chan %u) ",

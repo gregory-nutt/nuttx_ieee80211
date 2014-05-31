@@ -253,7 +253,7 @@ ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
 #ifndef IEEE80211_STA_ONLY
       ic->ic_opmode == IEEE80211_M_IBSS ||
 #endif
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
       ieee80211_debug > 1 ||
 #endif
       (type & IEEE80211_FC0_SUBTYPE_MASK) != IEEE80211_FC0_SUBTYPE_PROBE_RESP)

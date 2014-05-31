@@ -67,7 +67,7 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
 int    ieee80211_debug = 0;
 #endif
 

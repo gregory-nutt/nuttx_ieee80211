@@ -19,7 +19,7 @@
 #ifndef _NET80211_IEEE80211_PRIV_H_
 #define _NET80211_IEEE80211_PRIV_H_
 
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
 extern int ieee80211_debug;
 #define DPRINTF(X) do {				\
 	if (ieee80211_debug) {			\

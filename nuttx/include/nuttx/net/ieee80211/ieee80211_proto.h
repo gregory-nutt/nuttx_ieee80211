@@ -139,7 +139,7 @@ int ieee80211_parse_rsn(struct ieee80211com *, const uint8_t *,
 int ieee80211_parse_wpa(struct ieee80211com *, const uint8_t *,
         struct ieee80211_rsnparams *);
 void ieee80211_print_essid(const uint8_t *, int);
-#ifdef IEEE80211_DEBUG
+#ifdef CONFIG_DEBUG_NET
 void ieee80211_dump_pkt(const uint8_t *, int, int, int);
 #endif
 int ieee80211_ibss_merge(struct ieee80211com *,
