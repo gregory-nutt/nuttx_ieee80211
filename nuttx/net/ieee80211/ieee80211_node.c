@@ -556,7 +556,7 @@ void ieee80211_end_scan(struct ifnet *ifp)
 #ifndef IEEE80211_STA_ONLY
     if (ic->ic_opmode == IEEE80211_M_HOSTAP) {
         /* XXX off stack? */
-        uint8_t occupied[howmany(IEEE80211_CHAN_MAX, NBBY)];
+        uint8_t occupied[howmany(IEEE80211_CHAN_MAX, 8)];
         int i, fail;
 
         /*

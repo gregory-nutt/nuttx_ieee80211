@@ -228,9 +228,9 @@ struct ieee80211com
   uint8_t        ic_myaddr[IEEE80211_ADDR_LEN];
   struct ieee80211_rateset ic_sup_rates[IEEE80211_MODE_MAX];
   struct ieee80211_channel ic_channels[IEEE80211_CHAN_MAX+1];
-  uint8_t            ic_chan_avail[howmany(IEEE80211_CHAN_MAX, NBBY)];
-  uint8_t            ic_chan_active[howmany(IEEE80211_CHAN_MAX, NBBY)];
-  uint8_t            ic_chan_scan[howmany(IEEE80211_CHAN_MAX, NBBY)];
+  uint8_t            ic_chan_avail[howmany(IEEE80211_CHAN_MAX, 8)];
+  uint8_t            ic_chan_active[howmany(IEEE80211_CHAN_MAX, 8)];
+  uint8_t            ic_chan_scan[howmany(IEEE80211_CHAN_MAX, 8)];
   struct ifqueue        ic_mgtq;
   struct ifqueue        ic_pwrsaveq;
   unsigned int            ic_scan_lock;    /* user-initiated scan */

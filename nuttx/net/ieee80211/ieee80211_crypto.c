@@ -334,7 +334,7 @@ void ieee80211_kdf(const uint8_t *key, size_t key_len, const uint8_t *label,
     uint8_t digest[SHA256_DIGEST_LENGTH];
     uint16_t i, iter, length;
 
-    length = htole16(len * NBBY);
+    length = htole16(len * 8);
     for (i = 1; len != 0; i++) {
         HMAC_SHA256_Init(&ctx, key, key_len);
         iter = htole16(i);
