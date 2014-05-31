@@ -67,10 +67,6 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-#ifdef CONFIG_DEBUG_NET
-int    ieee80211_debug = 0;
-#endif
-
 int ieee80211_cache_size = IEEE80211_CACHE_SIZE;
 
 struct ieee80211com_head ieee80211com_head;

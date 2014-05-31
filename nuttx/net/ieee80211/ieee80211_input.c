@@ -140,8 +140,10 @@ void    ieee80211_recv_bar(struct ieee80211com *, struct mbuf *,
 void    ieee80211_bar_tid(struct ieee80211com *, struct ieee80211_node *,
         uint8_t, uint16_t);
 #endif
+#if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
 void    ieee80211_input_print(struct ieee80211com *,  struct ifnet *,
         struct ieee80211_frame *, struct ieee80211_rxinfo *);
+#endif
 void    ieee80211_input_print_task(void *, void *);
 
 /*
@@ -164,8 +166,8 @@ ieee80211_get_hdrlen(const struct ieee80211_frame *wh)
     return size;
 }
 
-/*
- * Work queue task that prints a received frame.  Avoids nvdbg() from
+#if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
+/* Work queue task that prints a received frame.  Avoids nvdbg() from
  * interrupt context at IPL_NET making slow machines unusable when many
  * frames are received and the interface is put in debug mode.
  */
@@ -178,37 +180,11 @@ void ieee80211_input_print_task(void *arg1, void *arg2)
   free(msg, M_DEVBUF);
 }
 
-void
-ieee80211_input_print(struct ieee80211com *ic,  struct ifnet *ifp,
-    struct ieee80211_frame *wh, struct ieee80211_rxinfo *rxi)
+static void ieee80211_input_print(struct ieee80211com *ic,  struct ifnet *ifp,
+                                  struct ieee80211_frame *wh, struct ieee80211_rxinfo *rxi)
 {
-    int doprint, error;
+    int error;
     char *msg;
-    uint8_t subtype = wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK;
-
-    /* avoid printing too many frames */
-    doprint = 0;
-    switch (subtype) {
-    case IEEE80211_FC0_SUBTYPE_BEACON:
-        if (ic->ic_state == IEEE80211_S_SCAN)
-            doprint = 1;
-        break;
-#ifndef IEEE80211_STA_ONLY
-    case IEEE80211_FC0_SUBTYPE_PROBE_REQ:
-        if (ic->ic_opmode == IEEE80211_M_IBSS)
-            doprint = 1;
-        break;
-#endif
-    default:
-        doprint = 1;
-        break;
-    }
-#ifdef CONFIG_DEBUG_NET
-    doprint += ieee80211_debug;
-#endif
-    if (!doprint)
-        return;
-
     msg = malloc(1024, M_DEVBUF, M_NOWAIT);
     if (msg == NULL)
         return;
@@ -223,6 +199,7 @@ ieee80211_input_print(struct ieee80211com *ic,  struct ifnet *ifp,
     if (error)
         free(msg, M_DEVBUF);
 }
+#endif
 
 /*
  * Process a received frame.  The node associated with the sender
@@ -556,7 +533,7 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
             goto out;
         }
 
-#ifdef CONFIG_DEBUG_NET
+#if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
        ieee80211_input_print(ic, ifp, wh, rxi);
 #endif
 
@@ -1535,8 +1512,8 @@ ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
         return;
 
 #ifdef CONFIG_DEBUG_NET
-    if (ieee80211_debug &&
-        (ni == NULL || ic->ic_state == IEEE80211_S_SCAN)) {
+    if ((ni == NULL || ic->ic_state == IEEE80211_S_SCAN))
+      {
         nvdbg("%s: %s%s on chan %u (bss chan %u) ",
             __func__, (ni == NULL ? "new " : ""),
             isprobe ? "probe response" : "beacon",
@@ -1545,7 +1522,7 @@ ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
         nvdbg(" from %s\n", ether_sprintf((uint8_t *)wh->i_addr2));
         nvdbg("%s: caps 0x%x bintval %u erp 0x%x\n",
             __func__, capinfo, bintval, erp);
-    }
+      }
 #endif
 
     if ((ni = ieee80211_find_node(ic, wh->i_addr2)) == NULL) {
