@@ -60,6 +60,7 @@
 #endif
 
 #include <wdog.h>
+#include <debug.h>
 
 #include <nuttx/tree.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
@@ -388,20 +389,20 @@ ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
 #ifndef IEEE80211_STA_ONLY
     /* find the STA with which we must start the key exchange */
     if ((ni = ieee80211_find_node(ic, macaddr)) == NULL) {
-        DPRINTF(("no node found for %s\n", ether_sprintf(macaddr)));
+        ndbg("ERROR: no node found for %s\n", ether_sprintf(macaddr));
         return EINVAL;
     }
     /* check that the STA is in the correct state */
     if (ni->ni_state != IEEE80211_STA_ASSOC ||
         ni->ni_rsn_state != RSNA_AUTHENTICATION_2) {
-        DPRINTF(("unexpected in state %d\n", ni->ni_rsn_state));
+        ndbg("ERROR: unexpected in state %d\n", ni->ni_rsn_state);
         return EINVAL;
     }
     ni->ni_rsn_state = RSNA_INITPMK;
 
     /* make sure a PMK is available for this STA, otherwise deauth it */
     if ((pmk = ieee80211_pmksa_find(ic, ni, NULL)) == NULL) {
-        DPRINTF(("no PMK available for %s\n", ether_sprintf(macaddr)));
+        ndbg("ERROR: no PMK available for %s\n", ether_sprintf(macaddr));
         IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_DEAUTH,
             IEEE80211_REASON_AUTH_LEAVE);
         ieee80211_node_leave(ic, ni);
@@ -678,9 +679,9 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
     case IEEE80211_M_IBSS:
         if (ic->ic_state != IEEE80211_S_RUN ||
             seq != IEEE80211_AUTH_OPEN_REQUEST) {
-            DPRINTF(("discard auth from %s; state %u, seq %u\n",
+            nvdbg("discard auth from %s; state %u, seq %u\n",
                 ether_sprintf((uint8_t *)wh->i_addr2),
-                ic->ic_state, seq));
+                ic->ic_state, seq);
             ic->ic_stats.is_rx_bad_auth++;
             return;
         }
@@ -695,9 +696,9 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
     case IEEE80211_M_HOSTAP:
         if (ic->ic_state != IEEE80211_S_RUN ||
             seq != IEEE80211_AUTH_OPEN_REQUEST) {
-            DPRINTF(("discard auth from %s; state %u, seq %u\n",
+            nvdbg("discard auth from %s; state %u, seq %u\n",
                 ether_sprintf((uint8_t *)wh->i_addr2),
-                ic->ic_state, seq));
+                ic->ic_state, seq);
             ic->ic_stats.is_rx_bad_auth++;
             return;
         }
@@ -713,25 +714,25 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
             ni->ni_rstamp = rxi->rxi_tstamp;
             ni->ni_chan = ic->ic_bss->ni_chan;
         }
-        IEEE80211_SEND_MGMT(ic, ni,
-            IEEE80211_FC0_SUBTYPE_AUTH, seq + 1);
-        if (ifp->if_flags & IFF_DEBUG)
-            printf("%s: station %s %s authenticated (open)\n",
-                ifp->if_xname,
-                ether_sprintf((uint8_t *)ni->ni_macaddr),
-                ni->ni_state != IEEE80211_STA_CACHE ?
-                "newly" : "already");
-        ieee80211_node_newstate(ni, IEEE80211_STA_AUTH);
-        break;
-#endif    /* IEEE80211_STA_ONLY */
+
+      IEEE80211_SEND_MGMT(ic, ni,  IEEE80211_FC0_SUBTYPE_AUTH, seq + 1);
+
+      nvdbg("%s: station %s %s authenticated (open)\n",
+            ifp->if_xname,
+            ether_sprintf((uint8_t *)ni->ni_macaddr),
+            ni->ni_state != IEEE80211_STA_CACHE ? "newly" : "already");
+
+      ieee80211_node_newstate(ni, IEEE80211_STA_AUTH);
+      break;
+#endif /* IEEE80211_STA_ONLY */
 
     case IEEE80211_M_STA:
         if (ic->ic_state != IEEE80211_S_AUTH ||
             seq != IEEE80211_AUTH_OPEN_RESPONSE) {
             ic->ic_stats.is_rx_bad_auth++;
-            DPRINTF(("discard auth from %s; state %u, seq %u\n",
+            nvdbg("discard auth from %s; state %u, seq %u\n",
                 ether_sprintf((uint8_t *)wh->i_addr2),
-                ic->ic_state, seq));
+                ic->ic_state, seq);
             return;
         }
         if (ic->ic_flags & IEEE80211_F_RSNON) {
@@ -742,22 +743,25 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
             (*ic->ic_delete_key)(ic, ic->ic_bss,
                 &ic->ic_bss->ni_pairwise_key);
         }
-        if (status != 0) {
-            if (ifp->if_flags & IFF_DEBUG)
-                printf("%s: open authentication failed "
-                    "(reason %d) for %s\n", ifp->if_xname,
-                    status,
-                    ether_sprintf((uint8_t *)wh->i_addr3));
-            if (ni != ic->ic_bss)
-                ni->ni_fails++;
-            ic->ic_stats.is_rx_auth_fail++;
-            return;
+
+      if (status != 0)
+        {
+          nvdbg("%s: open authentication failed (reason %d) for %s\n",
+                ifp->if_xname, status, ether_sprintf((uint8_t *)wh->i_addr3));
+
+          if (ni != ic->ic_bss)
+            {
+              ni->ni_fails++;
+            }
+
+          ic->ic_stats.is_rx_auth_fail++;
+          return;
         }
-        ieee80211_new_state(ic, IEEE80211_S_ASSOC,
-            wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK);
-        break;
+
+      ieee80211_new_state(ic, IEEE80211_S_ASSOC, wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK);
+      break;
     default:
-        break;
+      break;
     }
 }
 
@@ -774,8 +778,8 @@ ieee80211_newstate(struct ieee80211com *ic, enum ieee80211_state nstate,
 #endif
 
     ostate = ic->ic_state;
-    DPRINTF(("%s -> %s\n", ieee80211_state_name[ostate],
-        ieee80211_state_name[nstate]));
+    nvdbg("%s -> %s\n", ieee80211_state_name[ostate],
+        ieee80211_state_name[nstate]);
     ic->ic_state = nstate;            /* state transition */
     ni = ic->ic_bss;            /* NB: no reference held */
     if (ostate == IEEE80211_S_RUN)
@@ -884,15 +888,15 @@ justcleanup:
             }
             break;
         case IEEE80211_S_RUN:
-            /* beacon miss */
-            if (ifp->if_flags & IFF_DEBUG) {
-                /* XXX bssid clobbered above */
-                printf("%s: no recent beacons from %s;"
-                    " rescanning\n", ifp->if_xname,
-                    ether_sprintf(ic->ic_bss->ni_bssid));
-            }
-            ieee80211_free_allnodes(ic);
-            /* FALLTHROUGH */
+          /* beacon miss */
+
+          nvdbg("%s: no recent beacons from %s; rescanning\n",
+                ifp->if_xname, ether_sprintf(ic->ic_bss->ni_bssid));
+
+          ieee80211_free_allnodes(ic);
+
+          /* FALLTHROUGH */
+
         case IEEE80211_S_AUTH:
         case IEEE80211_S_ASSOC:
             /* timeout restart scan */
@@ -906,7 +910,7 @@ justcleanup:
     case IEEE80211_S_AUTH:
         switch (ostate) {
         case IEEE80211_S_INIT:
-            DPRINTF(("invalid transition\n"));
+            ndbg("ERROR: invalid transition\n");
             break;
         case IEEE80211_S_SCAN:
             IEEE80211_SEND_MGMT(ic, ni,
@@ -946,7 +950,7 @@ justcleanup:
         case IEEE80211_S_INIT:
         case IEEE80211_S_SCAN:
         case IEEE80211_S_ASSOC:
-            DPRINTF(("invalid transition\n"));
+            ndbg("ERROR: invalid transition\n");
             break;
         case IEEE80211_S_AUTH:
             IEEE80211_SEND_MGMT(ic, ni,
@@ -963,34 +967,30 @@ justcleanup:
         case IEEE80211_S_INIT:
         case IEEE80211_S_AUTH:
         case IEEE80211_S_RUN:
-            DPRINTF(("invalid transition\n"));
+            ndbg("ERROR: invalid transition\n");
             break;
         case IEEE80211_S_SCAN:        /* adhoc/hostap mode */
         case IEEE80211_S_ASSOC:        /* infra mode */
             if (ni->ni_txrate >= ni->ni_rates.rs_nrates)
                 panic("%s: bogus xmit rate %u setup",
                     __func__, ni->ni_txrate);
-            if (ifp->if_flags & IFF_DEBUG) {
-                printf("%s: %s with %s ssid ",
-                    ifp->if_xname,
-                    ic->ic_opmode == IEEE80211_M_STA ?
-                    "associated" : "synchronized",
-                    ether_sprintf(ni->ni_bssid));
-                ieee80211_print_essid(ic->ic_bss->ni_essid,
-                    ni->ni_esslen);
-                rate = ni->ni_rates.rs_rates[ni->ni_txrate] &
-                    IEEE80211_RATE_VAL;
-                printf(" channel %d start %u%sMb",
-                    ieee80211_chan2ieee(ic, ni->ni_chan),
-                    rate / 2, (rate & 1) ? ".5" : "");
-                printf(" %s preamble %s slot time%s\n",
-                    (ic->ic_flags & IEEE80211_F_SHPREAMBLE) ?
-                    "short" : "long",
-                    (ic->ic_flags & IEEE80211_F_SHSLOT) ?
-                    "short" : "long",
-                    (ic->ic_flags & IEEE80211_F_USEPROT) ?
-                    " protection enabled" : "");
-            }
+
+#if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
+            nvdbg("%s: %s with %s ssid ",
+                   ifp->if_xname,
+                   ic->ic_opmode == IEEE80211_M_STA ? "associated" : "synchronized",
+                   ether_sprintf(ni->ni_bssid));
+            ieee80211_print_essid(ic->ic_bss->ni_essid, ni->ni_esslen);
+            rate = ni->ni_rates.rs_rates[ni->ni_txrate] & IEEE80211_RATE_VAL;
+            nvdbg(" channel %d start %u%sMb",
+                  ieee80211_chan2ieee(ic, ni->ni_chan),
+                  rate / 2, (rate & 1) ? ".5" : "");
+            nvdbg(" %s preamble %s slot time%s\n",
+                  (ic->ic_flags & IEEE80211_F_SHPREAMBLE) ? "short" : "long",
+                  (ic->ic_flags & IEEE80211_F_SHSLOT) ? "short" : "long",
+                  (ic->ic_flags & IEEE80211_F_USEPROT) ? " protection enabled" : "");
+#endif
+
             if (!(ic->ic_flags & IEEE80211_F_RSNON)) {
                 /*
                  * NB: When RSN is enabled, we defer setting

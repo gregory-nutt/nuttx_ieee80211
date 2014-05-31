@@ -46,6 +46,8 @@
 #endif
 
 #include <wdog.h>
+#include <debug.h>
+
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -243,8 +245,7 @@ ieee80211_recv_4way_msg1(struct ieee80211com *ic,
         pmk = ieee80211_pmksa_find(ic, ni,
             (pmkid != NULL) ? &pmkid[6] : NULL);
         if (pmk == NULL) {
-            DPRINTF(("no PMK available for %s\n",
-                ether_sprintf(ni->ni_macaddr)));
+            ndbg("ERROR: no PMK available for %s\n", ether_sprintf(ni->ni_macaddr));
             return;
         }
         memcpy(ni->ni_pmk, pmk->pmk_key, IEEE80211_PMK_LEN);
@@ -259,15 +260,16 @@ ieee80211_recv_4way_msg1(struct ieee80211com *ic,
     arc4random_buf(ic->ic_nonce, EAPOL_KEY_NONCE_LEN);
 
     /* TPTK = CalcPTK(PMK, ANonce, SNonce) */
+
     ieee80211_derive_ptk(ni->ni_rsnakms, ni->ni_pmk, ni->ni_macaddr,
         ic->ic_myaddr, ni->ni_nonce, ic->ic_nonce, &tptk);
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: received msg %d/%d of the %s handshake from %s\n",
-            ic->ic_if.if_xname, 1, 4, "4-way",
-            ether_sprintf(ni->ni_macaddr));
+    nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
+          ic->ic_if.if_xname, 1, 4, "4-way",
+          ether_sprintf(ni->ni_macaddr));
 
-    /* send message 2 to authenticator using TPTK */
+    /* Send message 2 to authenticator using TPTK */
+
     (void)ieee80211_send_4way_msg2(ic, ni, key->replaycnt, &tptk);
 }
 
@@ -289,7 +291,7 @@ ieee80211_recv_4way_msg2(struct ieee80211com *ic,
     /* discard if we're not expecting this message */
     if (ni->ni_rsn_state != RSNA_PTKSTART &&
         ni->ni_rsn_state != RSNA_PTKCALCNEGOTIATING) {
-        DPRINTF(("unexpected in state: %d\n", ni->ni_rsn_state));
+        ndbg("ERROR: unexpected in state: %d\n", ni->ni_rsn_state);
         return;
     }
     ni->ni_rsn_state = RSNA_PTKCALCNEGOTIATING;
@@ -302,7 +304,7 @@ ieee80211_recv_4way_msg2(struct ieee80211com *ic,
 
     /* check Key MIC field using KCK */
     if (ieee80211_eapol_key_check_mic(key, tptk.kck) != 0) {
-        DPRINTF(("key MIC failed\n"));
+        ndbg("ERROR: key MIC failed\n");
         ic->ic_stats.is_rx_eapol_badmic++;
         return;    /* will timeout.. */
     }
@@ -326,13 +328,12 @@ ieee80211_recv_4way_msg2(struct ieee80211com *ic,
         return;
     }
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: received msg %d/%d of the %s handshake from %s\n",
-            ic->ic_if.if_xname, 2, 4, "4-way",
-            ether_sprintf(ni->ni_macaddr));
+  nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
+        ic->ic_if.if_xname, 2, 4, "4-way", ether_sprintf(ni->ni_macaddr));
 
-    /* send message 3 to supplicant */
-    (void)ieee80211_send_4way_msg3(ic, ni);
+  /* Send message 3 to supplicant */
+
+  (void)ieee80211_send_4way_msg3(ic, ni);
 }
 #endif    /* IEEE80211_STA_ONLY */
 
@@ -362,13 +363,12 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
     }
     /* make sure that a PMK has been selected */
     if (!(ni->ni_flags & IEEE80211_NODE_PMK)) {
-        DPRINTF(("no PMK found for %s\n",
-            ether_sprintf(ni->ni_macaddr)));
+        ndbg("ERROR: no PMK found for %s\n", ether_sprintf(ni->ni_macaddr));
         return;
     }
     /* check that ANonce matches that of Message 1 */
     if (memcmp(key->nonce, ni->ni_nonce, EAPOL_KEY_NONCE_LEN) != 0) {
-        DPRINTF(("ANonce does not match msg 1/4\n"));
+        ndbg("ERROR: ANonce does not match msg 1/4\n");
         return;
     }
     /* TPTK = CalcPTK(PMK, ANonce, SNonce) */
@@ -379,7 +379,7 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
 
     /* check Key MIC field using KCK */
     if (ieee80211_eapol_key_check_mic(key, tptk.kck) != 0) {
-        DPRINTF(("key MIC failed\n"));
+        ndbg("ERROR: key MIC failed\n");
         ic->ic_stats.is_rx_eapol_badmic++;
         return;
     }
@@ -389,7 +389,7 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
     /* if encrypted, decrypt Key Data field using KEK */
     if ((info & EAPOL_KEY_ENCRYPTED) &&
         ieee80211_eapol_key_decrypt(key, ni->ni_ptk.kek) != 0) {
-        DPRINTF(("decryption failed\n"));
+        ndbg("ERROR: decryption failed\n");
         return;
     }
 
@@ -445,23 +445,23 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
     }
     /* first WPA/RSN IE is mandatory */
     if (rsnie1 == NULL) {
-        DPRINTF(("missing RSN IE\n"));
+        ndbg("ERROR: missing RSN IE\n");
         return;
     }
     /* key data must be encrypted if GTK is included */
     if (gtk != NULL && !(info & EAPOL_KEY_ENCRYPTED)) {
-        DPRINTF(("GTK not encrypted\n"));
+        ndbg("ERROR: GTK not encrypted\n");
         return;
     }
     /* GTK KDE must be included if IGTK KDE is present */
     if (igtk != NULL && gtk == NULL) {
-        DPRINTF(("IGTK KDE found but GTK KDE missing\n"));
+        ndbg("ERROR: IGTK KDE found but GTK KDE missing\n");
         return;
     }
     /* check that the Install bit is set if using pairwise keys */
     if (ni->ni_rsncipher != IEEE80211_CIPHER_USEGROUP &&
         !(info & EAPOL_KEY_INSTALL)) {
-        DPRINTF(("pairwise cipher but !Install\n"));
+        ndbg("ERROR: pairwise cipher but !Install\n");
         return;
     }
 
@@ -497,15 +497,15 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
     }
 
     /* update the last seen value of the key replay counter field */
+
     ni->ni_replaycnt = BE_READ_8(key->replaycnt);
     ni->ni_replaycnt_ok = 1;
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: received msg %d/%d of the %s handshake from %s\n",
-            ic->ic_if.if_xname, 3, 4, "4-way",
-            ether_sprintf(ni->ni_macaddr));
+    nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
+          ic->ic_if.if_xname, 3, 4, "4-way", ether_sprintf(ni->ni_macaddr));
 
-    /* send message 4 to authenticator */
+    /* Send message 4 to authenticator */
+
     if (ieee80211_send_4way_msg4(ic, ni) != 0)
         return;    /* ..authenticator will retry */
 
@@ -572,7 +572,7 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
         }
         kid = LE_READ_2(&igtk[6]);
         if (kid != 4 && kid != 5) {
-            DPRINTF(("unsupported IGTK id %u\n", kid));
+            ndbg("ERROR: unsupported IGTK id %u\n", kid);
             reason = IEEE80211_REASON_AUTH_LEAVE;
             goto deauth;
         }
@@ -601,8 +601,7 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
             ++ni->ni_key_count == 2)
 #endif
         {
-            DPRINTF(("marking port %s valid\n",
-                ether_sprintf(ni->ni_macaddr)));
+            ndbg("ERROR: marking port %s valid\n", ether_sprintf(ni->ni_macaddr));
             ni->ni_port_valid = 1;
             ieee80211_set_link_state(ic, LINK_STATE_UP);
         }
@@ -629,7 +628,7 @@ ieee80211_recv_4way_msg4(struct ieee80211com *ic,
 
     /* discard if we're not expecting this message */
     if (ni->ni_rsn_state != RSNA_PTKINITNEGOTIATING) {
-        DPRINTF(("unexpected in state: %d\n", ni->ni_rsn_state));
+        ndbg("ERROR: unexpected in state: %d\n", ni->ni_rsn_state);
         return;
     }
 
@@ -637,7 +636,7 @@ ieee80211_recv_4way_msg4(struct ieee80211com *ic,
 
     /* check Key MIC field using KCK */
     if (ieee80211_eapol_key_check_mic(key, ni->ni_ptk.kck) != 0) {
-        DPRINTF(("key MIC failed\n"));
+        ndbg("ERROR: key MIC failed\n");
         ic->ic_stats.is_rx_eapol_badmic++;
         return;    /* will timeout.. */
     }
@@ -666,21 +665,23 @@ ieee80211_recv_4way_msg4(struct ieee80211com *ic,
         ni->ni_flags |= IEEE80211_NODE_TXRXPROT;
     }
     if (ic->ic_opmode != IEEE80211_M_IBSS || ++ni->ni_key_count == 2) {
-        DPRINTF(("marking port %s valid\n",
-            ether_sprintf(ni->ni_macaddr)));
+        ndbg("ERROR: marking port %s valid\n", ether_sprintf(ni->ni_macaddr));
         ni->ni_port_valid = 1;
     }
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: received msg %d/%d of the %s handshake from %s\n",
-            ic->ic_if.if_xname, 4, 4, "4-way",
-            ether_sprintf(ni->ni_macaddr));
+  nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
+        ic->ic_if.if_xname, 4, 4, "4-way", ether_sprintf(ni->ni_macaddr));
 
-    /* initiate a group key handshake for WPA */
-    if (ni->ni_rsnprotos == IEEE80211_PROTO_WPA)
-        (void)ieee80211_send_group_msg1(ic, ni);
-    else
-        ni->ni_rsn_gstate = RSNA_IDLE;
+  /* initiate a group key handshake for WPA */
+
+  if (ni->ni_rsnprotos == IEEE80211_PROTO_WPA)
+    {
+      (void)ieee80211_send_group_msg1(ic, ni);
+    }
+  else
+    {
+      ni->ni_rsn_gstate = RSNA_IDLE;
+    }
 }
 
 /*
@@ -755,7 +756,7 @@ ieee80211_recv_rsn_group_msg1(struct ieee80211com *ic,
     }
     /* check Key MIC field using KCK */
     if (ieee80211_eapol_key_check_mic(key, ni->ni_ptk.kck) != 0) {
-        DPRINTF(("key MIC failed\n"));
+        ndbg("ERROR: key MIC failed\n");
         ic->ic_stats.is_rx_eapol_badmic++;
         return;
     }
@@ -764,7 +765,7 @@ ieee80211_recv_rsn_group_msg1(struct ieee80211com *ic,
     /* check that encrypted and decrypt Key Data field using KEK */
     if (!(info & EAPOL_KEY_ENCRYPTED) ||
         ieee80211_eapol_key_decrypt(key, ni->ni_ptk.kek) != 0) {
-        DPRINTF(("decryption failed\n"));
+        ndbg("ERROR: decryption failed\n");
         return;
     }
 
@@ -797,7 +798,7 @@ ieee80211_recv_rsn_group_msg1(struct ieee80211com *ic,
     }
     /* check that the GTK KDE is present */
     if (gtk == NULL) {
-        DPRINTF(("GTK KDE missing\n"));
+        ndbg("ERROR: GTK KDE missing\n");
         return;
     }
 
@@ -831,7 +832,7 @@ ieee80211_recv_rsn_group_msg1(struct ieee80211com *ic,
         }
         kid = LE_READ_2(&igtk[6]);
         if (kid != 4 && kid != 5) {
-            DPRINTF(("unsupported IGTK id %u\n", kid));
+            ndbg("ERROR: unsupported IGTK id %u\n", kid);
             reason = IEEE80211_REASON_AUTH_LEAVE;
             goto deauth;
         }
@@ -856,33 +857,32 @@ ieee80211_recv_rsn_group_msg1(struct ieee80211com *ic,
             ++ni->ni_key_count == 2)
 #endif
         {
-            DPRINTF(("marking port %s valid\n",
-                ether_sprintf(ni->ni_macaddr)));
+            nvdbg("marking port %s valid\n", ether_sprintf(ni->ni_macaddr));
             ni->ni_port_valid = 1;
             ieee80211_set_link_state(ic, LINK_STATE_UP);
         }
     }
-    /* update the last seen value of the key replay counter field */
-    ni->ni_replaycnt = BE_READ_8(key->replaycnt);
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: received msg %d/%d of the %s handshake from %s\n",
-            ic->ic_if.if_xname, 1, 2, "group key",
-            ether_sprintf(ni->ni_macaddr));
+  /* Update the last seen value of the key replay counter field */
 
-    /* send message 2 to authenticator */
-    (void)ieee80211_send_group_msg2(ic, ni, NULL);
-    return;
- deauth:
-    IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_DEAUTH, reason);
-    ieee80211_new_state(ic, IEEE80211_S_SCAN, -1);
+  ni->ni_replaycnt = BE_READ_8(key->replaycnt);
+
+  nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
+        ic->ic_if.if_xname, 1, 2, "group key", ether_sprintf(ni->ni_macaddr));
+
+  /* Send message 2 to authenticator */
+
+  (void)ieee80211_send_group_msg2(ic, ni, NULL);
+  return;
+
+deauth:
+  IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_DEAUTH, reason);
+  ieee80211_new_state(ic, IEEE80211_S_SCAN, -1);
 }
 
-/*
- * Process Message 1 of the WPA Group Key Handshake (sent by Authenticator).
- */
-void
-ieee80211_recv_wpa_group_msg1(struct ieee80211com *ic,
+/* Process Message 1 of the WPA Group Key Handshake (sent by Authenticator) */
+
+void ieee80211_recv_wpa_group_msg1(struct ieee80211com *ic,
     struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
 {
     struct ieee80211_key *k;
@@ -901,7 +901,7 @@ ieee80211_recv_wpa_group_msg1(struct ieee80211com *ic,
     }
     /* check Key MIC field using KCK */
     if (ieee80211_eapol_key_check_mic(key, ni->ni_ptk.kck) != 0) {
-        DPRINTF(("key MIC failed\n"));
+        ndbg("ERROR: key MIC failed\n");
         ic->ic_stats.is_rx_eapol_badmic++;
         return;
     }
@@ -910,7 +910,7 @@ ieee80211_recv_wpa_group_msg1(struct ieee80211com *ic,
      * the ENCRYPTED bit in the info field.
      */
     if (ieee80211_eapol_key_decrypt(key, ni->ni_ptk.kek) != 0) {
-        DPRINTF(("decryption failed\n"));
+        ndbg("ERROR: decryption failed\n");
         return;
     }
 
@@ -951,22 +951,22 @@ ieee80211_recv_wpa_group_msg1(struct ieee80211com *ic,
             ++ni->ni_key_count == 2)
 #endif
         {
-            DPRINTF(("marking port %s valid\n",
-                ether_sprintf(ni->ni_macaddr)));
+            nvdbg("marking port %s valid\n",  ether_sprintf(ni->ni_macaddr));
             ni->ni_port_valid = 1;
             ieee80211_set_link_state(ic, LINK_STATE_UP);
         }
     }
-    /* update the last seen value of the key replay counter field */
-    ni->ni_replaycnt = BE_READ_8(key->replaycnt);
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: received msg %d/%d of the %s handshake from %s\n",
-            ic->ic_if.if_xname, 1, 2, "group key",
-            ether_sprintf(ni->ni_macaddr));
+  /* Update the last seen value of the key replay counter field */
 
-    /* send message 2 to authenticator */
-    (void)ieee80211_send_group_msg2(ic, ni, k);
+  ni->ni_replaycnt = BE_READ_8(key->replaycnt);
+
+  nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
+        ic->ic_if.if_xname, 1, 2, "group key", ether_sprintf(ni->ni_macaddr));
+
+  /* Send message 2 to authenticator */
+
+  (void)ieee80211_send_group_msg2(ic, ni, k);
 }
 
 #ifndef IEEE80211_STA_ONLY
@@ -983,7 +983,7 @@ ieee80211_recv_group_msg2(struct ieee80211com *ic,
 
     /* discard if we're not expecting this message */
     if (ni->ni_rsn_gstate != RSNA_REKEYNEGOTIATING) {
-        DPRINTF(("%s: unexpected in state: %d\n", ni->ni_rsn_gstate));
+        ndbg("ERROR: %s: unexpected in state: %d\n", ni->ni_rsn_gstate);
         return;
     }
     if (BE_READ_8(key->replaycnt) != ni->ni_replaycnt) {
@@ -992,7 +992,7 @@ ieee80211_recv_group_msg2(struct ieee80211com *ic,
     }
     /* check Key MIC field using KCK */
     if (ieee80211_eapol_key_check_mic(key, ni->ni_ptk.kck) != 0) {
-        DPRINTF(("key MIC failed\n"));
+        ndbg("ERROR: key MIC failed\n");
         ic->ic_stats.is_rx_eapol_badmic++;
         return;
     }
@@ -1009,19 +1009,16 @@ ieee80211_recv_group_msg2(struct ieee80211com *ic,
     ni->ni_rsn_gstate = RSNA_IDLE;
     ni->ni_rsn_retries = 0;
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: received msg %d/%d of the %s handshake from %s\n",
-            ic->ic_if.if_xname, 2, 2, "group key",
-            ether_sprintf(ni->ni_macaddr));
+  nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
+        ic->ic_if.if_xname, 2, 2, "group key", ether_sprintf(ni->ni_macaddr));
 }
 
-/*
- * EAPOL-Key Request frames are sent by the supplicant to request that the
+/* EAPOL-Key Request frames are sent by the supplicant to request that the
  * authenticator initiates either a 4-Way Handshake or Group Key Handshake,
  * or to report a MIC failure in a TKIP MSDU.
  */
-void
-ieee80211_recv_eapol_key_req(struct ieee80211com *ic,
+
+void ieee80211_recv_eapol_key_req(struct ieee80211com *ic,
     struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
 {
     uint16_t info;
@@ -1040,7 +1037,7 @@ ieee80211_recv_eapol_key_req(struct ieee80211com *ic,
 
     if (!(info & EAPOL_KEY_KEYMIC) ||
         ieee80211_eapol_key_check_mic(key, ni->ni_ptk.kck) != 0) {
-        DPRINTF(("key request MIC failed\n"));
+        ndbg("ERROR: key request MIC failed\n");
         ic->ic_stats.is_rx_eapol_badmic++;
         return;
     }
@@ -1052,8 +1049,7 @@ ieee80211_recv_eapol_key_req(struct ieee80211com *ic,
         /* ignore reports from STAs not using TKIP */
         if (ic->ic_bss->ni_rsngroupcipher != IEEE80211_CIPHER_TKIP &&
             ni->ni_rsncipher != IEEE80211_CIPHER_TKIP) {
-            DPRINTF(("MIC failure report from !TKIP STA: %s\n",
-                ether_sprintf(ni->ni_macaddr)));
+            ndbg("ERROR: MIC failure report from !TKIP STA: %s\n", ether_sprintf(ni->ni_macaddr));
             return;
         }
         ic->ic_stats.is_rx_remmicfail++;

@@ -62,6 +62,7 @@
 #endif
 
 #include <queue.h>
+#include <debug.h>
 
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
@@ -665,8 +666,7 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
 
     /* validate new mode */
     if ((ic->ic_modecaps & (1<<mode)) == 0) {
-        DPRINTF(("mode %u not supported (caps 0x%x)\n",
-            mode, ic->ic_modecaps));
+        ndbg("ERROR: mode %u not supported (caps 0x%x)\n", mode, ic->ic_modecaps);
         return EINVAL;
     }
 
@@ -689,7 +689,7 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
         }
     }
     if (i > IEEE80211_CHAN_MAX) {
-        DPRINTF(("no channels found for mode %u\n", mode));
+        ndbg("ERROR: no channels found for mode %u\n", mode);
         return EINVAL;
     }
 
@@ -936,7 +936,7 @@ uint8_t ieee80211_rate2plcp(uint8_t rate, enum ieee80211_phymode mode)
         } else
         panic("Unexpected mode %u", mode);
 
-    DPRINTF(("unsupported rate %u\n", rate));
+    ndbg("ERROR: unsupported rate %u\n", rate);
 
     return 0;
 }
@@ -968,7 +968,7 @@ uint8_t ieee80211_plcp2rate(uint8_t plcp, enum ieee80211_phymode mode)
     } else
         panic("unexpected mode %u", mode);
 
-    DPRINTF(("unsupported plcp %u\n", plcp));
+    ndbg("ERROR: unsupported plcp %u\n", plcp);
 
     return 0;
 }

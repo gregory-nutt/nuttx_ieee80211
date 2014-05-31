@@ -68,6 +68,8 @@
 #endif
 
 #include <wdog.h>
+#include <debug.h>
+
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -244,27 +246,26 @@ ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
             wh->i_fc[1] |= IEEE80211_FC1_PROTECTED;
     }
 
-    if (ifp->if_flags & IFF_DEBUG) {
-        /* avoid to print too many frames */
-        if (
+#if defined(CONFIG_DEBUG_NET) && defined (CONFIG_DEBUG_VERBOSE)
+  /* avoid to print too many frames */
+
+  if (
 #ifndef IEEE80211_STA_ONLY
-            ic->ic_opmode == IEEE80211_M_IBSS ||
+      ic->ic_opmode == IEEE80211_M_IBSS ||
 #endif
 #ifdef IEEE80211_DEBUG
-            ieee80211_debug > 1 ||
+      ieee80211_debug > 1 ||
 #endif
-            (type & IEEE80211_FC0_SUBTYPE_MASK) !=
-            IEEE80211_FC0_SUBTYPE_PROBE_RESP)
-            printf("%s: sending %s to %s on channel %u mode %s\n",
-                ifp->if_xname,
-                ieee80211_mgt_subtype_name[
-                (type & IEEE80211_FC0_SUBTYPE_MASK)
-                >> IEEE80211_FC0_SUBTYPE_SHIFT],
-                ether_sprintf(ni->ni_macaddr),
-                ieee80211_chan2ieee(ic, ni->ni_chan),
-                ieee80211_phymode_name[
-                ieee80211_chan2mode(ic, ni->ni_chan)]);
+      (type & IEEE80211_FC0_SUBTYPE_MASK) != IEEE80211_FC0_SUBTYPE_PROBE_RESP)
+    {
+       nvdbg("%s: sending %s to %s on channel %u mode %s\n",
+             ifp->if_xname,
+             ieee80211_mgt_subtype_name[(type & IEEE80211_FC0_SUBTYPE_MASK) >> IEEE80211_FC0_SUBTYPE_SHIFT],
+             ether_sprintf(ni->ni_macaddr),
+             ieee80211_chan2ieee(ic, ni->ni_chan),
+             ieee80211_phymode_name[ieee80211_chan2mode(ic, ni->ni_chan)]);
     }
+#endif
 
 #ifndef IEEE80211_STA_ONLY
     if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
@@ -552,8 +553,7 @@ ieee80211_encap(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node **pni)
 
     ni = ieee80211_find_txnode(ic, eh.ether_dhost);
     if (ni == NULL) {
-        DPRINTF(("no node for dst %s, discard frame\n",
-            ether_sprintf(eh.ether_dhost)));
+        ndbg("ERROR: no node for dst %s, discard frame\n", ether_sprintf(eh.ether_dhost));
         ic->ic_stats.is_tx_nonode++;
         goto bad;
     }
@@ -561,8 +561,7 @@ ieee80211_encap(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node **pni)
     if ((ic->ic_flags & IEEE80211_F_RSNON) &&
         !ni->ni_port_valid &&
         eh.ether_type != htons(ETHERTYPE_PAE)) {
-        DPRINTF(("port not valid: %s\n",
-            ether_sprintf(eh.ether_dhost)));
+        ndbg("ERROR: port not valid: %s\n", ether_sprintf(eh.ether_dhost));
         ic->ic_stats.is_tx_noauth++;
         goto bad;
     }
@@ -1663,10 +1662,8 @@ ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
         if ((m = ieee80211_get_deauth(ic, ni, arg1)) == NULL)
             senderr(ENOMEM, is_tx_nombuf);
 
-        if (ifp->if_flags & IFF_DEBUG) {
-            printf("%s: station %s deauthenticate (reason %d)\n",
-                ifp->if_xname, ether_sprintf(ni->ni_macaddr),
-                arg1);
+        nvdbg("%s: station %s deauthenticate (reason %d)\n",
+              ifp->if_xname, ether_sprintf(ni->ni_macaddr), arg1);
         }
         break;
 
@@ -1688,10 +1685,8 @@ ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
         if ((m = ieee80211_get_disassoc(ic, ni, arg1)) == NULL)
             senderr(ENOMEM, is_tx_nombuf);
 
-        if (ifp->if_flags & IFF_DEBUG) {
-            printf("%s: station %s disassociate (reason %d)\n",
-                ifp->if_xname, ether_sprintf(ni->ni_macaddr),
-                arg1);
+        nvdbg("%s: station %s disassociate (reason %d)\n",
+              ifp->if_xname, ether_sprintf(ni->ni_macaddr), arg1);
         }
         break;
 
@@ -1703,7 +1698,7 @@ ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
         break;
 
     default:
-        DPRINTF(("invalid mgmt frame type %u\n", type));
+        ndbg("ERROR: invalid mgmt frame type %u\n", type);
         senderr(EINVAL, is_tx_unknownmgt);
         /* NOTREACHED */
     }

@@ -1,5 +1,5 @@
 /****************************************************************************
- *
+ * net/ieee80211/ieee80211_pae_output.c
  *
  * This code implements the 4-Way Handshake and Group Key Handshake protocols
  * (both Supplicant and Authenticator Key Transmit state machines) defined in
@@ -50,6 +50,8 @@
 #endif
 
 #include <wdog.h>
+#include <debug.h>
+
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -157,8 +159,8 @@ ieee80211_eapol_timeout(void *arg)
     struct ieee80211com *ic = ni->ni_ic;
     int s;
 
-    DPRINTF(("no answer from station %s in state %d\n",
-        ether_sprintf(ni->ni_macaddr), ni->ni_rsn_state));
+    ndbg("ERROR: no answer from station %s in state %d\n",
+        ether_sprintf(ni->ni_macaddr), ni->ni_rsn_state);
 
     s = splnet();
 
@@ -306,15 +308,13 @@ ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
 
     m->m_pkthdr.len = m->m_len = frm - (uint8_t *)key;
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: sending msg %d/%d of the %s handshake to %s\n",
-            ic->ic_if.if_xname, 1, 4, "4-way",
-            ether_sprintf(ni->ni_macaddr));
+  nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
+        ic->ic_if.if_xname, 1, 4, "4-way", ether_sprintf(ni->ni_macaddr));
 
-    ni->ni_replaycnt++;
-    BE_WRITE_8(key->replaycnt, ni->ni_replaycnt);
+  ni->ni_replaycnt++;
+  BE_WRITE_8(key->replaycnt, ni->ni_replaycnt);
 
-    return ieee80211_send_eapol_key(ic, m, ni, NULL);
+  return ieee80211_send_eapol_key(ic, m, ni, NULL);
 }
 #endif    /* IEEE80211_STA_ONLY */
 
@@ -361,12 +361,10 @@ ieee80211_send_4way_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
 
     m->m_pkthdr.len = m->m_len = frm - (uint8_t *)key;
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: sending msg %d/%d of the %s handshake to %s\n",
-            ic->ic_if.if_xname, 2, 4, "4-way",
-            ether_sprintf(ni->ni_macaddr));
+  nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
+        ic->ic_if.if_xname, 2, 4, "4-way", ether_sprintf(ni->ni_macaddr));
 
-    return ieee80211_send_eapol_key(ic, m, ni, tptk);
+  return ieee80211_send_eapol_key(ic, m, ni, tptk);
 }
 
 #ifndef IEEE80211_STA_ONLY
@@ -437,20 +435,16 @@ ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
 
     m->m_pkthdr.len = m->m_len = frm - (uint8_t *)key;
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: sending msg %d/%d of the %s handshake to %s\n",
-            ic->ic_if.if_xname, 3, 4, "4-way",
-            ether_sprintf(ni->ni_macaddr));
+  nvbg("%s: sending msg %d/%d of the %s handshake to %s\n",
+       ic->ic_if.if_xname, 3, 4, "4-way", ether_sprintf(ni->ni_macaddr));
 
-    return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
+  return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }
-#endif    /* IEEE80211_STA_ONLY */
+#endif /* IEEE80211_STA_ONLY */
 
-/*
- * Send 4-Way Handshake Message 4 to the authenticator.
- */
-int
-ieee80211_send_4way_msg4(struct ieee80211com *ic, struct ieee80211_node *ni)
+/* Send 4-Way Handshake Message 4 to the authenticator */
+
+int ieee80211_send_4way_msg4(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     struct ieee80211_eapol_key *key;
     struct mbuf *m;
@@ -478,23 +472,20 @@ ieee80211_send_4way_msg4(struct ieee80211com *ic, struct ieee80211_node *ni)
     /* write the key info field */
     BE_WRITE_2(key->info, info);
 
-    /* empty key data field */
-    m->m_pkthdr.len = m->m_len = sizeof(*key);
+  /* Empty key data field */
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: sending msg %d/%d of the %s handshake to %s\n",
-            ic->ic_if.if_xname, 4, 4, "4-way",
-            ether_sprintf(ni->ni_macaddr));
+  m->m_pkthdr.len = m->m_len = sizeof(*key);
 
-    return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
+  nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
+        ic->ic_if.if_xname, 4, 4, "4-way", ether_sprintf(ni->ni_macaddr));
+
+  return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }
 
 #ifndef IEEE80211_STA_ONLY
-/*
- * Send Group Key Handshake Message 1 to the supplicant.
- */
-int
-ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
+/* Send Group Key Handshake Message 1 to the supplicant */
+
+int ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     struct ieee80211_eapol_key *key;
     const struct ieee80211_key *k;
@@ -552,28 +543,27 @@ ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
                 &ic->ic_nw_keys[kid]);
         }
     }
-    /* RSC = last transmit sequence number for the GTK */
-    LE_WRITE_6(key->rsc, k->k_tsc);
 
-    /* write the key info field */
-    BE_WRITE_2(key->info, info);
+  /* RSC = last transmit sequence number for the GTK */
 
-    m->m_pkthdr.len = m->m_len = frm - (uint8_t *)key;
+  LE_WRITE_6(key->rsc, k->k_tsc);
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: sending msg %d/%d of the %s handshake to %s\n",
-            ic->ic_if.if_xname, 1, 2, "group key",
-            ether_sprintf(ni->ni_macaddr));
+  /* write the key info field */
 
-    return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
+  BE_WRITE_2(key->info, info);
+
+  m->m_pkthdr.len = m->m_len = frm - (uint8_t *)key;
+
+  nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
+        ic->ic_if.if_xname, 1, 2, "group key", ether_sprintf(ni->ni_macaddr));
+
+  return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }
-#endif    /* IEEE80211_STA_ONLY */
+#endif /* IEEE80211_STA_ONLY */
 
-/*
- * Send Group Key Handshake Message 2 to the authenticator.
- */
-int
-ieee80211_send_group_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
+/* Send Group Key Handshake Message 2 to the authenticator */
+
+int ieee80211_send_group_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
     const struct ieee80211_key *k)
 {
     struct ieee80211_eapol_key *key;
@@ -597,52 +587,52 @@ ieee80211_send_group_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
         info |= (k->k_id & 3) << EAPOL_KEY_WPA_KID_SHIFT;
     }
 
-    /* write the key info field */
-    BE_WRITE_2(key->info, info);
+  /* Write the key info field */
 
-    /* empty key data field */
-    m->m_pkthdr.len = m->m_len = sizeof(*key);
+  BE_WRITE_2(key->info, info);
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: sending msg %d/%d of the %s handshake to %s\n",
-            ic->ic_if.if_xname, 2, 2, "group key",
-            ether_sprintf(ni->ni_macaddr));
+  /* Empty key data field */
 
-    return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
+  m->m_pkthdr.len = m->m_len = sizeof(*key);
+
+  nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
+        ic->ic_if.if_xname, 2, 2, "group key", ether_sprintf(ni->ni_macaddr));
+
+  return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }
 
-/*
- * EAPOL-Key Request frames are sent by the supplicant to request that the
+/* EAPOL-Key Request frames are sent by the supplicant to request that the
  * authenticator initiates either a 4-Way Handshake or Group Key Handshake,
  * or to report a MIC failure in a TKIP MSDU.
  */
-int
-ieee80211_send_eapol_key_req(struct ieee80211com *ic,
+ 
+int ieee80211_send_eapol_key_req(struct ieee80211com *ic,
     struct ieee80211_node *ni, uint16_t info, uint64_t tsc)
 {
-    struct ieee80211_eapol_key *key;
-    struct mbuf *m;
+  struct ieee80211_eapol_key *key;
+  struct mbuf *m;
 
-    m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
-    if (m == NULL)
-        return ENOMEM;
-    key = mtod(m, struct ieee80211_eapol_key *);
-    memset(key, 0, sizeof(*key));
+  m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
+  if (m == NULL)
+      return ENOMEM;
+  key = mtod(m, struct ieee80211_eapol_key *);
+  memset(key, 0, sizeof(*key));
 
-    info |= EAPOL_KEY_REQUEST;
-    BE_WRITE_2(key->info, info);
+  info |= EAPOL_KEY_REQUEST;
+  BE_WRITE_2(key->info, info);
 
-    /* in case of TKIP MIC failure, fill the RSC field */
-    if (info & EAPOL_KEY_ERROR)
-        LE_WRITE_6(key->rsc, tsc);
+  /* in case of TKIP MIC failure, fill the RSC field */
 
-    /* use our separate key replay counter for key requests */
-    BE_WRITE_8(key->replaycnt, ni->ni_reqreplaycnt);
-    ni->ni_reqreplaycnt++;
+  if (info & EAPOL_KEY_ERROR)
+      LE_WRITE_6(key->rsc, tsc);
 
-    if (ic->ic_if.if_flags & IFF_DEBUG)
-        printf("%s: sending EAPOL-Key request to %s\n",
-            ic->ic_if.if_xname, ether_sprintf(ni->ni_macaddr));
+  /* use our separate key replay counter for key requests */
 
-    return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
+  BE_WRITE_8(key->replaycnt, ni->ni_reqreplaycnt);
+  ni->ni_reqreplaycnt++;
+
+  nvdbg("%s: sending EAPOL-Key request to %s\n",
+        ic->ic_if.if_xname, ether_sprintf(ni->ni_macaddr));
+
+  return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }

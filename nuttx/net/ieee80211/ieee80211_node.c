@@ -68,6 +68,7 @@
 #endif
 
 #include <wdog.h>
+#include <debug.h>
 
 #include <nuttx/tree.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
@@ -276,10 +277,8 @@ ieee80211_begin_scan(struct ifnet *ifp)
     else
         ic->ic_stats.is_scan_passive++;
 #endif
-    if (ifp->if_flags & IFF_DEBUG)
-        printf("%s: begin %s scan\n", ifp->if_xname,
-            (ic->ic_flags & IEEE80211_F_ASCAN) ?
-                "active" : "passive");
+    nvdbg("%s: begin %s scan\n",
+          ifp->if_xname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
 
     /*
      * Flush any previously seen AP's. Note that the latter 
@@ -331,9 +330,9 @@ ieee80211_next_scan(struct ifnet *ifp)
         }
     }
     clrbit(ic->ic_chan_scan, ieee80211_chan2ieee(ic, chan));
-    DPRINTF(("chan %d->%d\n",
+    nvdbg("chan %d->%d\n",
         ieee80211_chan2ieee(ic, ic->ic_bss->ni_chan),
-        ieee80211_chan2ieee(ic, chan)));
+        ieee80211_chan2ieee(ic, chan));
     ic->ic_bss->ni_chan = chan;
     ieee80211_new_state(ic, IEEE80211_S_SCAN, -1);
 }
@@ -346,8 +345,8 @@ ieee80211_create_ibss(struct ieee80211com* ic, struct ieee80211_channel *chan)
     struct ifnet *ifp = &ic->ic_if;
 
     ni = ic->ic_bss;
-    if (ifp->if_flags & IFF_DEBUG)
-        printf("%s: creating ibss\n", ifp->if_xname);
+    nvdbg("%s: creating ibss\n", ifp->if_xname);
+
     ic->ic_flags |= IEEE80211_F_SIBSS;
     ni->ni_chan = chan;
     ni->ni_rates = ic->ic_sup_rates[ieee80211_chan2mode(ic, ni->ni_chan)];
@@ -507,50 +506,47 @@ ieee80211_match_bss(struct ieee80211com *ic, struct ieee80211_node *ni)
             fail |= 0x40;
     }
 
-#ifdef IEEE80211_DEBUG
-    if (ic->ic_if.if_flags & IFF_DEBUG) {
-        printf(" %c %s", fail ? '-' : '+',
-            ether_sprintf(ni->ni_macaddr));
-        printf(" %s%c", ether_sprintf(ni->ni_bssid),
-            fail & 0x20 ? '!' : ' ');
-        printf(" %3d%c", ieee80211_chan2ieee(ic, ni->ni_chan),
-            fail & 0x01 ? '!' : ' ');
-        printf(" %+4d", ni->ni_rssi);
-        printf(" %2dM%c", (rate & IEEE80211_RATE_VAL) / 2,
-            fail & 0x08 ? '!' : ' ');
-        printf(" %4s%c",
-            (ni->ni_capinfo & IEEE80211_CAPINFO_ESS) ? "ess" :
-            (ni->ni_capinfo & IEEE80211_CAPINFO_IBSS) ? "ibss" :
-            "????",
-            fail & 0x02 ? '!' : ' ');
-        printf(" %7s%c ",
-            (ni->ni_capinfo & IEEE80211_CAPINFO_PRIVACY) ?
-            "privacy" : "no",
-            fail & 0x04 ? '!' : ' ');
-        printf(" %3s%c ",
-            (ic->ic_flags & IEEE80211_F_RSNON) ?
-            "rsn" : "no",
-            fail & 0x40 ? '!' : ' ');
-        ieee80211_print_essid(ni->ni_essid, ni->ni_esslen);
-        printf("%s\n", fail & 0x10 ? "!" : "");
-    }
+#if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
+  nvdbg(" %c %s",
+        fail ? '-' : '+',
+        ether_sprintf(ni->ni_macaddr));
+  nvdbg(" %s%c",
+        ether_sprintf(ni->ni_bssid),
+        fail & 0x20 ? '!' : ' ');
+  nvdbg(" %3d%c",
+        ieee80211_chan2ieee(ic, ni->ni_chan),
+         fail & 0x01 ? '!' : ' ');
+  nvdbg(" %+4d",
+        ni->ni_rssi);
+  nvdbg(" %2dM%c",
+        (rate & IEEE80211_RATE_VAL) / 2,
+        fail & 0x08 ? '!' : ' ');
+  nvdbg(" %4s%c",
+        (ni->ni_capinfo & IEEE80211_CAPINFO_ESS) ? "ess" :
+        (ni->ni_capinfo & IEEE80211_CAPINFO_IBSS) ? "ibss" : "????",
+        fail & 0x02 ? '!' : ' ');
+  nvdbg(" %7s%c ",
+        (ni->ni_capinfo & IEEE80211_CAPINFO_PRIVACY) ? "privacy" : "no",
+        fail & 0x04 ? '!' : ' ');
+  nvdbg(" %3s%c ",
+        (ic->ic_flags & IEEE80211_F_RSNON) ? "rsn" : "no",
+        fail & 0x40 ? '!' : ' ');
+  ieee80211_print_essid(ni->ni_essid, ni->ni_esslen);
+  nvdbg("%s\n",
+        fail & 0x10 ? "!" : "");
 #endif
     return fail;
 }
 
-/*
- * Complete a scan of potential channels.
- */
-void
-ieee80211_end_scan(struct ifnet *ifp)
+/* Complete a scan of potential channels */
+
+void ieee80211_end_scan(struct ifnet *ifp)
 {
     struct ieee80211com *ic = (void *)ifp;
     struct ieee80211_node *ni, *nextbs, *selbs;
 
-    if (ifp->if_flags & IFF_DEBUG)
-        printf("%s: end %s scan\n", ifp->if_xname,
-            (ic->ic_flags & IEEE80211_F_ASCAN) ?
-                "active" : "passive");
+    nvdbg("%s: end %s scan\n",
+         ifp->if_xname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
 
     if (ic->ic_scan_count)
         ic->ic_flags &= ~IEEE80211_F_ASCAN;
@@ -587,7 +583,7 @@ ieee80211_end_scan(struct ifnet *ifp)
     }
 #endif
     if (ni == NULL) {
-        DPRINTF(("no scan candidate\n"));
+        ndbg("ERROR: no scan candidate\n");
  notfound:
 
 #ifndef IEEE80211_STA_ONLY
@@ -804,7 +800,7 @@ ieee80211_setup_node(struct ieee80211com *ic,
 {
     int s;
 
-    DPRINTF(("%s\n", ether_sprintf((uint8_t *)macaddr)));
+    nvdbg("%s\n", ether_sprintf((uint8_t *)macaddr));
     IEEE80211_ADDR_COPY(ni->ni_macaddr, macaddr);
     ieee80211_node_newstate(ni, IEEE80211_STA_CACHE);
 
@@ -1049,8 +1045,8 @@ ieee80211_find_rxnode(struct ieee80211com *ic,
     if (ic->ic_newassoc)
         (*ic->ic_newassoc)(ic, ni, 1);
 
-    DPRINTF(("faked-up node %p for %s\n", ni,
-        ether_sprintf((uint8_t *)wh->i_addr2)));
+    nvdbg("faked-up node %p for %s\n", ni,
+        ether_sprintf((uint8_t *)wh->i_addr2));
 
     return ieee80211_ref_node(ni);
 }
@@ -1087,7 +1083,7 @@ ieee80211_free_node(struct ieee80211com *ic, struct ieee80211_node *ni)
 
     splassert(IPL_NET);
 
-    DPRINTF(("%s\n", ether_sprintf(ni->ni_macaddr)));
+    nvdbg("%s\n", ether_sprintf(ni->ni_macaddr));
 #ifndef IEEE80211_STA_ONLY
     wd_cancel(ni->ni_eapol_to);
     wd_cancel(ni->ni_sa_query_to);
@@ -1111,8 +1107,7 @@ ieee80211_release_node(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     int s;
 
-    DPRINTF(("%s refcnt %u\n", ether_sprintf(ni->ni_macaddr),
-        ni->ni_refcnt));
+    nvdbg("%s refcnt %u\n", ether_sprintf(ni->ni_macaddr), ni->ni_refcnt);
     s = splnet();
     if (ieee80211_node_decref(ni) == 0 &&
         ni->ni_state == IEEE80211_STA_COLLECT) {
@@ -1127,7 +1122,7 @@ ieee80211_free_allnodes(struct ieee80211com *ic)
     struct ieee80211_node *ni;
     int s;
 
-    DPRINTF(("freeing all nodes\n"));
+    nvdbg("freeing all nodes\n");
     s = splnet();
     while ((ni = RB_MIN(ieee80211_tree, &ic->ic_tree)) != NULL)
         ieee80211_free_node(ic, ni);
@@ -1199,9 +1194,9 @@ ieee80211_clean_nodes(struct ieee80211com *ic, int cache_timeout)
                     continue;
             }
         }
-        if (ifp->if_flags & IFF_DEBUG)
-            printf("%s: station %s purged from node cache\n",
-                ifp->if_xname, ether_sprintf(ni->ni_macaddr));
+
+        nvdbg("%s: station %s purged from node cache\n",
+              ifp->if_xname, ether_sprintf(ni->ni_macaddr));
 #endif
         /*
          * If we're hostap and the node is authenticated, send
@@ -1226,17 +1221,17 @@ ieee80211_clean_nodes(struct ieee80211com *ic, int cache_timeout)
     }
 
 #ifndef IEEE80211_STA_ONLY
-    /* 
-     * During a cache timeout we iterate over all nodes.
+    /* During a cache timeout we iterate over all nodes.
      * Check for node leaks by comparing the actual number of cached
      * nodes with the ic_nnodes count, which is maintained while adding
      * and removing nodes from the cache.
      */
-    if ((ifp->if_flags & IFF_DEBUG) && cache_timeout &&
-        nnodes != ic->ic_nnodes)
-        printf("%s: number of cached nodes is %d, expected %d,"
-            "possible nodes leak\n", ifp->if_xname, nnodes,
-            ic->ic_nnodes);
+
+    if (cache_timeout && nnodes != ic->ic_nnodes)
+      {
+        ndbg("WARNING: %s: number of cached nodes is %d, expected %d, possible nodes leak\n",
+             ifp->if_xname, nnodes, ic->ic_nnodes);
+      }
 #endif
     splx(s);
 }
@@ -1274,9 +1269,8 @@ ieee80211_setup_rates(struct ieee80211com *ic, struct ieee80211_node *ni,
         nxrates = xrates[1];
         if (rs->rs_nrates + nxrates > IEEE80211_RATE_MAXSIZE) {
             nxrates = IEEE80211_RATE_MAXSIZE - rs->rs_nrates;
-            DPRINTF(("extended rate set too large; "
-                "only using %u of %u rates\n",
-                nxrates, xrates[1]));
+            ndbg("ERROR: extended rate set too large; only using %u of %u rates\n",
+                nxrates, xrates[1]);
             ic->ic_stats.is_rx_rstoobig++;
         }
         memcpy(rs->rs_rates + rs->rs_nrates, xrates+2, nxrates);
@@ -1346,10 +1340,9 @@ ieee80211_node_join_ht(struct ieee80211com *ic, struct ieee80211_node *ni)
 void
 ieee80211_node_join_rsn(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
-    DPRINTF(("station %s associated using proto %d akm 0x%x "
-        "cipher 0x%x groupcipher 0x%x\n", ether_sprintf(ni->ni_macaddr),
-        ni->ni_rsnprotos, ni->ni_rsnakms, ni->ni_rsnciphers,
-        ni->ni_rsngroupcipher));
+    nvdbg("station %s associated using proto %d akm 0x%x cipher 0x%x groupcipher 0x%x\n",
+        ether_sprintf(ni->ni_macaddr), ni->ni_rsnprotos, ni->ni_rsnakms, ni->ni_rsnciphers,
+        ni->ni_rsngroupcipher);
 
     ni->ni_rsn_state = RSNA_AUTHENTICATION;
     ic->ic_rsnsta++;
@@ -1396,8 +1389,8 @@ ieee80211_node_join_11g(struct ieee80211com *ic, struct ieee80211_node *ni)
             if (ic->ic_caps & IEEE80211_C_SHSLOT)
                 ieee80211_set_shortslottime(ic, 0);
         }
-        DPRINTF(("[%s] station needs long slot time, count %d\n",
-            ether_sprintf(ni->ni_macaddr), ic->ic_longslotsta));
+        nvdbg("[%s] station needs long slot time, count %d\n",
+            ether_sprintf(ni->ni_macaddr), ic->ic_longslotsta);
     }
 
     if (!ieee80211_iserp_sta(ni)) {
@@ -1406,13 +1399,12 @@ ieee80211_node_join_11g(struct ieee80211com *ic, struct ieee80211_node *ni)
          */
         ic->ic_nonerpsta++;
 
-        DPRINTF(("[%s] station is non-ERP, %d non-ERP "
-            "stations associated\n", ether_sprintf(ni->ni_macaddr),
-            ic->ic_nonerpsta));
+        nvdbg("[%s] station is non-ERP, %d non-ERP stations associated\n",
+               ether_sprintf(ni->ni_macaddr), ic->ic_nonerpsta);
 
         /* must enable the use of protection */
         if (ic->ic_protmode != IEEE80211_PROT_NONE) {
-            DPRINTF(("enable use of protection\n"));
+            nvdbg("enable use of protection\n");
             ic->ic_flags |= IEEE80211_F_USEPROT;
         }
 
@@ -1454,9 +1446,9 @@ ieee80211_node_join(struct ieee80211com *ic, struct ieee80211_node *ni,
     } else
         newassoc = 0;
 
-    DPRINTF(("station %s %s associated at aid %d\n",
+    nvdbg("station %s %s associated at aid %d\n",
         ether_sprintf(ni->ni_macaddr), newassoc ? "newly" : "already",
-        ni->ni_associd & ~0xc000));
+        ni->ni_associd & ~0xc000);
 
     /* give driver a chance to setup state like ni_txrate */
     if (ic->ic_newassoc)
@@ -1563,8 +1555,8 @@ ieee80211_node_leave_11g(struct ieee80211com *ic, struct ieee80211_node *ni)
                 ic->ic_opmode != IEEE80211_M_IBSS)
                 ieee80211_set_shortslottime(ic, 1);
         }
-        DPRINTF(("[%s] long slot time station leaves, count %d\n",
-            ether_sprintf(ni->ni_macaddr), ic->ic_longslotsta));
+        nvdbg("[%s] long slot time station leaves, count %d\n",
+            ether_sprintf(ni->ni_macaddr), ic->ic_longslotsta);
     }
 
     if (!(ni->ni_flags & IEEE80211_NODE_ERP)) {
@@ -1584,8 +1576,8 @@ ieee80211_node_leave_11g(struct ieee80211com *ic, struct ieee80211_node *ni)
             if (ic->ic_caps & IEEE80211_C_SHPREAMBLE)
                 ic->ic_flags |= IEEE80211_F_SHPREAMBLE;
         }
-        DPRINTF(("[%s] non-ERP station leaves, count %d\n",
-            ether_sprintf(ni->ni_macaddr), ic->ic_nonerpsta));
+        nvdbg("[%s] non-ERP station leaves, count %d\n",
+            ether_sprintf(ni->ni_macaddr), ic->ic_nonerpsta);
     }
 }
 
@@ -1650,17 +1642,23 @@ ieee80211_node_leave(struct ieee80211com *ic, struct ieee80211_node *ni)
 static int
 ieee80211_do_slow_print(struct ieee80211com *ic, int *did_print)
 {
-    static const struct timeval merge_print_intvl = {
-        .tv_sec = 1, .tv_usec = 0
-    };
-    if ((ic->ic_if.if_flags & IFF_LINK0) == 0)
-        return 0;
-    if (!*did_print && (ic->ic_if.if_flags & IFF_DEBUG) == 0 &&
-        !ratecheck(&ic->ic_last_merge_print, &merge_print_intvl))
-        return 0;
+  static const struct timeval merge_print_intvl =
+  {
+    .tv_sec = 1, .tv_usec = 0
+  };
 
-    *did_print = 1;
-    return 1;
+  if ((ic->ic_if.if_flags & IFF_LINK0) == 0)
+    {
+      return 0;
+    }
+
+  if (!*did_print && !ratecheck(&ic->ic_last_merge_print, &merge_print_intvl))
+    {
+      return 0;
+    }
+
+  *did_print = 1;
+  return 1;
 }
 
 /* ieee80211_ibss_merge helps merge 802.11 ad hoc networks.  The
