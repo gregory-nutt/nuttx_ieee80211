@@ -40,8 +40,8 @@
 #include <netinet/if_ether.h>
 #endif
 
-#include <nuttx/ieee80211/ieee80211_var.h>
-#include <nuttx/ieee80211/ieee80211_regdomain.h>
+#include <nuttx/net/ieee80211/ieee80211_var.h>
+#include <nuttx/net/ieee80211/ieee80211_regdomain.h>
 
 int	 ieee80211_regdomain_compare_cn(const void *, const void *);
 int	 ieee80211_regdomain_compare_rn(const void *, const void *);
@@ -95,7 +95,7 @@ ieee80211_regdomain_compare_rn(const void *a, const void *b)
 	    ((const struct ieee80211_regdomainname*)b)->rn_name));
 }
 
-u_int16_t
+uint16_t
 ieee80211_name2countrycode(const char *name)
 {
 	const struct ieee80211_countryname key = { CTRY_DEFAULT, name }, *value;
@@ -128,7 +128,7 @@ ieee80211_name2regdomain(const char *name)
 }
 
 const char *
-ieee80211_countrycode2name(u_int16_t code)
+ieee80211_countrycode2name(uint16_t code)
 {
 	int i;
 
@@ -156,7 +156,7 @@ ieee80211_regdomain2name(u_int32_t regdomain)
 }
 
 u_int32_t
-ieee80211_regdomain2flag(u_int16_t regdomain, u_int16_t mhz)
+ieee80211_regdomain2flag(uint16_t regdomain, uint16_t mhz)
 {
 	int i;
 
@@ -177,7 +177,7 @@ ieee80211_regdomain2flag(u_int16_t regdomain, u_int16_t mhz)
 }
 
 u_int32_t
-ieee80211_countrycode2regdomain(u_int16_t code)
+ieee80211_countrycode2regdomain(uint16_t code)
 {
 	int i;
 

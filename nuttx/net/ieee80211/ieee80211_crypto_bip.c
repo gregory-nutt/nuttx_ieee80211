@@ -39,9 +39,9 @@
 #include <netinet/if_ether.h>
 #endif
 
-#include <nuttx/ieee80211/ieee80211_var.h>
-#include <nuttx/ieee80211/ieee80211_crypto.h>
-#include <nuttx/ieee80211/ieee80211_priv.h>
+#include <nuttx/net/ieee80211/ieee80211_var.h>
+#include <nuttx/net/ieee80211/ieee80211_crypto.h>
+#include <nuttx/net/ieee80211/ieee80211_priv.h>
 
 #include <crypto/rijndael.h>
 #include <crypto/cmac.h>
@@ -78,10 +78,10 @@ ieee80211_bip_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
 
 /* pseudo-header used for BIP MIC computation */
 struct ieee80211_bip_frame {
-	u_int8_t	i_fc[2];
-	u_int8_t	i_addr1[IEEE80211_ADDR_LEN];
-	u_int8_t	i_addr2[IEEE80211_ADDR_LEN];
-	u_int8_t	i_addr3[IEEE80211_ADDR_LEN];
+	uint8_t	i_fc[2];
+	uint8_t	i_addr1[IEEE80211_ADDR_LEN];
+	uint8_t	i_addr2[IEEE80211_ADDR_LEN];
+	uint8_t	i_addr3[IEEE80211_ADDR_LEN];
 } __packed;
 
 struct mbuf *
@@ -91,7 +91,7 @@ ieee80211_bip_encap(struct ieee80211com *ic, struct mbuf *m0,
 	struct ieee80211_bip_ctx *ctx = k->k_priv;
 	struct ieee80211_bip_frame aad;
 	struct ieee80211_frame *wh;
-	u_int8_t *mmie, mic[AES_CMAC_DIGEST_LENGTH];
+	uint8_t *mmie, mic[AES_CMAC_DIGEST_LENGTH];
 	struct mbuf *m;
 
 	wh = mtod(m0, struct ieee80211_frame *);
@@ -110,8 +110,8 @@ ieee80211_bip_encap(struct ieee80211com *ic, struct mbuf *m0,
 	IEEE80211_ADDR_COPY(aad.i_addr3, wh->i_addr3);
 
 	AES_CMAC_Init(&ctx->cmac);
-	AES_CMAC_Update(&ctx->cmac, (u_int8_t *)&aad, sizeof aad);
-	AES_CMAC_Update(&ctx->cmac, (u_int8_t *)&wh[1],
+	AES_CMAC_Update(&ctx->cmac, (uint8_t *)&aad, sizeof aad);
+	AES_CMAC_Update(&ctx->cmac, (uint8_t *)&wh[1],
 	    m0->m_len - sizeof(*wh));
 
 	m = m0;
@@ -125,7 +125,7 @@ ieee80211_bip_encap(struct ieee80211com *ic, struct mbuf *m0,
 	}
 
 	/* construct Management MIC IE */
-	mmie = mtod(m, u_int8_t *) + m->m_len;
+	mmie = mtod(m, uint8_t *) + m->m_len;
 	mmie[0] = IEEE80211_ELEMID_MMIE;
 	mmie[1] = 16;
 	LE_WRITE_2(&mmie[2], k->k_id);
@@ -156,7 +156,7 @@ ieee80211_bip_decap(struct ieee80211com *ic, struct mbuf *m0,
 	struct ieee80211_bip_ctx *ctx = k->k_priv;
 	struct ieee80211_frame *wh;
 	struct ieee80211_bip_frame aad;
-	u_int8_t *mmie, mic0[8], mic[AES_CMAC_DIGEST_LENGTH];
+	uint8_t *mmie, mic0[8], mic[AES_CMAC_DIGEST_LENGTH];
 	u_int64_t ipn;
 
 	wh = mtod(m0, struct ieee80211_frame *);
@@ -169,7 +169,7 @@ ieee80211_bip_decap(struct ieee80211com *ic, struct mbuf *m0,
 	 * a header and a MMIE (checked in ieee80211_decrypt()).
 	 */
 	KASSERT(m0->m_len >= sizeof(*wh) + IEEE80211_MMIE_LEN);
-	mmie = mtod(m0, u_int8_t *) + m0->m_len - IEEE80211_MMIE_LEN;
+	mmie = mtod(m0, uint8_t *) + m0->m_len - IEEE80211_MMIE_LEN;
 
 	ipn = LE_READ_6(&mmie[4]);
 	if (ipn <= k->k_mgmt_rsc) {
@@ -194,8 +194,8 @@ ieee80211_bip_decap(struct ieee80211com *ic, struct mbuf *m0,
 
 	/* compute MIC */
 	AES_CMAC_Init(&ctx->cmac);
-	AES_CMAC_Update(&ctx->cmac, (u_int8_t *)&aad, sizeof aad);
-	AES_CMAC_Update(&ctx->cmac, (u_int8_t *)&wh[1],
+	AES_CMAC_Update(&ctx->cmac, (uint8_t *)&aad, sizeof aad);
+	AES_CMAC_Update(&ctx->cmac, (uint8_t *)&wh[1],
 	    m0->m_len - sizeof(*wh));
 	AES_CMAC_Final(mic, &ctx->cmac);
 

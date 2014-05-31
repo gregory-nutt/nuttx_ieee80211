@@ -38,8 +38,8 @@
 #include <netinet/if_ether.h>
 #endif
 
-#include <nuttx/ieee80211/ieee80211_var.h>
-#include <nuttx/ieee80211/ieee80211_priv.h>
+#include <nuttx/net/ieee80211/ieee80211_var.h>
+#include <nuttx/net/ieee80211/ieee80211_priv.h>
 
 #include <dev/rndvar.h>
 #include <crypto/arc4.h>
@@ -51,12 +51,12 @@
 #include <crypto/cmac.h>
 #include <crypto/key_wrap.h>
 
-void	ieee80211_prf(const u_int8_t *, size_t, const u_int8_t *, size_t,
-	    const u_int8_t *, size_t, u_int8_t *, size_t);
-void	ieee80211_kdf(const u_int8_t *, size_t, const u_int8_t *, size_t,
-	    const u_int8_t *, size_t, u_int8_t *, size_t);
-void	ieee80211_derive_pmkid(enum ieee80211_akm, const u_int8_t *,
-	    const u_int8_t *, const u_int8_t *, u_int8_t *);
+void	ieee80211_prf(const uint8_t *, size_t, const uint8_t *, size_t,
+	    const uint8_t *, size_t, uint8_t *, size_t);
+void	ieee80211_kdf(const uint8_t *, size_t, const uint8_t *, size_t,
+	    const uint8_t *, size_t, uint8_t *, size_t);
+void	ieee80211_derive_pmkid(enum ieee80211_akm, const uint8_t *,
+	    const uint8_t *, const uint8_t *, uint8_t *);
 
 void
 ieee80211_crypto_attach(struct ifnet *ifp)
@@ -228,8 +228,8 @@ ieee80211_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 {
 	struct ieee80211_frame *wh;
 	struct ieee80211_key *k;
-	u_int8_t *ivp, *mmie;
-	u_int16_t kid;
+	uint8_t *ivp, *mmie;
+	uint16_t kid;
 	int hdrlen;
 
 	/* find key for decryption */
@@ -249,7 +249,7 @@ ieee80211_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 			m_freem(m0);
 			return NULL;
 		}
-		ivp = (u_int8_t *)wh + hdrlen;
+		ivp = (uint8_t *)wh + hdrlen;
 		kid = ivp[3] >> 6;
 		k = &ic->ic_nw_keys[kid];
 	} else {
@@ -259,7 +259,7 @@ ieee80211_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 			return NULL;
 		}
 		/* it is assumed management frames are contiguous */
-		mmie = (u_int8_t *)wh + m0->m_len - IEEE80211_MMIE_LEN;
+		mmie = (uint8_t *)wh + m0->m_len - IEEE80211_MMIE_LEN;
 		/* check that MMIE is valid */
 		if (mmie[0] != IEEE80211_ELEMID_MMIE || mmie[1] != 16) {
 			m_freem(m0);
@@ -298,13 +298,13 @@ ieee80211_decrypt(struct ieee80211com *ic, struct mbuf *m0,
  * SHA1-based Pseudo-Random Function (see 8.5.1.1).
  */
 void
-ieee80211_prf(const u_int8_t *key, size_t key_len, const u_int8_t *label,
-    size_t label_len, const u_int8_t *context, size_t context_len,
-    u_int8_t *output, size_t len)
+ieee80211_prf(const uint8_t *key, size_t key_len, const uint8_t *label,
+    size_t label_len, const uint8_t *context, size_t context_len,
+    uint8_t *output, size_t len)
 {
 	HMAC_SHA1_CTX ctx;
-	u_int8_t digest[SHA1_DIGEST_LENGTH];
-	u_int8_t count;
+	uint8_t digest[SHA1_DIGEST_LENGTH];
+	uint8_t count;
 
 	for (count = 0; len != 0; count++) {
 		HMAC_SHA1_Init(&ctx, key, key_len);
@@ -327,22 +327,22 @@ ieee80211_prf(const u_int8_t *key, size_t key_len, const u_int8_t *label,
  * SHA256-based Key Derivation Function (see 8.5.1.5.2).
  */
 void
-ieee80211_kdf(const u_int8_t *key, size_t key_len, const u_int8_t *label,
-    size_t label_len, const u_int8_t *context, size_t context_len,
-    u_int8_t *output, size_t len)
+ieee80211_kdf(const uint8_t *key, size_t key_len, const uint8_t *label,
+    size_t label_len, const uint8_t *context, size_t context_len,
+    uint8_t *output, size_t len)
 {
 	HMAC_SHA256_CTX ctx;
-	u_int8_t digest[SHA256_DIGEST_LENGTH];
-	u_int16_t i, iter, length;
+	uint8_t digest[SHA256_DIGEST_LENGTH];
+	uint16_t i, iter, length;
 
 	length = htole16(len * NBBY);
 	for (i = 1; len != 0; i++) {
 		HMAC_SHA256_Init(&ctx, key, key_len);
 		iter = htole16(i);
-		HMAC_SHA256_Update(&ctx, (u_int8_t *)&iter, sizeof iter);
+		HMAC_SHA256_Update(&ctx, (uint8_t *)&iter, sizeof iter);
 		HMAC_SHA256_Update(&ctx, label, label_len);
 		HMAC_SHA256_Update(&ctx, context, context_len);
-		HMAC_SHA256_Update(&ctx, (u_int8_t *)&length, sizeof length);
+		HMAC_SHA256_Update(&ctx, (uint8_t *)&length, sizeof length);
 		if (len < SHA256_DIGEST_LENGTH) {
 			HMAC_SHA256_Final(digest, &ctx);
 			/* truncate HMAC-SHA-256 to len bytes */
@@ -359,13 +359,13 @@ ieee80211_kdf(const u_int8_t *key, size_t key_len, const u_int8_t *label,
  * Derive Pairwise Transient Key (PTK) (see 8.5.1.2).
  */
 void
-ieee80211_derive_ptk(enum ieee80211_akm akm, const u_int8_t *pmk,
-    const u_int8_t *aa, const u_int8_t *spa, const u_int8_t *anonce,
-    const u_int8_t *snonce, struct ieee80211_ptk *ptk)
+ieee80211_derive_ptk(enum ieee80211_akm akm, const uint8_t *pmk,
+    const uint8_t *aa, const uint8_t *spa, const uint8_t *anonce,
+    const uint8_t *snonce, struct ieee80211_ptk *ptk)
 {
-	void (*kdf)(const u_int8_t *, size_t, const u_int8_t *, size_t,
-	    const u_int8_t *, size_t, u_int8_t *, size_t);
-	u_int8_t buf[2 * IEEE80211_ADDR_LEN + 2 * EAPOL_KEY_NONCE_LEN];
+	void (*kdf)(const uint8_t *, size_t, const uint8_t *, size_t,
+	    const uint8_t *, size_t, uint8_t *, size_t);
+	uint8_t buf[2 * IEEE80211_ADDR_LEN + 2 * EAPOL_KEY_NONCE_LEN];
 	int ret;
 
 	/* Min(AA,SPA) || Max(AA,SPA) */
@@ -380,15 +380,15 @@ ieee80211_derive_ptk(enum ieee80211_akm akm, const u_int8_t *pmk,
 
 	kdf = ieee80211_is_sha256_akm(akm) ? ieee80211_kdf : ieee80211_prf;
 	(*kdf)(pmk, IEEE80211_PMK_LEN, "Pairwise key expansion", 23,
-	    buf, sizeof buf, (u_int8_t *)ptk, sizeof(*ptk));
+	    buf, sizeof buf, (uint8_t *)ptk, sizeof(*ptk));
 }
 
 static void
-ieee80211_pmkid_sha1(const u_int8_t *pmk, const u_int8_t *aa,
-    const u_int8_t *spa, u_int8_t *pmkid)
+ieee80211_pmkid_sha1(const uint8_t *pmk, const uint8_t *aa,
+    const uint8_t *spa, uint8_t *pmkid)
 {
 	HMAC_SHA1_CTX ctx;
-	u_int8_t digest[SHA1_DIGEST_LENGTH];
+	uint8_t digest[SHA1_DIGEST_LENGTH];
 
 	HMAC_SHA1_Init(&ctx, pmk, IEEE80211_PMK_LEN);
 	HMAC_SHA1_Update(&ctx, "PMK Name", 8);
@@ -400,11 +400,11 @@ ieee80211_pmkid_sha1(const u_int8_t *pmk, const u_int8_t *aa,
 }
 
 static void
-ieee80211_pmkid_sha256(const u_int8_t *pmk, const u_int8_t *aa,
-    const u_int8_t *spa, u_int8_t *pmkid)
+ieee80211_pmkid_sha256(const uint8_t *pmk, const uint8_t *aa,
+    const uint8_t *spa, uint8_t *pmkid)
 {
 	HMAC_SHA256_CTX ctx;
-	u_int8_t digest[SHA256_DIGEST_LENGTH];
+	uint8_t digest[SHA256_DIGEST_LENGTH];
 
 	HMAC_SHA256_Init(&ctx, pmk, IEEE80211_PMK_LEN);
 	HMAC_SHA256_Update(&ctx, "PMK Name", 8);
@@ -419,8 +419,8 @@ ieee80211_pmkid_sha256(const u_int8_t *pmk, const u_int8_t *aa,
  * Derive Pairwise Master Key Identifier (PMKID) (see 8.5.1.2).
  */
 void
-ieee80211_derive_pmkid(enum ieee80211_akm akm, const u_int8_t *pmk,
-    const u_int8_t *aa, const u_int8_t *spa, u_int8_t *pmkid)
+ieee80211_derive_pmkid(enum ieee80211_akm akm, const uint8_t *pmk,
+    const uint8_t *aa, const uint8_t *spa, uint8_t *pmkid)
 {
 	if (ieee80211_is_sha256_akm(akm))
 		ieee80211_pmkid_sha256(pmk, aa, spa, pmkid);
@@ -440,9 +440,9 @@ typedef union _ANY_CTX {
  * or AES-128-CMAC depending on the EAPOL-Key Key Descriptor Version.
  */
 void
-ieee80211_eapol_key_mic(struct ieee80211_eapol_key *key, const u_int8_t *kck)
+ieee80211_eapol_key_mic(struct ieee80211_eapol_key *key, const uint8_t *kck)
 {
-	u_int8_t digest[SHA1_DIGEST_LENGTH];
+	uint8_t digest[SHA1_DIGEST_LENGTH];
 	ANY_CTX ctx;	/* XXX off stack? */
 	u_int len;
 
@@ -451,12 +451,12 @@ ieee80211_eapol_key_mic(struct ieee80211_eapol_key *key, const u_int8_t *kck)
 	switch (BE_READ_2(key->info) & EAPOL_KEY_VERSION_MASK) {
 	case EAPOL_KEY_DESC_V1:
 		HMAC_MD5_Init(&ctx.md5, kck, 16);
-		HMAC_MD5_Update(&ctx.md5, (u_int8_t *)key, len);
+		HMAC_MD5_Update(&ctx.md5, (uint8_t *)key, len);
 		HMAC_MD5_Final(key->mic, &ctx.md5);
 		break;
 	case EAPOL_KEY_DESC_V2:
 		HMAC_SHA1_Init(&ctx.sha1, kck, 16);
-		HMAC_SHA1_Update(&ctx.sha1, (u_int8_t *)key, len);
+		HMAC_SHA1_Update(&ctx.sha1, (uint8_t *)key, len);
 		HMAC_SHA1_Final(digest, &ctx.sha1);
 		/* truncate HMAC-SHA1 to its 128 MSBs */
 		memcpy(key->mic, digest, EAPOL_KEY_MIC_LEN);
@@ -464,7 +464,7 @@ ieee80211_eapol_key_mic(struct ieee80211_eapol_key *key, const u_int8_t *kck)
 	case EAPOL_KEY_DESC_V3:
 		AES_CMAC_Init(&ctx.cmac);
 		AES_CMAC_SetKey(&ctx.cmac, kck);
-		AES_CMAC_Update(&ctx.cmac, (u_int8_t *)key, len);
+		AES_CMAC_Update(&ctx.cmac, (uint8_t *)key, len);
 		AES_CMAC_Final(key->mic, &ctx.cmac);
 		break;
 	}
@@ -476,9 +476,9 @@ ieee80211_eapol_key_mic(struct ieee80211_eapol_key *key, const u_int8_t *kck)
  */
 int
 ieee80211_eapol_key_check_mic(struct ieee80211_eapol_key *key,
-    const u_int8_t *kck)
+    const uint8_t *kck)
 {
-	u_int8_t mic[EAPOL_KEY_MIC_LEN];
+	uint8_t mic[EAPOL_KEY_MIC_LEN];
 
 	memcpy(mic, key->mic, EAPOL_KEY_MIC_LEN);
 	memset(key->mic, 0, EAPOL_KEY_MIC_LEN);
@@ -495,20 +495,20 @@ ieee80211_eapol_key_check_mic(struct ieee80211_eapol_key *key,
  */
 void
 ieee80211_eapol_key_encrypt(struct ieee80211com *ic,
-    struct ieee80211_eapol_key *key, const u_int8_t *kek)
+    struct ieee80211_eapol_key *key, const uint8_t *kek)
 {
 	union {
 		struct rc4_ctx rc4;
 		aes_key_wrap_ctx aes;
 	} ctx;	/* XXX off stack? */
-	u_int8_t keybuf[EAPOL_KEY_IV_LEN + 16];
-	u_int16_t len, info;
-	u_int8_t *data;
+	uint8_t keybuf[EAPOL_KEY_IV_LEN + 16];
+	uint16_t len, info;
+	uint8_t *data;
 	int n;
 
 	len  = BE_READ_2(key->paylen);
 	info = BE_READ_2(key->info);
-	data = (u_int8_t *)(key + 1);
+	data = (uint8_t *)(key + 1);
 
 	switch (info & EAPOL_KEY_VERSION_MASK) {
 	case EAPOL_KEY_DESC_V1:
@@ -554,19 +554,19 @@ ieee80211_eapol_key_encrypt(struct ieee80211com *ic,
  */
 int
 ieee80211_eapol_key_decrypt(struct ieee80211_eapol_key *key,
-    const u_int8_t *kek)
+    const uint8_t *kek)
 {
 	union {
 		struct rc4_ctx rc4;
 		aes_key_wrap_ctx aes;
 	} ctx;	/* XXX off stack? */
-	u_int8_t keybuf[EAPOL_KEY_IV_LEN + 16];
-	u_int16_t len, info;
-	u_int8_t *data;
+	uint8_t keybuf[EAPOL_KEY_IV_LEN + 16];
+	uint16_t len, info;
+	uint8_t *data;
 
 	len  = BE_READ_2(key->paylen);
 	info = BE_READ_2(key->info);
-	data = (u_int8_t *)(key + 1);
+	data = (uint8_t *)(key + 1);
 
 	switch (info & EAPOL_KEY_VERSION_MASK) {
 	case EAPOL_KEY_DESC_V1:
@@ -597,7 +597,7 @@ ieee80211_eapol_key_decrypt(struct ieee80211_eapol_key *key,
  */
 struct ieee80211_pmk *
 ieee80211_pmksa_add(struct ieee80211com *ic, enum ieee80211_akm akm,
-    const u_int8_t *macaddr, const u_int8_t *key, u_int32_t lifetime)
+    const uint8_t *macaddr, const uint8_t *key, u_int32_t lifetime)
 {
 	struct ieee80211_pmk *pmk;
 
@@ -635,7 +635,7 @@ ieee80211_pmksa_add(struct ieee80211com *ic, enum ieee80211_akm akm,
  */
 struct ieee80211_pmk *
 ieee80211_pmksa_find(struct ieee80211com *ic, struct ieee80211_node *ni,
-    const u_int8_t *pmkid)
+    const uint8_t *pmkid)
 {
 	struct ieee80211_pmk *pmk;
 

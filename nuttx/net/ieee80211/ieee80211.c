@@ -60,8 +60,8 @@
 #include <netinet/if_ether.h>
 #endif
 
-#include <nuttx/ieee80211/ieee80211_var.h>
-#include <nuttx/ieee80211/ieee80211_priv.h>
+#include <nuttx/net/ieee80211/ieee80211_var.h>
+#include <nuttx/net/ieee80211/ieee80211_priv.h>
 
 #ifdef IEEE80211_DEBUG
 int	ieee80211_debug = 0;
@@ -921,8 +921,8 @@ ieee80211_media2rate(int mword)
 /*
  * Convert bit rate (in 0.5Mbps units) to PLCP signal (R4-R1) and vice versa.
  */
-u_int8_t
-ieee80211_rate2plcp(u_int8_t rate, enum ieee80211_phymode mode)
+uint8_t
+ieee80211_rate2plcp(uint8_t rate, enum ieee80211_phymode mode)
 {
 	rate &= IEEE80211_RATE_VAL;
 
@@ -956,8 +956,8 @@ ieee80211_rate2plcp(u_int8_t rate, enum ieee80211_phymode mode)
 	return 0;
 }
 
-u_int8_t
-ieee80211_plcp2rate(u_int8_t plcp, enum ieee80211_phymode mode)
+uint8_t
+ieee80211_plcp2rate(uint8_t plcp, enum ieee80211_phymode mode)
 {
 	if (mode == IEEE80211_MODE_11B) {
 		/* IEEE Std 802.11g-2003 page 19, subclause 19.3.2.1 */

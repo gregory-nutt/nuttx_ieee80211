@@ -39,8 +39,8 @@
 #include <netinet/if_ether.h>
 #endif
 
-#include <nuttx/ieee80211/ieee80211_var.h>
-#include <nuttx/ieee80211/ieee80211_crypto.h>
+#include <nuttx/net/ieee80211/ieee80211_var.h>
+#include <nuttx/net/ieee80211/ieee80211_crypto.h>
 
 #include <dev/rndvar.h>
 #include <crypto/arc4.h>
@@ -84,10 +84,10 @@ ieee80211_wep_encrypt(struct ieee80211com *ic, struct mbuf *m0,
     struct ieee80211_key *k)
 {
 	struct ieee80211_wep_ctx *ctx = k->k_priv;
-	u_int8_t wepseed[16];
+	uint8_t wepseed[16];
 	const struct ieee80211_frame *wh;
 	struct mbuf *n0, *m, *n;
-	u_int8_t *ivp, *icvp;
+	uint8_t *ivp, *icvp;
 	u_int32_t iv, crc;
 	int left, moff, noff, len, hdrlen;
 
@@ -117,7 +117,7 @@ ieee80211_wep_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 	if (iv >= 0x03ff00 && (iv & 0xf8ff00) == 0x00ff00)
 		iv += 0x000100;
 	ctx->iv = iv + 1;
-	ivp = mtod(n0, u_int8_t *) + hdrlen;
+	ivp = mtod(n0, uint8_t *) + hdrlen;
 	ivp[0] = iv;
 	ivp[1] = iv >> 8;
 	ivp[2] = iv >> 16;
@@ -204,9 +204,9 @@ ieee80211_wep_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 {
 	struct ieee80211_wep_ctx *ctx = k->k_priv;
 	struct ieee80211_frame *wh;
-	u_int8_t wepseed[16];
+	uint8_t wepseed[16];
 	u_int32_t crc, crc0;
-	u_int8_t *ivp;
+	uint8_t *ivp;
 	struct mbuf *n0, *m, *n;
 	int hdrlen, left, moff, noff, len;
 
@@ -219,7 +219,7 @@ ieee80211_wep_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 	}
 
 	/* concatenate IV and WEP Key */
-	ivp = (u_int8_t *)wh + hdrlen;
+	ivp = (uint8_t *)wh + hdrlen;
 	memcpy(wepseed, ivp, IEEE80211_WEP_IVLEN);
 	memcpy(wepseed + IEEE80211_WEP_IVLEN, k->k_key, k->k_len);
 	rc4_keysetup(&ctx->rc4, wepseed, IEEE80211_WEP_IVLEN + k->k_len);

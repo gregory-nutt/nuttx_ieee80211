@@ -51,9 +51,9 @@
 #include <netinet/if_ether.h>
 #endif
 
-#include <nuttx/ieee80211/ieee80211_var.h>
-#include <nuttx/ieee80211/ieee80211_crypto.h>
-#include <nuttx/ieee80211/ieee80211_ioctl.h>
+#include <nuttx/net/ieee80211/ieee80211_var.h>
+#include <nuttx/net/ieee80211/ieee80211_crypto.h>
+#include <nuttx/net/ieee80211/ieee80211_ioctl.h>
 
 void	 ieee80211_node2req(struct ieee80211com *,
 	    const struct ieee80211_node *, struct ieee80211_nodereq *);
@@ -338,7 +338,7 @@ ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
 	struct ieee80211chanreq *chanreq;
 	struct ieee80211_channel *chan;
 	struct ieee80211_txpower *txpower;
-	static const u_int8_t empty_macaddr[IEEE80211_ADDR_LEN] = {
+	static const uint8_t empty_macaddr[IEEE80211_ADDR_LEN] = {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	};
 	struct ieee80211_nodereq *nr, nrbuf;

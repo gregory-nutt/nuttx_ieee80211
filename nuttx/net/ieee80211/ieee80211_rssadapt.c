@@ -41,8 +41,8 @@
 #include <netinet/if_ether.h>
 #endif
 
-#include <nuttx/ieee80211/ieee80211_var.h>
-#include <nuttx/ieee80211/ieee80211_rssadapt.h>
+#include <nuttx/net/ieee80211/ieee80211_var.h>
+#include <nuttx/net/ieee80211/ieee80211_rssadapt.h>
 
 #ifdef interpolate
 #undef interpolate
@@ -84,7 +84,7 @@ ieee80211_rssadapt_choose(struct ieee80211_rssadapt *ra,
     const struct ieee80211_rateset *rs, const struct ieee80211_frame *wh,
     u_int len, int fixed_rate, const char *dvname, int do_not_adapt)
 {
-	u_int16_t (*thrs)[IEEE80211_RATE_SIZE];
+	uint16_t (*thrs)[IEEE80211_RATE_SIZE];
 	int flags = 0, i, rateidx = 0, thridx, top;
 
 	if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_CTL)
@@ -124,7 +124,7 @@ out:
 #ifdef IEEE80211_DEBUG
 	if (ieee80211_rssadapt_debug && dvname != NULL) {
 		printf("%s: dst %s threshold[%d, %d.%d] %d < %d\n",
-		    dvname, ether_sprintf((u_int8_t *)wh->i_addr1), len,
+		    dvname, ether_sprintf((uint8_t *)wh->i_addr1), len,
 		    (rs->rs_rates[rateidx] & IEEE80211_RATE_VAL) / 2,
 		    (rs->rs_rates[rateidx] & IEEE80211_RATE_VAL) * 5 % 10,
 		    (*thrs)[rateidx], ra->ra_avg_rssi);
@@ -162,7 +162,7 @@ ieee80211_rssadapt_input(struct ieee80211com *ic,
 	    ra->ra_avg_rssi, (rssi << 8));
 
 	RSSADAPT_PRINTF(("%s: src %s rssi %d avg %d -> %d\n",
-	    ic->ic_if.if_xname, ether_sprintf((u_int8_t *)ni->ni_macaddr),
+	    ic->ic_if.if_xname, ether_sprintf((uint8_t *)ni->ni_macaddr),
 	    rssi, last_avg_rssi, ra->ra_avg_rssi));
 }
 
@@ -178,7 +178,7 @@ ieee80211_rssadapt_lower_rate(struct ieee80211com *ic,
     const struct ieee80211_rssdesc *id)
 {
 	const struct ieee80211_rateset *rs = &ni->ni_rates;
-	u_int16_t last_thr;
+	uint16_t last_thr;
 	u_int i, thridx, top;
 
 	ra->ra_nfail++;
@@ -186,7 +186,7 @@ ieee80211_rssadapt_lower_rate(struct ieee80211com *ic,
 	if (id->id_rateidx >= rs->rs_nrates) {
 		RSSADAPT_PRINTF(("ieee80211_rssadapt_lower_rate: "
 		    "%s rate #%d > #%d out of bounds\n",
-		    ether_sprintf((u_int8_t *)ni->ni_macaddr), id->id_rateidx,
+		    ether_sprintf((uint8_t *)ni->ni_macaddr), id->id_rateidx,
 		    rs->rs_nrates - 1));
 		return;
 	}
@@ -205,7 +205,7 @@ ieee80211_rssadapt_lower_rate(struct ieee80211com *ic,
 	    (id->id_rssi << 8));
 
 	RSSADAPT_PRINTF(("%s: dst %s rssi %d threshold[%d, %d.%d] %d -> %d\n",
-	    ic->ic_if.if_xname, ether_sprintf((u_int8_t *)ni->ni_macaddr),
+	    ic->ic_if.if_xname, ether_sprintf((uint8_t *)ni->ni_macaddr),
 	    id->id_rssi, id->id_len,
 	    (rs->rs_rates[id->id_rateidx] & IEEE80211_RATE_VAL) / 2,
 	    (rs->rs_rates[id->id_rateidx] & IEEE80211_RATE_VAL) * 5 % 10,
@@ -216,7 +216,7 @@ void
 ieee80211_rssadapt_raise_rate(struct ieee80211com *ic,
     struct ieee80211_rssadapt *ra, const struct ieee80211_rssdesc *id)
 {
-	u_int16_t (*thrs)[IEEE80211_RATE_SIZE], newthr, oldthr;
+	uint16_t (*thrs)[IEEE80211_RATE_SIZE], newthr, oldthr;
 	const struct ieee80211_node *ni = id->id_node;
 	const struct ieee80211_rateset *rs = &ni->ni_rates;
 	int i, rate, top;
@@ -259,7 +259,7 @@ ieee80211_rssadapt_raise_rate(struct ieee80211com *ic,
 #ifdef IEEE80211_DEBUG
 	if (RSSADAPT_DO_PRINT()) {
 		printf("%s: dst %s thresholds\n", ic->ic_if.if_xname,
-		    ether_sprintf((u_int8_t *)ni->ni_macaddr));
+		    ether_sprintf((uint8_t *)ni->ni_macaddr));
 		for (i = 0; i < IEEE80211_RSSADAPT_BKTS; i++) {
 			printf("%d-byte", IEEE80211_RSSADAPT_BKT0 <<
 			    (IEEE80211_RSSADAPT_BKTPOWER * i));

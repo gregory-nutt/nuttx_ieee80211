@@ -39,8 +39,8 @@
 #include <netinet/if_ether.h>
 #endif
 
-#include <nuttx/ieee80211/ieee80211_var.h>
-#include <nuttx/ieee80211/ieee80211_crypto.h>
+#include <nuttx/net/ieee80211/ieee80211_var.h>
+#include <nuttx/net/ieee80211/ieee80211_crypto.h>
 
 #include <crypto/rijndael.h>
 
@@ -80,11 +80,11 @@ ieee80211_ccmp_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
  */
 static void
 ieee80211_ccmp_phase1(rijndael_ctx *ctx, const struct ieee80211_frame *wh,
-    u_int64_t pn, int lm, u_int8_t b[16], u_int8_t a[16], u_int8_t s0[16])
+    u_int64_t pn, int lm, uint8_t b[16], uint8_t a[16], uint8_t s0[16])
 {
-	u_int8_t auth[32], nonce[13];
-	u_int8_t *aad;
-	u_int8_t tid = 0;
+	uint8_t auth[32], nonce[13];
+	uint8_t *aad;
+	uint8_t tid = 0;
 	int la, i;
 
 	/* construct AAD (additional authenticated data) */
@@ -164,12 +164,12 @@ ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 {
 	struct ieee80211_ccmp_ctx *ctx = k->k_priv;
 	const struct ieee80211_frame *wh;
-	const u_int8_t *src;
-	u_int8_t *ivp, *mic, *dst;
-	u_int8_t a[16], b[16], s0[16], s[16];
+	const uint8_t *src;
+	uint8_t *ivp, *mic, *dst;
+	uint8_t a[16], b[16], s0[16], s[16];
 	struct mbuf *n0, *m, *n;
 	int hdrlen, left, moff, noff, len;
-	u_int16_t ctr;
+	uint16_t ctr;
 	int i, j;
 
 	MGET(n0, M_DONTWAIT, m0->m_type);
@@ -195,7 +195,7 @@ ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 	k->k_tsc++;	/* increment the 48-bit PN */
 
 	/* construct CCMP header */
-	ivp = mtod(n0, u_int8_t *) + hdrlen;
+	ivp = mtod(n0, uint8_t *) + hdrlen;
 	ivp[0] = k->k_tsc;		/* PN0 */
 	ivp[1] = k->k_tsc >> 8;		/* PN1 */
 	ivp[2] = 0;			/* Rsvd */
@@ -246,8 +246,8 @@ ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 		}
 		len = min(m->m_len - moff, n->m_len - noff);
 
-		src = mtod(m, u_int8_t *) + moff;
-		dst = mtod(n, u_int8_t *) + noff;
+		src = mtod(m, uint8_t *) + moff;
+		dst = mtod(n, uint8_t *) + noff;
 		for (i = 0; i < len; i++) {
 			/* update MIC with clear text */
 			b[j] ^= src[i];
@@ -281,7 +281,7 @@ ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 		n->m_len = 0;
 	}
 	/* finalize MIC, U := T XOR first-M-bytes( S_0 ) */
-	mic = mtod(n, u_int8_t *) + n->m_len;
+	mic = mtod(n, uint8_t *) + n->m_len;
 	for (i = 0; i < IEEE80211_CCMP_MICLEN; i++)
 		mic[i] = b[i] ^ s0[i];
 	n->m_len += IEEE80211_CCMP_MICLEN;
@@ -304,18 +304,18 @@ ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 	struct ieee80211_ccmp_ctx *ctx = k->k_priv;
 	struct ieee80211_frame *wh;
 	u_int64_t pn, *prsc;
-	const u_int8_t *ivp, *src;
-	u_int8_t *dst;
-	u_int8_t mic0[IEEE80211_CCMP_MICLEN];
-	u_int8_t a[16], b[16], s0[16], s[16];
+	const uint8_t *ivp, *src;
+	uint8_t *dst;
+	uint8_t mic0[IEEE80211_CCMP_MICLEN];
+	uint8_t a[16], b[16], s0[16], s[16];
 	struct mbuf *n0, *m, *n;
 	int hdrlen, left, moff, noff, len;
-	u_int16_t ctr;
+	uint16_t ctr;
 	int i, j;
 
 	wh = mtod(m0, struct ieee80211_frame *);
 	hdrlen = ieee80211_get_hdrlen(wh);
-	ivp = (u_int8_t *)wh + hdrlen;
+	ivp = (uint8_t *)wh + hdrlen;
 
 	if (m0->m_pkthdr.len < hdrlen + IEEE80211_CCMP_HDRLEN +
 	    IEEE80211_CCMP_MICLEN) {
@@ -331,7 +331,7 @@ ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 	/* retrieve last seen packet number for this frame type/priority */
 	if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
 	    IEEE80211_FC0_TYPE_DATA) {
-		u_int8_t tid = ieee80211_has_qos(wh) ?
+		uint8_t tid = ieee80211_has_qos(wh) ?
 		    ieee80211_get_qos(wh) & IEEE80211_QOS_TID : 0;
 		prsc = &k->k_rsc[tid];
 	} else	/* 11w: management frames have their own counters */
@@ -412,8 +412,8 @@ ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 		}
 		len = min(m->m_len - moff, n->m_len - noff);
 
-		src = mtod(m, u_int8_t *) + moff;
-		dst = mtod(n, u_int8_t *) + noff;
+		src = mtod(m, uint8_t *) + moff;
+		dst = mtod(n, uint8_t *) + noff;
 		for (i = 0; i < len; i++) {
 			/* decrypt message */
 			dst[i] = src[i] ^ s[j];

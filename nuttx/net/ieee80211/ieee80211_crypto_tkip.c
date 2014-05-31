@@ -40,14 +40,14 @@
 #include <netinet/if_ether.h>
 #endif
 
-#include <nuttx/ieee80211/ieee80211_var.h>
-#include <nuttx/ieee80211/ieee80211_crypto.h>
+#include <nuttx/net/ieee80211/ieee80211_var.h>
+#include <nuttx/net/ieee80211/ieee80211_crypto.h>
 
 #include <crypto/arc4.h>
 #include <crypto/michael.h>
 
-typedef u_int8_t  byte;	/* 8-bit byte (octet) */
-typedef u_int16_t u16b;	/* 16-bit unsigned word */
+typedef uint8_t  byte;	/* 8-bit byte (octet) */
+typedef uint16_t u16b;	/* 16-bit unsigned word */
 typedef u_int32_t u32b;	/* 32-bit unsigned word */
 
 static void	Phase1(u16b *, const byte *, const byte *, u32b);
@@ -56,12 +56,12 @@ static void	Phase2(byte *, const byte *, const u16b *, u16b);
 /* TKIP software crypto context */
 struct ieee80211_tkip_ctx {
 	struct rc4_ctx	rc4;
-	const u_int8_t	*txmic;
-	const u_int8_t	*rxmic;
-	u_int16_t	txttak[5];
-	u_int16_t	rxttak[5];
-	u_int8_t	txttak_ok;
-	u_int8_t	rxttak_ok;
+	const uint8_t	*txmic;
+	const uint8_t	*rxmic;
+	uint16_t	txttak[5];
+	uint16_t	rxttak[5];
+	uint8_t	txttak_ok;
+	uint8_t	rxttak_ok;
 };
 
 /*
@@ -104,10 +104,10 @@ ieee80211_tkip_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
 
 /* pseudo-header used for TKIP MIC computation */
 struct ieee80211_tkip_frame {
-	u_int8_t	i_da[IEEE80211_ADDR_LEN];
-	u_int8_t	i_sa[IEEE80211_ADDR_LEN];
-	u_int8_t	i_pri;
-	u_int8_t	i_pad[3];
+	uint8_t	i_da[IEEE80211_ADDR_LEN];
+	uint8_t	i_sa[IEEE80211_ADDR_LEN];
+	uint8_t	i_pri;
+	uint8_t	i_pad[3];
 } __packed;
 
 /*
@@ -117,8 +117,8 @@ struct ieee80211_tkip_frame {
  * call it without a software crypto context.
  */
 void
-ieee80211_tkip_mic(struct mbuf *m0, int off, const u_int8_t *key,
-    u_int8_t mic[IEEE80211_TKIP_MICLEN])
+ieee80211_tkip_mic(struct mbuf *m0, int off, const uint8_t *key,
+    uint8_t mic[IEEE80211_TKIP_MICLEN])
 {
 	const struct ieee80211_frame *wh;
 	struct ieee80211_tkip_frame wht;
@@ -187,9 +187,9 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
     struct ieee80211_key *k)
 {
 	struct ieee80211_tkip_ctx *ctx = k->k_priv;
-	u_int16_t wepseed[8];	/* needs to be 16-bit aligned for Phase2 */
+	uint16_t wepseed[8];	/* needs to be 16-bit aligned for Phase2 */
 	const struct ieee80211_frame *wh;
-	u_int8_t *ivp, *mic, *icvp;
+	uint8_t *ivp, *mic, *icvp;
 	struct mbuf *n0, *m, *n;
 	u_int32_t crc;
 	int left, moff, noff, len, hdrlen;
@@ -217,7 +217,7 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 	k->k_tsc++;	/* increment the 48-bit TSC */
 
 	/* construct TKIP header */
-	ivp = mtod(n0, u_int8_t *) + hdrlen;
+	ivp = mtod(n0, uint8_t *) + hdrlen;
 	ivp[0] = k->k_tsc >> 8;		/* TSC1 */
 	/* WEP Seed = (TSC1 | 0x20) & 0x7f (see 8.3.2.2) */
 	ivp[1] = (ivp[0] | 0x20) & 0x7f;
@@ -233,8 +233,8 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 		Phase1(ctx->txttak, k->k_key, wh->i_addr2, k->k_tsc >> 16);
 		ctx->txttak_ok = 1;
 	}
-	Phase2((u_int8_t *)wepseed, k->k_key, ctx->txttak, k->k_tsc & 0xffff);
-	rc4_keysetup(&ctx->rc4, (u_int8_t *)wepseed, 16);
+	Phase2((uint8_t *)wepseed, k->k_key, ctx->txttak, k->k_tsc & 0xffff);
+	rc4_keysetup(&ctx->rc4, (uint8_t *)wepseed, 16);
 
 	/* encrypt frame body and compute WEP ICV */
 	m = m0;
@@ -320,13 +320,13 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 {
 	struct ieee80211_tkip_ctx *ctx = k->k_priv;
 	struct ieee80211_frame *wh;
-	u_int16_t wepseed[8];	/* needs to be 16-bit aligned for Phase2 */
-	u_int8_t buf[IEEE80211_TKIP_MICLEN + IEEE80211_WEP_CRCLEN];
-	u_int8_t mic[IEEE80211_TKIP_MICLEN];
+	uint16_t wepseed[8];	/* needs to be 16-bit aligned for Phase2 */
+	uint8_t buf[IEEE80211_TKIP_MICLEN + IEEE80211_WEP_CRCLEN];
+	uint8_t mic[IEEE80211_TKIP_MICLEN];
 	u_int64_t tsc, *prsc;
 	u_int32_t crc, crc0;
-	u_int8_t *ivp, *mic0;
-	u_int8_t tid;
+	uint8_t *ivp, *mic0;
+	uint8_t tid;
 	struct mbuf *n0, *m, *n;
 	int hdrlen, left, moff, noff, len;
 
@@ -338,7 +338,7 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 		return NULL;
 	}
 
-	ivp = (u_int8_t *)wh + hdrlen;
+	ivp = (uint8_t *)wh + hdrlen;
 	/* check that ExtIV bit is set */
 	if (!(ivp[3] & IEEE80211_WEP_EXTIV)) {
 		m_freem(m0);
@@ -389,8 +389,8 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 		ctx->rxttak_ok = 0;	/* invalidate cached TTAK (if any) */
 		Phase1(ctx->rxttak, k->k_key, wh->i_addr2, tsc >> 16);
 	}
-	Phase2((u_int8_t *)wepseed, k->k_key, ctx->rxttak, tsc & 0xffff);
-	rc4_keysetup(&ctx->rc4, (u_int8_t *)wepseed, 16);
+	Phase2((uint8_t *)wepseed, k->k_key, ctx->rxttak, tsc & 0xffff);
+	rc4_keysetup(&ctx->rc4, (uint8_t *)wepseed, 16);
 
 	/* decrypt frame body and compute WEP ICV */
 	m = m0;
