@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/ieee80211/ieee80211_proto.h
+ * include/nuttx/net/ieee80211/ieee80211_proto.h
  *
  * 802.11 protocol implementation definitions.
  *

@@ -43,11 +43,11 @@
 #define IEEE80211_NO_HT        1    /* no HT yet */
 #endif
 
-#include <nuttx/ieee80211/ieee80211.h>
-#include <nuttx/ieee80211/ieee80211_crypto.h>
-#include <nuttx/ieee80211/ieee80211_ioctl.h>        /* for ieee80211_stats */
-#include <nuttx/ieee80211/ieee80211_node.h>
-#include <nuttx/ieee80211/ieee80211_proto.h>
+#include <nuttx/net/ieee80211/ieee80211.h>
+#include <nuttx/net/ieee80211/ieee80211_crypto.h>
+#include <nuttx/net/ieee80211/ieee80211_ioctl.h>        /* for ieee80211_stats */
+#include <nuttx/net/ieee80211/ieee80211_node.h>
+#include <nuttx/net/ieee80211/ieee80211_proto.h>
 
 #define IEEE80211_CHAN_MAX    255
 #define IEEE80211_CHAN_ANY    0xffff        /* token for ``any channel'' */
