@@ -240,10 +240,9 @@ unsigned int ieee80211_ieee2mhz(unsigned int chan, unsigned int flags)
  * ieee80211_attach and before most anything else.
  */
 
-void ieee80211_media_init(struct ifnet *ifp,
-    ifm_change_cb_t media_change, ifm_stat_cb_t media_stat)
+void ieee80211_media_init(struct ifnet *ifp, ifm_change_cb_t media_change, ifm_stat_cb_t media_stat)
 {
-#define    ADD(_ic, _s, _o) \
+#define ADD(_ic, _s, _o) \
     ifmedia_add(&(_ic)->ic_media, \
         IFM_MAKEWORD(IFM_IEEE80211, (_s), (_o), 0), 0, NULL)
     struct ieee80211com *ic = (void *)ifp;
@@ -288,7 +287,8 @@ void ieee80211_media_init(struct ifnet *ifp,
         if (mode == IEEE80211_MODE_AUTO)
             continue;
         rs = &ic->ic_sup_rates[mode];
-        for (i = 0; i < rs->rs_nrates; i++) {
+        for (i = 0; i < rs->rs_nrates; i++)
+          {
             rate = rs->rs_rates[i];
             mword = ieee80211_rate2media(ic, rate, mode);
             if (mword == 0)
@@ -346,7 +346,6 @@ void ieee80211_media_init(struct ifnet *ifp,
 
     if (maxrate)
         ifp->if_baudrate = IF_Mbps(maxrate);
-
 #undef ADD
 }
 

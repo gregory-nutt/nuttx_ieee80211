@@ -138,11 +138,11 @@ struct ieee80211_rxinfo
 
 struct ieee80211_tx_ba
 {
-  struct ieee80211_node *ba_ni;    /* backpointer for callbacks */
+  struct ieee80211_node *ba_ni;        /* backpointer for callbacks */
   WDOG_ID        ba_to;
   int            ba_timeout_val;
 #define IEEE80211_BA_MIN_TIMEOUT    (10 * 1000)        /* 10msec */
-#define IEEE80211_BA_MAX_TIMEOUT    (10 * 1000 * 1000)    /* 10sec */
+#define IEEE80211_BA_MAX_TIMEOUT    (10 * 1000 * 1000) /* 10sec */
 
   int            ba_state;
 #define IEEE80211_BA_INIT    0
@@ -152,14 +152,14 @@ struct ieee80211_tx_ba
   uint16_t       ba_winstart;
   uint16_t       ba_winend;
   uint16_t       ba_winsize;
-#define IEEE80211_BA_MAX_WINSZ    128    /* maximum we will accept */
+#define IEEE80211_BA_MAX_WINSZ    128  /* maximum we will accept */
 
   uint8_t        ba_token;
 };
 
 struct ieee80211_rx_ba
 {
-  struct ieee80211_node *ba_ni;    /* backpointer for callbacks */
+  struct ieee80211_node *ba_ni;        /* backpointer for callbacks */
   struct
   {
     struct mbuf *m;
@@ -184,15 +184,15 @@ struct ieee80211_node
 {
   RB_ENTRY(ieee80211_node) ni_node;
 
-  struct ieee80211com *ni_ic;        /* back-pointer */
+  struct ieee80211com *ni_ic;          /* back-pointer */
 
   unsigned int    ni_refcnt;
-  unsigned int    ni_scangen;    /* gen# for timeout scan */
+  unsigned int    ni_scangen;          /* gen# for timeout scan */
 
   /* hardware */
 
-  uint32_t        ni_rstamp;    /* recv timestamp */
-  uint8_t         ni_rssi;    /* recv ssi */
+  uint32_t        ni_rstamp;           /* recv timestamp */
+  uint8_t         ni_rssi;             /* recv ssi */
 
   /* header */
 
@@ -201,31 +201,19 @@ struct ieee80211_node
 
   /* beacon, probe response */
 
-  uint8_t         ni_tstamp[8];    /* from last rcv'd beacon */
-  uint16_t        ni_intval;    /* beacon interval */
-  uint16_t        ni_capinfo;    /* capabilities */
+  uint8_t         ni_tstamp[8];        /* from last rcv'd beacon */
+  uint16_t        ni_intval;           /* beacon interval */
+  uint16_t        ni_capinfo;          /* capabilities */
   uint8_t         ni_esslen;
   uint8_t         ni_essid[IEEE80211_NWID_LEN];
-  struct ieee80211_rateset ni_rates;    /* negotiated rate set */
-  uint8_t        *ni_country;    /* country information XXX */
+  struct ieee80211_rateset ni_rates;   /* negotiated rate set */
   struct ieee80211_channel *ni_chan;
-  uint8_t         ni_erp;        /* 11g only */
-
-#ifdef notyet
-  /* DTIM and contention free period (CFP) */
-
-  uint8_t         ni_dtimperiod;
-  uint8_t         ni_cfpperiod;    /* # of DTIMs between CFPs */
-  uint16_t        ni_cfpduremain;    /* remaining cfp duration */
-  uint16_t        ni_cfpmaxduration;/* max CFP duration in TU */
-  uint16_t        ni_nextdtim;    /* time to next DTIM */
-  uint16_t        ni_timoffset;
-#endif
+  uint8_t         ni_erp;              /* 11g only */
 
   /* power saving mode */
 
   uint8_t         ni_pwrsave;
-  struct ifqueue  ni_savedq;    /* packets queued for pspoll */
+  struct ifqueue  ni_savedq;           /* packets queued for pspoll */
 
   /* RSN */
 
@@ -266,17 +254,17 @@ struct ieee80211_node
 
   /* others */
 
-  uint16_t        ni_associd;    /* assoc response */
-  uint16_t        ni_txseq;    /* seq to be transmitted */
-  uint16_t        ni_rxseq;    /* seq previous received */
+  uint16_t        ni_associd;          /* assoc response */
+  uint16_t        ni_txseq;            /* seq to be transmitted */
+  uint16_t        ni_rxseq;            /* seq previous received */
   uint16_t        ni_qos_txseqs[IEEE80211_NUM_TID];
   uint16_t        ni_qos_rxseqs[IEEE80211_NUM_TID];
-  int             ni_fails;    /* failure count to associate */
-  int             ni_inact;    /* inactivity mark count */
-  int             ni_txrate;    /* index to ni_rates[] */
+  int             ni_fails;            /* failure count to associate */
+  int             ni_inact;            /* inactivity mark count */
+  int             ni_txrate;           /* index to ni_rates[] */
   int             ni_state;
 
-  uint16_t        ni_flags;    /* special-purpose state */
+  uint16_t        ni_flags;            /* special-purpose state */
 #define IEEE80211_NODE_ERP             0x0001
 #define IEEE80211_NODE_QOS             0x0002
 #define IEEE80211_NODE_REKEY           0x0004    /* GTK rekeying in progress */

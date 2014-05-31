@@ -30,8 +30,8 @@
 #include <net/if.h>
 
 #ifdef INET
-#include <netinet/in.h>
-#include <netinet/if_ether.h>
+#  include <netinet/in.h>
+#  include <netinet/if_ether.h>
 #endif
 
 #include <debug.h>
@@ -40,80 +40,116 @@
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 #include <nuttx/net/ieee80211/ieee80211_amrr.h>
 
-#define is_success(amn)    \
-    ((amn)->amn_retrycnt < (amn)->amn_txcnt / 10)
-#define is_failure(amn)    \
-    ((amn)->amn_retrycnt > (amn)->amn_txcnt / 3)
-#define is_enough(amn)        \
-    ((amn)->amn_txcnt > 10)
-#define is_min_rate(ni)        \
-    ((ni)->ni_txrate == 0)
-#define is_max_rate(ni)        \
-    ((ni)->ni_txrate == (ni)->ni_rates.rs_nrates - 1)
-#define increase_rate(ni)    \
-    ((ni)->ni_txrate++)
-#define decrease_rate(ni)    \
-    ((ni)->ni_txrate--)
-#define reset_cnt(amn)        \
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define is_success(amn) \
+  ((amn)->amn_retrycnt < (amn)->amn_txcnt / 10)
+#define is_failure(amn) \
+  ((amn)->amn_retrycnt > (amn)->amn_txcnt / 3)
+#define is_enough(amn) \
+  ((amn)->amn_txcnt > 10)
+#define is_min_rate(ni) \
+  ((ni)->ni_txrate == 0)
+#define is_max_rate(ni) \
+  ((ni)->ni_txrate == (ni)->ni_rates.rs_nrates - 1)
+#define increase_rate(ni) \
+  ((ni)->ni_txrate++)
+#define decrease_rate(ni) \
+  ((ni)->ni_txrate--)
+#define reset_cnt(amn) \
     do { (amn)->amn_txcnt = (amn)->amn_retrycnt = 0; } while (0)
 
-void
-ieee80211_amrr_node_init(const struct ieee80211_amrr *amrr,
-    struct ieee80211_amrr_node *amn)
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: ieee80211_amrr_node_init
+ ****************************************************************************/
+
+void ieee80211_amrr_node_init(const struct ieee80211_amrr *amrr,
+                                     struct ieee80211_amrr_node *amn)
 {
-    amn->amn_success = 0;
-    amn->amn_recovery = 0;
-    amn->amn_txcnt = amn->amn_retrycnt = 0;
-    amn->amn_success_threshold = amrr->amrr_min_success_threshold;
+  amn->amn_success = 0;
+  amn->amn_recovery = 0;
+  amn->amn_txcnt = amn->amn_retrycnt = 0;
+  amn->amn_success_threshold = amrr->amrr_min_success_threshold;
 }
 
-/*
- * Update ni->ni_txrate.
- */
-void
-ieee80211_amrr_choose(struct ieee80211_amrr *amrr, struct ieee80211_node *ni,
-    struct ieee80211_amrr_node *amn)
+/****************************************************************************
+ * Name: ieee80211_amrr_choose
+ *
+ * Description:
+ *   Update ni->ni_txrate
+ *
+ ****************************************************************************/
+
+void ieee80211_amrr_choose(struct ieee80211_amrr *amrr,
+                           struct ieee80211_node *ni,
+                           struct ieee80211_amrr_node *amn)
 {
 #define RV(rate)    ((rate) & IEEE80211_RATE_VAL)
-    int need_change = 0;
+  int need_change = 0;
 
-    if (is_success(amn) && is_enough(amn)) {
-        amn->amn_success++;
-        if (amn->amn_success >= amn->amn_success_threshold &&
-            !is_max_rate(ni)) {
-            amn->amn_recovery = 1;
-            amn->amn_success = 0;
-            increase_rate(ni);
+  if (is_success(amn) && is_enough(amn))
+    {
+      amn->amn_success++;
+      if (amn->amn_success >= amn->amn_success_threshold && !is_max_rate(ni))
+        {
+          amn->amn_recovery = 1;
+          amn->amn_success = 0;
+          increase_rate(ni);
+
             nvdbg("increase rate=%d,#tx=%d,#retries=%d\n",
-                RV(ni->ni_rates.rs_rates[ni->ni_txrate]),
-                amn->amn_txcnt, amn->amn_retrycnt);
-            need_change = 1;
-        } else {
-            amn->amn_recovery = 0;
+                  RV(ni->ni_rates.rs_rates[ni->ni_txrate]),
+                  amn->amn_txcnt, amn->amn_retrycnt);
+
+          need_change = 1;
         }
-    } else if (is_failure(amn)) {
-        amn->amn_success = 0;
-        if (!is_min_rate(ni)) {
-            if (amn->amn_recovery) {
-                amn->amn_success_threshold *= 2;
-                if (amn->amn_success_threshold >
-                    amrr->amrr_max_success_threshold)
-                    amn->amn_success_threshold =
-                        amrr->amrr_max_success_threshold;
-            } else {
-                amn->amn_success_threshold =
-                    amrr->amrr_min_success_threshold;
+      else
+        {
+          amn->amn_recovery = 0;
+        }
+    }
+  else if (is_failure(amn))
+    {
+      amn->amn_success = 0;
+      if (!is_min_rate(ni))
+        {
+          if (amn->amn_recovery)
+            {
+              amn->amn_success_threshold *= 2;
+              if (amn->amn_success_threshold > amrr->amrr_max_success_threshold)
+                {
+                  amn->amn_success_threshold = amrr->amrr_max_success_threshold;
+                }
             }
-            decrease_rate(ni);
-           nvdbg("decrease rate=%d,#tx=%d,#retries=%d\n",
+          else
+            {
+              amn->amn_success_threshold = amrr->amrr_min_success_threshold;
+            }
+
+          decrease_rate(ni);
+
+          nvdbg("decrease rate=%d,#tx=%d,#retries=%d\n",
                 RV(ni->ni_rates.rs_rates[ni->ni_txrate]),
                 amn->amn_txcnt, amn->amn_retrycnt);
-            need_change = 1;
+
+          need_change = 1;
         }
-        amn->amn_recovery = 0;
+
+      amn->amn_recovery = 0;
     }
 
-    if (is_enough(amn) || need_change)
-        reset_cnt(amn);
+  if (is_enough(amn) || need_change)
+    {
+      reset_cnt(amn);
+    }
 #undef RV
 }

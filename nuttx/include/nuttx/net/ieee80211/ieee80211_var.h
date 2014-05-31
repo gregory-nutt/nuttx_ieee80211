@@ -61,54 +61,59 @@
 #define IEEE80211_TXPOWER_MAX    100    /* max power */
 #define IEEE80211_TXPOWER_MIN    -50    /* kill radio (if possible) */
 
-enum ieee80211_phytype {
-    IEEE80211_T_DS,            /* direct sequence spread spectrum */
-    IEEE80211_T_OFDM,        /* frequency division multiplexing */
-    IEEE80211_T_TURBO,        /* high rate OFDM, aka turbo mode */
-    IEEE80211_T_XR                /* extended range mode */
+enum ieee80211_phytype
+{
+  IEEE80211_T_DS,            /* direct sequence spread spectrum */
+  IEEE80211_T_OFDM,        /* frequency division multiplexing */
+  IEEE80211_T_TURBO,        /* high rate OFDM, aka turbo mode */
+  IEEE80211_T_XR                /* extended range mode */
 };
+
 #define IEEE80211_T_CCK    IEEE80211_T_DS    /* more common nomenclature */
 
 /* XXX not really a mode; there are really multiple PHY's */
-enum ieee80211_phymode {
-    IEEE80211_MODE_AUTO    = 0,    /* autoselect */
-    IEEE80211_MODE_11A    = 1,    /* 5GHz, OFDM */
-    IEEE80211_MODE_11B    = 2,    /* 2GHz, CCK */
-    IEEE80211_MODE_11G    = 3,    /* 2GHz, OFDM */
-    IEEE80211_MODE_TURBO    = 4    /* 5GHz, OFDM, 2x clock */
+
+enum ieee80211_phymode
+{
+  IEEE80211_MODE_AUTO    = 0,    /* autoselect */
+  IEEE80211_MODE_11A    = 1,    /* 5GHz, OFDM */
+  IEEE80211_MODE_11B    = 2,    /* 2GHz, CCK */
+  IEEE80211_MODE_11G    = 3,    /* 2GHz, OFDM */
+  IEEE80211_MODE_TURBO    = 4    /* 5GHz, OFDM, 2x clock */
 };
+
 #define IEEE80211_MODE_MAX    (IEEE80211_MODE_TURBO+1)
 
-enum ieee80211_opmode {
-    IEEE80211_M_STA        = 1,    /* infrastructure station */
+enum ieee80211_opmode
+{
+  IEEE80211_M_STA        = 1,    /* infrastructure station */
 #ifndef IEEE80211_STA_ONLY
-    IEEE80211_M_IBSS    = 0,    /* IBSS (adhoc) station */
-    IEEE80211_M_AHDEMO    = 3,    /* Old lucent compatible adhoc demo */
-    IEEE80211_M_HOSTAP    = 6,    /* Software Access Point */
+  IEEE80211_M_IBSS    = 0,    /* IBSS (adhoc) station */
+  IEEE80211_M_AHDEMO    = 3,    /* Old lucent compatible adhoc demo */
+  IEEE80211_M_HOSTAP    = 6,    /* Software Access Point */
 #endif
-    IEEE80211_M_MONITOR    = 8    /* Monitor mode */
+  IEEE80211_M_MONITOR    = 8    /* Monitor mode */
 };
 
-/*
- * 802.11g protection mode.
- */
-enum ieee80211_protmode {
-    IEEE80211_PROT_NONE    = 0,    /* no protection */
-    IEEE80211_PROT_CTSONLY    = 1,    /* CTS to self */
-    IEEE80211_PROT_RTSCTS    = 2    /* RTS-CTS */
+/* 802.11g protection mode */
+
+enum ieee80211_protmode
+{
+  IEEE80211_PROT_NONE    = 0,    /* no protection */
+  IEEE80211_PROT_CTSONLY    = 1,    /* CTS to self */
+  IEEE80211_PROT_RTSCTS    = 2    /* RTS-CTS */
 };
 
-/*
- * Channels are specified by frequency and attributes.
- */
-struct ieee80211_channel {
-    uint16_t    ic_freq;    /* setting in MHz */
-    uint16_t    ic_flags;    /* see below */
+/* Channels are specified by frequency and attributes */
+
+struct ieee80211_channel
+{
+  uint16_t    ic_freq;    /* setting in MHz */
+  uint16_t    ic_flags;    /* see below */
 };
 
-/*
- * Channel attributes (XXX must keep in sync with radiotap flags).
- */
+/* Channel attributes (XXX must keep in sync with radiotap flags) */
+
 #define IEEE80211_CHAN_TURBO    0x0010    /* Turbo channel */
 #define IEEE80211_CHAN_CCK    0x0020    /* CCK channel */
 #define IEEE80211_CHAN_OFDM    0x0040    /* OFDM channel */
@@ -118,9 +123,8 @@ struct ieee80211_channel {
 #define IEEE80211_CHAN_DYN    0x0400    /* Dynamic CCK-OFDM channel */
 #define IEEE80211_CHAN_XR    0x1000    /* Extended range OFDM channel */
 
-/*
- * Useful combinations of channel characteristics.
- */
+/* Useful combinations of channel characteristics */
+
 #define IEEE80211_CHAN_A \
     (IEEE80211_CHAN_5GHZ | IEEE80211_CHAN_OFDM)
 #define IEEE80211_CHAN_B \
