@@ -323,7 +323,7 @@ ieee80211_ioctl_getwpaparms(struct ieee80211com *ic,
 }
 
 int
-ieee80211_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
+ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
 {
 	struct ieee80211com *ic = (void *)ifp;
 	struct ifreq *ifr = (struct ifreq *)data;
@@ -713,7 +713,7 @@ ieee80211_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 		while (ni && na->na_size >=
 		    i + sizeof(struct ieee80211_nodereq)) {
 			ieee80211_node2req(ic, ni, &nrbuf);
-			error = copyout(&nrbuf, (caddr_t)na->na_node + i,
+			error = copyout(&nrbuf, (void *)na->na_node + i,
 			    sizeof(struct ieee80211_nodereq));
 			if (error)
 				break;

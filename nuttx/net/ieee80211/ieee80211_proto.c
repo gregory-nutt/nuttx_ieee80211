@@ -569,7 +569,7 @@ ieee80211_tx_ba_timeout(void *arg)
 
 	} else if (ba->ba_state == IEEE80211_BA_AGREED) {
 		/* Block Ack inactivity timeout */
-		tid = ((caddr_t)ba - (caddr_t)ni->ni_tx_ba) / sizeof(*ba);
+		tid = ((void *)ba - (void *)ni->ni_tx_ba) / sizeof(*ba);
 		ieee80211_delba_request(ic, ni, IEEE80211_REASON_TIMEOUT,
 		    1, tid);
 	}
@@ -588,7 +588,7 @@ ieee80211_rx_ba_timeout(void *arg)
 	s = splnet();
 
 	/* Block Ack inactivity timeout */
-	tid = ((caddr_t)ba - (caddr_t)ni->ni_rx_ba) / sizeof(*ba);
+	tid = ((void *)ba - (void *)ni->ni_rx_ba) / sizeof(*ba);
 	ieee80211_delba_request(ic, ni, IEEE80211_REASON_TIMEOUT, 0, tid);
 
 	splx(s);

@@ -891,7 +891,7 @@ struct mbuf *
 ieee80211_align_mbuf(struct mbuf *m)
 {
 	struct mbuf *n, *n0, **np;
-	caddr_t newdata;
+	void *newdata;
 	int off, pktlen;
 
 	n0 = NULL;
@@ -926,14 +926,14 @@ ieee80211_align_mbuf(struct mbuf *m)
 				n->m_len = n->m_ext.ext_size;
 		}
 		if (n0 == NULL) {
-			newdata = (caddr_t)ALIGN(n->m_data + ETHER_HDR_LEN) -
+			newdata = (void *)ALIGN(n->m_data + ETHER_HDR_LEN) -
 			    ETHER_HDR_LEN;
 			n->m_len -= newdata - n->m_data;
 			n->m_data = newdata;
 		}
 		if (n->m_len > pktlen - off)
 			n->m_len = pktlen - off;
-		m_copydata(m, off, n->m_len, mtod(n, caddr_t));
+		m_copydata(m, off, n->m_len, mtod(n, void *));
 		off += n->m_len;
 		*np = n;
 		np = &n->m_next;
@@ -976,7 +976,7 @@ ieee80211_decap(struct ieee80211com *ic, struct mbuf *m,
 		    ((struct ieee80211_frame_addr4 *)wh)->i_addr4);
 		break;
 	}
-	llc = (struct llc *)((caddr_t)wh + hdrlen);
+	llc = (struct llc *)((void *)wh + hdrlen);
 	if (llc->llc_dsap == LLC_SNAP_LSAP &&
 	    llc->llc_ssap == LLC_SNAP_LSAP &&
 	    llc->llc_control == LLC_UI &&
@@ -989,9 +989,9 @@ ieee80211_decap(struct ieee80211com *ic, struct mbuf *m,
 		eh.ether_type = htons(m->m_pkthdr.len - hdrlen);
 		m_adj(m, hdrlen - ETHER_HDR_LEN);
 	}
-	memcpy(mtod(m, caddr_t), &eh, ETHER_HDR_LEN);
+	memcpy(mtod(m, void *), &eh, ETHER_HDR_LEN);
 #ifdef __STRICT_ALIGNMENT
-	if (!ALIGNED_POINTER(mtod(m, caddr_t) + ETHER_HDR_LEN, u_int32_t)) {
+	if (!ALIGNED_POINTER(mtod(m, void *) + ETHER_HDR_LEN, u_int32_t)) {
 		if ((m = ieee80211_align_mbuf(m)) == NULL) {
 			ic->ic_stats.is_rx_decap++;
 			return;

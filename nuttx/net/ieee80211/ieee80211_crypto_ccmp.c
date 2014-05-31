@@ -190,7 +190,7 @@ ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 	/* copy 802.11 header */
 	wh = mtod(m0, struct ieee80211_frame *);
 	hdrlen = ieee80211_get_hdrlen(wh);
-	memcpy(mtod(n0, caddr_t), wh, hdrlen);
+	memcpy(mtod(n0, void *), wh, hdrlen);
 
 	k->k_tsc++;	/* increment the 48-bit PN */
 
@@ -371,7 +371,7 @@ ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 	    n0->m_pkthdr.len - hdrlen, b, a, s0);
 
 	/* copy 802.11 header and clear protected bit */
-	memcpy(mtod(n0, caddr_t), wh, hdrlen);
+	memcpy(mtod(n0, void *), wh, hdrlen);
 	wh = mtod(n0, struct ieee80211_frame *);
 	wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 

@@ -109,7 +109,7 @@ ieee80211_wep_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 	/* copy 802.11 header */
 	wh = mtod(m0, struct ieee80211_frame *);
 	hdrlen = ieee80211_get_hdrlen(wh);
-	memcpy(mtod(n0, caddr_t), wh, hdrlen);
+	memcpy(mtod(n0, void *), wh, hdrlen);
 
 	/* select a new IV for every MPDU */
 	iv = (ctx->iv != 0) ? ctx->iv : arc4random();
@@ -159,9 +159,9 @@ ieee80211_wep_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 		}
 		len = min(m->m_len - moff, n->m_len - noff);
 
-		crc = ether_crc32_le_update(crc, mtod(m, caddr_t) + moff, len);
-		rc4_crypt(&ctx->rc4, mtod(m, caddr_t) + moff,
-		    mtod(n, caddr_t) + noff, len);
+		crc = ether_crc32_le_update(crc, mtod(m, void *) + moff, len);
+		rc4_crypt(&ctx->rc4, mtod(m, void *) + moff,
+		    mtod(n, void *) + noff, len);
 
 		moff += len;
 		noff += len;
@@ -178,7 +178,7 @@ ieee80211_wep_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 	}
 
 	/* finalize WEP ICV */
-	icvp = mtod(n, caddr_t) + n->m_len;
+	icvp = mtod(n, void *) + n->m_len;
 	crc = ~crc;
 	icvp[0] = crc;
 	icvp[1] = crc >> 8;
@@ -240,7 +240,7 @@ ieee80211_wep_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 		n0->m_len = n0->m_pkthdr.len;
 
 	/* copy 802.11 header and clear protected bit */
-	memcpy(mtod(n0, caddr_t), wh, hdrlen);
+	memcpy(mtod(n0, void *), wh, hdrlen);
 	wh = mtod(n0, struct ieee80211_frame *);
 	wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 
@@ -275,9 +275,9 @@ ieee80211_wep_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 		}
 		len = min(m->m_len - moff, n->m_len - noff);
 
-		rc4_crypt(&ctx->rc4, mtod(m, caddr_t) + moff,
-		    mtod(n, caddr_t) + noff, len);
-		crc = ether_crc32_le_update(crc, mtod(n, caddr_t) + noff, len);
+		rc4_crypt(&ctx->rc4, mtod(m, void *) + moff,
+		    mtod(n, void *) + noff, len);
+		crc = ether_crc32_le_update(crc, mtod(n, void *) + noff, len);
 
 		moff += len;
 		noff += len;
@@ -285,8 +285,8 @@ ieee80211_wep_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 	}
 
 	/* decrypt ICV and compare it with calculated ICV */
-	m_copydata(m, moff, IEEE80211_WEP_CRCLEN, (caddr_t)&crc0);
-	rc4_crypt(&ctx->rc4, (caddr_t)&crc0, (caddr_t)&crc0,
+	m_copydata(m, moff, IEEE80211_WEP_CRCLEN, (void *)&crc0);
+	rc4_crypt(&ctx->rc4, (void *)&crc0, (void *)&crc0,
 	    IEEE80211_WEP_CRCLEN);
 	crc = ~crc;
 	if (crc != letoh32(crc0)) {

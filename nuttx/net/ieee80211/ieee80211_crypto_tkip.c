@@ -124,7 +124,7 @@ ieee80211_tkip_mic(struct mbuf *m0, int off, const u_int8_t *key,
 	struct ieee80211_tkip_frame wht;
 	MICHAEL_CTX ctx;	/* small enough */
 	struct mbuf *m;
-	caddr_t pos;
+	void *pos;
 	int len;
 
 	/* assumes 802.11 header is contiguous */
@@ -159,17 +159,17 @@ ieee80211_tkip_mic(struct mbuf *m0, int off, const u_int8_t *key,
 	michael_init(&ctx);
 	michael_key(key, &ctx);
 
-	michael_update(&ctx, (caddr_t)&wht, sizeof(wht));
+	michael_update(&ctx, (void *)&wht, sizeof(wht));
 
 	m = m0;
 	/* assumes the first "off" bytes are contiguous */
-	pos = mtod(m, caddr_t) + off;
+	pos = mtod(m, void *) + off;
 	len = m->m_len - off;
 	for (;;) {
 		michael_update(&ctx, pos, len);
 		if ((m = m->m_next) == NULL)
 			break;
-		pos = mtod(m, caddr_t);
+		pos = mtod(m, void *);
 		len = m->m_len;
 	}
 
@@ -212,7 +212,7 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 	/* copy 802.11 header */
 	wh = mtod(m0, struct ieee80211_frame *);
 	hdrlen = ieee80211_get_hdrlen(wh);
-	memcpy(mtod(n0, caddr_t), wh, hdrlen);
+	memcpy(mtod(n0, void *), wh, hdrlen);
 
 	k->k_tsc++;	/* increment the 48-bit TSC */
 
@@ -267,9 +267,9 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 		}
 		len = min(m->m_len - moff, n->m_len - noff);
 
-		crc = ether_crc32_le_update(crc, mtod(m, caddr_t) + moff, len);
-		rc4_crypt(&ctx->rc4, mtod(m, caddr_t) + moff,
-		    mtod(n, caddr_t) + noff, len);
+		crc = ether_crc32_le_update(crc, mtod(m, void *) + moff, len);
+		rc4_crypt(&ctx->rc4, mtod(m, void *) + moff,
+		    mtod(n, void *) + noff, len);
 
 		moff += len;
 		noff += len;
@@ -286,14 +286,14 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 	}
 
 	/* compute TKIP MIC over clear text */
-	mic = mtod(n, caddr_t) + n->m_len;
+	mic = mtod(n, void *) + n->m_len;
 	ieee80211_tkip_mic(m0, hdrlen, ctx->txmic, mic);
 	crc = ether_crc32_le_update(crc, mic, IEEE80211_TKIP_MICLEN);
 	rc4_crypt(&ctx->rc4, mic, mic, IEEE80211_TKIP_MICLEN);
 	n->m_len += IEEE80211_TKIP_MICLEN;
 
 	/* finalize WEP ICV */
-	icvp = mtod(n, caddr_t) + n->m_len;
+	icvp = mtod(n, void *) + n->m_len;
 	crc = ~crc;
 	icvp[0] = crc;
 	icvp[1] = crc >> 8;
@@ -380,7 +380,7 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 		n0->m_len = n0->m_pkthdr.len;
 
 	/* copy 802.11 header and clear protected bit */
-	memcpy(mtod(n0, caddr_t), wh, hdrlen);
+	memcpy(mtod(n0, void *), wh, hdrlen);
 	wh = mtod(n0, struct ieee80211_frame *);
 	wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 
@@ -423,9 +423,9 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 		}
 		len = min(m->m_len - moff, n->m_len - noff);
 
-		rc4_crypt(&ctx->rc4, mtod(m, caddr_t) + moff,
-		    mtod(n, caddr_t) + noff, len);
-		crc = ether_crc32_le_update(crc, mtod(n, caddr_t) + noff, len);
+		rc4_crypt(&ctx->rc4, mtod(m, void *) + moff,
+		    mtod(n, void *) + noff, len);
+		crc = ether_crc32_le_update(crc, mtod(n, void *) + noff, len);
 
 		moff += len;
 		noff += len;

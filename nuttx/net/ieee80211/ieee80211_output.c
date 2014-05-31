@@ -546,7 +546,7 @@ ieee80211_encap(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node **pni)
 			goto bad;
 		}
 	}
-	memcpy(&eh, mtod(m, caddr_t), sizeof(struct ether_header));
+	memcpy(&eh, mtod(m, void *), sizeof(struct ether_header));
 
 	ni = ieee80211_find_txnode(ic, eh.ether_dhost);
 	if (ni == NULL) {
