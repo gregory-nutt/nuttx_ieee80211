@@ -22,6 +22,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #include <sys/param.h>
 #include <sys/socket.h>
 

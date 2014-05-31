@@ -38,6 +38,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 enum ieee80211_state {
     IEEE80211_S_INIT    = 0,    /* default state */
     IEEE80211_S_SCAN    = 1,    /* scanning */

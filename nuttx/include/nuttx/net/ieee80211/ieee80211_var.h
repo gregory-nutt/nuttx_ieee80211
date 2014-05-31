@@ -28,6 +28,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
+ ****************************************************************************/
 
 #ifndef _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_VAR_H
 #define _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_VAR_H
@@ -35,6 +36,8 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+
+#include <nuttx/config.h>
 
 #include <wdog.h>
 

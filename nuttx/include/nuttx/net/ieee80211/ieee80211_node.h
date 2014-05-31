@@ -27,8 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * $FreeBSD: src/sys/net80211/ieee80211_node.h,v 1.10 2004/04/05 22:10:26 sam Exp $
- */
+ ****************************************************************************/
 
 #ifndef _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_NODE_H
 #define _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_NODE_H
@@ -36,6 +35,8 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+
+#include <nuttx/config.h>
 
 #include <wdog.h>
 
