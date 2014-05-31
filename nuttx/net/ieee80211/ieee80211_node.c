@@ -68,6 +68,8 @@
 #endif
 
 #include <wdog.h>
+
+#include <nuttx/tree.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 

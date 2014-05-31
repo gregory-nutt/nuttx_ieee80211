@@ -244,7 +244,7 @@ struct ieee80211com {
     uint16_t        ic_max_aid;
     enum ieee80211_protmode    ic_protmode;    /* 802.11g protection mode */
     struct ifmedia        ic_media;    /* interface media config */
-    caddr_t            ic_rawbpf;    /* packet filter structure */
+    void             *ic_rawbpf;    /* packet filter structure */
     struct ieee80211_node    *ic_bss;    /* information for this node */
     struct ieee80211_channel *ic_ibss_chan;
     int            ic_fixed_rate;    /* index to ic_sup_rates[] */
@@ -385,7 +385,7 @@ void    ieee80211_ifdetach(struct ifnet *);
 void    ieee80211_media_init(struct ifnet *, ifm_change_cb_t, ifm_stat_cb_t);
 int    ieee80211_media_change(struct ifnet *);
 void    ieee80211_media_status(struct ifnet *, struct ifmediareq *);
-int    ieee80211_ioctl(struct ifnet *, unsigned long, caddr_t);
+int    ieee80211_ioctl(struct ifnet *, unsigned long, void *);
 int    ieee80211_get_rate(struct ieee80211com *);
 void    ieee80211_watchdog(struct ifnet *);
 int    ieee80211_fix_rate(struct ieee80211com *, struct ieee80211_node *, int);
