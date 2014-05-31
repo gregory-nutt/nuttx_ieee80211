@@ -165,18 +165,17 @@ ieee80211_get_hdrlen(const struct ieee80211_frame *wh)
 }
 
 /*
- * Work queue task that prints a received frame.  Avoids printf() from
+ * Work queue task that prints a received frame.  Avoids nvdbg() from
  * interrupt context at IPL_NET making slow machines unusable when many
  * frames are received and the interface is put in debug mode.
  */
-void
-ieee80211_input_print_task(void *arg1, void *arg2)
+
+void ieee80211_input_print_task(void *arg1, void *arg2)
 {
-    char *msg = arg1;
+  char *msg = arg1;
 
-    printf("%s", msg);
-    free(msg, M_DEVBUF);
-
+  nvdbg("%s", msg);
+  free(msg, M_DEVBUF);
 }
 
 void
@@ -1538,13 +1537,13 @@ ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
 #ifdef CONFIG_DEBUG_NET
     if (ieee80211_debug &&
         (ni == NULL || ic->ic_state == IEEE80211_S_SCAN)) {
-        printf("%s: %s%s on chan %u (bss chan %u) ",
+        nvdbg("%s: %s%s on chan %u (bss chan %u) ",
             __func__, (ni == NULL ? "new " : ""),
             isprobe ? "probe response" : "beacon",
             chan, bchan);
         ieee80211_print_essid(ssid + 2, ssid[1]);
-        printf(" from %s\n", ether_sprintf((uint8_t *)wh->i_addr2));
-        printf("%s: caps 0x%x bintval %u erp 0x%x\n",
+        nvdbg(" from %s\n", ether_sprintf((uint8_t *)wh->i_addr2));
+        nvdbg("%s: caps 0x%x bintval %u erp 0x%x\n",
             __func__, capinfo, bintval, erp);
     }
 #endif

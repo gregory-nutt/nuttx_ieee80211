@@ -161,13 +161,15 @@ ieee80211_output(struct ifnet *ifp, struct mbuf *m, struct sockaddr *dst,
         len = m->m_pkthdr.len;
         s = splnet();
         IFQ_ENQUEUE(&ifp->if_snd, m, NULL, error);
-        if (error) {
+        if (error)
+          {
             /* mbuf is already freed */
+
             splx(s);
-            printf("%s: failed to queue raw tx frame\n",
-                ifp->if_xname);
+            ndbg("ERROR: %s: failed to queue raw tx frame\n", ifp->if_xname);
             return (error);
-        }
+          }
+
         ifp->if_obytes += len;
         if (mflags & M_MCAST)
             ifp->if_omcasts++;
@@ -529,9 +531,8 @@ ieee80211_encap(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node **pni)
         if (ni == NULL)
             ni = ieee80211_ref_node(ic->ic_bss);
         if (ni == NULL) {
-            printf("%s: no node for dst %s, "
-                "discard raw tx frame\n", ifp->if_xname,
-                ether_sprintf(addr));
+            nvdbg("%s: no node for dst %s, discard raw tx frame\n",
+                  ifp->if_xname, ether_sprintf(addr));
             ic->ic_stats.is_tx_nonode++;
             goto bad;
         }

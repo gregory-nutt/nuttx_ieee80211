@@ -105,18 +105,19 @@ void ieee80211_ifattach(struct ifnet *ifp)
     ic->ic_modecaps |= 1<<IEEE80211_MODE_AUTO;
     for (i = 0; i <= IEEE80211_CHAN_MAX; i++) {
         c = &ic->ic_channels[i];
-        if (c->ic_flags) {
-            /*
-             * Verify driver passed us valid data.
-             */
-            if (i != ieee80211_chan2ieee(ic, c)) {
-                printf("%s: bad channel ignored; "
-                    "freq %u flags %x number %u\n",
-                    ifp->if_xname, c->ic_freq, c->ic_flags,
-                    i);
+        if (c->ic_flags)
+          {
+            /* Verify driver passed us valid data */
+
+            if (i != ieee80211_chan2ieee(ic, c))
+              {
+                nvdbg("ERROR %s: bad channel ignored; freq %u flags %x number %u\n",
+                    ifp->if_xname, c->ic_freq, c->ic_flags, i);
+
                 c->ic_flags = 0;    /* NB: remove */
                 continue;
-            }
+              }
+
             setbit(ic->ic_chan_avail, i);
             /*
              * Identify mode capabilities.
@@ -205,11 +206,11 @@ unsigned int ieee80211_chan2ieee(struct ieee80211com *ic, const struct ieee80211
     else if (c == IEEE80211_CHAN_ANYC)
         return IEEE80211_CHAN_ANY;
     else if (c != NULL) {
-        printf("%s: invalid channel freq %u flags %x\n",
+        ndbg("ERROR: %s: invalid channel freq %u flags %x\n",
             ifp->if_xname, c->ic_freq, c->ic_flags);
         return 0;        /* XXX */
     } else {
-        printf("%s: invalid channel (NULL)\n", ifp->if_xname);
+        ndbg("ERROR: %s: invalid channel (NULL)\n", ifp->if_xname);
         return 0;        /* XXX */
     }
 }

@@ -161,7 +161,7 @@ ieee80211_node_attach(struct ifnet *ifp)
     ic->ic_aid_bitmap = malloc(size, M_DEVBUF, M_NOWAIT | M_ZERO);
     if (ic->ic_aid_bitmap == NULL) {
         /* XXX no way to recover */
-        printf("%s: no memory for AID bitmap!\n", __func__);
+        nvdbg("%s: no memory for AID bitmap!\n", __func__);
         ic->ic_max_aid = 0;
     }
     if (ic->ic_caps & (IEEE80211_C_HOSTAP | IEEE80211_C_IBSS)) {
@@ -169,7 +169,7 @@ ieee80211_node_attach(struct ifnet *ifp)
         ic->ic_tim_bitmap = malloc(ic->ic_tim_len, M_DEVBUF,
             M_NOWAIT | M_ZERO);
         if (ic->ic_tim_bitmap == NULL) {
-            printf("%s: no memory for TIM bitmap!\n", __func__);
+            nvdbg("%s: no memory for TIM bitmap!\n", __func__);
             ic->ic_tim_len = 0;
         } else
             ic->ic_set_tim = ieee80211_set_tim;
@@ -1698,7 +1698,7 @@ ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni,
     if (IEEE80211_ADDR_EQ(ni->ni_bssid, ic->ic_bss->ni_bssid)) {
         if (!ieee80211_do_slow_print(ic, &did_print))
             return 0;
-        printf("%s: tsft offset %s%llu\n", ic->ic_if.if_xname,
+        nvdbg("%s: tsft offset %s%llu\n", ic->ic_if.if_xname,
             (sign < 0) ? "-" : "",
             (sign < 0)
             ? (local_tsft - beacon_tsft)
@@ -1713,11 +1713,11 @@ ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni,
         return 0;
 
     if (ieee80211_do_slow_print(ic, &did_print)) {
-        printf("%s: ieee80211_ibss_merge: bssid mismatch %s\n",
+        nvdbg("%s: ieee80211_ibss_merge: bssid mismatch %s\n",
             ic->ic_if.if_xname, ether_sprintf(ni->ni_bssid));
-        printf("%s: my tsft %llu beacon tsft %llu\n",
+        nvdbg("%s: my tsft %llu beacon tsft %llu\n",
             ic->ic_if.if_xname, local_tsft, beacon_tsft);
-        printf("%s: sync TSF with %s\n",
+        nvdbg("%s: sync TSF with %s\n",
             ic->ic_if.if_xname, ether_sprintf(ni->ni_macaddr));
     }
 
@@ -1728,17 +1728,17 @@ ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni,
         IEEE80211_F_DONEGO | IEEE80211_F_DODEL);
     if (ni->ni_rates.rs_nrates == 0) {
         if (ieee80211_do_slow_print(ic, &did_print)) {
-            printf("%s: rates mismatch, BSSID %s\n",
+            nvdbg("%s: rates mismatch, BSSID %s\n",
                 ic->ic_if.if_xname, ether_sprintf(ni->ni_bssid));
         }
         return 0;
     }
 
     if (ieee80211_do_slow_print(ic, &did_print)) {
-        printf("%s: sync BSSID %s -> ",
+        nvdbg("%s: sync BSSID %s -> ",
             ic->ic_if.if_xname, ether_sprintf(ic->ic_bss->ni_bssid));
-        printf("%s ", ether_sprintf(ni->ni_bssid));
-        printf("(from %s)\n", ether_sprintf(ni->ni_macaddr));
+        nvdbg("%s ", ether_sprintf(ni->ni_bssid));
+        nvdbg("(from %s)\n", ether_sprintf(ni->ni_macaddr));
     }
 
     ieee80211_node_newstate(ni, IEEE80211_STA_BSS);

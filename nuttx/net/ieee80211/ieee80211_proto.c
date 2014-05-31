@@ -115,8 +115,7 @@ ieee80211_proto_attach(struct ifnet *ifp)
     ic->ic_send_mgmt = ieee80211_send_mgmt;
 }
 
-void
-ieee80211_proto_detach(struct ifnet *ifp)
+void ieee80211_proto_detach(struct ifnet *ifp)
 {
     struct ieee80211com *ic = (void *)ifp;
 
@@ -124,34 +123,50 @@ ieee80211_proto_detach(struct ifnet *ifp)
     IF_PURGE(&ic->ic_pwrsaveq);
 }
 
-void
-ieee80211_print_essid(const uint8_t *essid, int len)
+#if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
+void ieee80211_print_essid(const uint8_t *essid, int len)
 {
-    int i;
-    const uint8_t *p;
+  int i;
+  const uint8_t *p;
 
-    if (len > IEEE80211_NWID_LEN)
-        len = IEEE80211_NWID_LEN;
-    /* determine printable or not */
-    for (i = 0, p = essid; i < len; i++, p++) {
-        if (*p < ' ' || *p > 0x7e)
-            break;
+  if (len > IEEE80211_NWID_LEN)
+    {
+      len = IEEE80211_NWID_LEN;
     }
-    if (i == len) {
-        printf("\"");
-        for (i = 0, p = essid; i < len; i++, p++)
-            printf("%c", *p);
-        printf("\"");
-    } else {
-        printf("0x");
-        for (i = 0, p = essid; i < len; i++, p++)
-            printf("%02x", *p);
+
+  /* determine printable or not */
+
+  for (i = 0, p = essid; i < len; i++, p++)
+    {
+      if (*p < ' ' || *p > 0x7e)
+        {
+          break;
+        }
+    }
+
+  if (i == len)
+    {
+      nvdbg("\"");
+      for (i = 0, p = essid; i < len; i++, p++)
+        {
+          nvdbg("%c", *p);
+        }
+
+      nvdbg("\"");
+    }
+  else
+    {
+      nvdbg("0x");
+      for (i = 0, p = essid; i < len; i++, p++)
+        {
+          nvdbg("%02x", *p);
+        }
     }
 }
+#endif
 
-#ifdef CONFIG_DEBUG_NET
-void
-ieee80211_dump_pkt(const uint8_t *buf, int len, int rate, int rssi)
+#if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
+void ieee80211_dump_pkt(const uint8_t *buf, int len, int rate, int rssi)
 {
     struct ieee80211_frame *wh;
     int i;
@@ -159,54 +174,70 @@ ieee80211_dump_pkt(const uint8_t *buf, int len, int rate, int rssi)
     wh = (struct ieee80211_frame *)buf;
     switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK) {
     case IEEE80211_FC1_DIR_NODS:
-        printf("NODS %s", ether_sprintf(wh->i_addr2));
-        printf("->%s", ether_sprintf(wh->i_addr1));
-        printf("(%s)", ether_sprintf(wh->i_addr3));
+        nvdbg("NODS %s", ether_sprintf(wh->i_addr2));
+        nvdbg("->%s", ether_sprintf(wh->i_addr1));
+        nvdbg("(%s)", ether_sprintf(wh->i_addr3));
         break;
     case IEEE80211_FC1_DIR_TODS:
-        printf("TODS %s", ether_sprintf(wh->i_addr2));
-        printf("->%s", ether_sprintf(wh->i_addr3));
-        printf("(%s)", ether_sprintf(wh->i_addr1));
+        nvdbg("TODS %s", ether_sprintf(wh->i_addr2));
+        nvdbg("->%s", ether_sprintf(wh->i_addr3));
+        nvdbg("(%s)", ether_sprintf(wh->i_addr1));
         break;
     case IEEE80211_FC1_DIR_FROMDS:
-        printf("FRDS %s", ether_sprintf(wh->i_addr3));
-        printf("->%s", ether_sprintf(wh->i_addr1));
-        printf("(%s)", ether_sprintf(wh->i_addr2));
+        nvdbg("FRDS %s", ether_sprintf(wh->i_addr3));
+        nvdbg("->%s", ether_sprintf(wh->i_addr1));
+        nvdbg("(%s)", ether_sprintf(wh->i_addr2));
         break;
     case IEEE80211_FC1_DIR_DSTODS:
-        printf("DSDS %s", ether_sprintf((uint8_t *)&wh[1]));
-        printf("->%s", ether_sprintf(wh->i_addr3));
-        printf("(%s", ether_sprintf(wh->i_addr2));
-        printf("->%s)", ether_sprintf(wh->i_addr1));
+        nvdbg("DSDS %s", ether_sprintf((uint8_t *)&wh[1]));
+        nvdbg("->%s", ether_sprintf(wh->i_addr3));
+        nvdbg("(%s", ether_sprintf(wh->i_addr2));
+        nvdbg("->%s)", ether_sprintf(wh->i_addr1));
         break;
     }
     switch (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) {
     case IEEE80211_FC0_TYPE_DATA:
-        printf(" data");
+        nvdbg(" data");
         break;
     case IEEE80211_FC0_TYPE_MGT:
-        printf(" %s", ieee80211_mgt_subtype_name[
+        nvdbg(" %s", ieee80211_mgt_subtype_name[
             (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK)
             >> IEEE80211_FC0_SUBTYPE_SHIFT]);
         break;
     default:
-        printf(" type#%d", wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK);
+        nvdbg(" type#%d", wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK);
         break;
     }
-    if (wh->i_fc[1] & IEEE80211_FC1_WEP)
-        printf(" WEP");
-    if (rate >= 0)
-        printf(" %d%sM", rate / 2, (rate & 1) ? ".5" : "");
-    if (rssi >= 0)
-        printf(" +%d", rssi);
-    printf("\n");
-    if (len > 0) {
-        for (i = 0; i < len; i++) {
-            if ((i & 1) == 0)
-                printf(" ");
-            printf("%02x", buf[i]);
+
+  if (wh->i_fc[1] & IEEE80211_FC1_WEP)
+    {
+        nvdbg(" WEP");
+    }
+
+  if (rate >= 0)
+    {
+        nvdbg(" %d%sM", rate / 2, (rate & 1) ? ".5" : "");
+    }
+
+  if (rssi >= 0)
+    {
+        nvdbg(" +%d", rssi);
+    }
+
+  nvdbg("\n");
+  if (len > 0)
+    {
+      for (i = 0; i < len; i++)
+        {
+          if ((i & 1) == 0)
+            {
+              nvdbg(" ");
+            }
+
+          nvdbg("%02x", buf[i]);
         }
-        printf("\n");
+
+      nvdbg("\n");
     }
 }
 #endif
