@@ -105,7 +105,7 @@ ieee80211_amrr_choose(struct ieee80211_amrr *amrr, struct ieee80211_node *ni,
                     amrr->amrr_min_success_threshold;
             }
             decrease_rate(ni);
-            nvdbg(("decrease rate=%d,#tx=%d,#retries=%d\n",
+           nvdbg("decrease rate=%d,#tx=%d,#retries=%d\n",
                 RV(ni->ni_rates.rs_rates[ni->ni_txrate]),
                 amn->amn_txcnt, amn->amn_retrycnt);
             need_change = 1;

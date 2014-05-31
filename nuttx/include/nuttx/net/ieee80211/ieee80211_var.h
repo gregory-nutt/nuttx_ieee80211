@@ -195,8 +195,8 @@ struct ieee80211_defrag {
 
 struct ieee80211com
 {
+  dq_entry_t      ic_list;    /* chain of all ieee80211com */
   struct ifnet ic_if;
-  LIST_ENTRY(ieee80211com) ic_list;    /* chain of all ieee80211com */
   void            (*ic_recv_mgmt)(struct ieee80211com *,
                   struct mbuf *, struct ieee80211_node *,
                   struct ieee80211_rxinfo *, int);
@@ -228,9 +228,9 @@ struct ieee80211com
   uint8_t        ic_myaddr[IEEE80211_ADDR_LEN];
   struct ieee80211_rateset ic_sup_rates[IEEE80211_MODE_MAX];
   struct ieee80211_channel ic_channels[IEEE80211_CHAN_MAX+1];
-  uint8_t            ic_chan_avail[howmany(IEEE80211_CHAN_MAX,NBBY)];
+  uint8_t            ic_chan_avail[howmany(IEEE80211_CHAN_MAX, NBBY)];
   uint8_t            ic_chan_active[howmany(IEEE80211_CHAN_MAX, NBBY)];
-  uint8_t            ic_chan_scan[howmany(IEEE80211_CHAN_MAX,NBBY)];
+  uint8_t            ic_chan_scan[howmany(IEEE80211_CHAN_MAX, NBBY)];
   struct ifqueue        ic_mgtq;
   struct ifqueue        ic_pwrsaveq;
   unsigned int            ic_scan_lock;    /* user-initiated scan */
@@ -323,7 +323,7 @@ struct ieee80211com
   uint8_t        ic_sup_mcs[16];
   uint8_t        ic_dialog_token;
 
-  LIST_HEAD(, ieee80211_vap) ic_vaps;
+  dq_queue_t     c_vaps;
 };
 
 extern dq_queue_t ieee80211com_head;
