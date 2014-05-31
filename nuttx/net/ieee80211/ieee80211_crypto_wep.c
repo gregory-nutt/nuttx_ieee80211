@@ -48,7 +48,7 @@
 /* WEP software crypto context */
 struct ieee80211_wep_ctx {
 	struct rc4_ctx	rc4;
-	u_int32_t	iv;
+	uint32_t	iv;
 };
 
 /*
@@ -88,7 +88,7 @@ ieee80211_wep_encrypt(struct ieee80211com *ic, struct mbuf *m0,
 	const struct ieee80211_frame *wh;
 	struct mbuf *n0, *m, *n;
 	uint8_t *ivp, *icvp;
-	u_int32_t iv, crc;
+	uint32_t iv, crc;
 	int left, moff, noff, len, hdrlen;
 
 	MGET(n0, M_DONTWAIT, m0->m_type);
@@ -205,7 +205,7 @@ ieee80211_wep_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 	struct ieee80211_wep_ctx *ctx = k->k_priv;
 	struct ieee80211_frame *wh;
 	uint8_t wepseed[16];
-	u_int32_t crc, crc0;
+	uint32_t crc, crc0;
 	uint8_t *ivp;
 	struct mbuf *n0, *m, *n;
 	int hdrlen, left, moff, noff, len;

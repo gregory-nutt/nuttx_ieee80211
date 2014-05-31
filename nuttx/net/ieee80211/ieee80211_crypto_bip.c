@@ -162,7 +162,7 @@ ieee80211_bip_decap(struct ieee80211com *ic, struct mbuf *m0,
     struct ieee80211_frame *wh;
     struct ieee80211_bip_frame aad;
     uint8_t *mmie, mic0[8], mic[AES_CMAC_DIGEST_LENGTH];
-    u_int64_t ipn;
+    uint64_t ipn;
 
     wh = mtod(m0, struct ieee80211_frame *);
     KASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==

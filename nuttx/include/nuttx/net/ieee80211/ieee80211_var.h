@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <wdog.h>
+#include <queue.h>
 
 #ifdef    SMALL_KERNEL
 #define IEEE80211_STA_ONLY    1
@@ -192,193 +193,193 @@ struct ieee80211_defrag {
 
 #define IEEE80211_GROUP_NKID    6
 
-struct ieee80211com {
-    struct arpcom        ic_ac;
-    LIST_ENTRY(ieee80211com) ic_list;    /* chain of all ieee80211com */
-    void            (*ic_recv_mgmt)(struct ieee80211com *,
-                    struct mbuf *, struct ieee80211_node *,
-                    struct ieee80211_rxinfo *, int);
-    int            (*ic_send_mgmt)(struct ieee80211com *,
-                    struct ieee80211_node *, int, int, int);
-    int            (*ic_newstate)(struct ieee80211com *,
-                    enum ieee80211_state, int);
-    void            (*ic_newassoc)(struct ieee80211com *,
-                    struct ieee80211_node *, int);
-    void            (*ic_node_leave)(struct ieee80211com *,
-                    struct ieee80211_node *);
-    void            (*ic_updateslot)(struct ieee80211com *);
-    void            (*ic_updateedca)(struct ieee80211com *);
-    void            (*ic_set_tim)(struct ieee80211com *, int, int);
-    int            (*ic_set_key)(struct ieee80211com *,
-                    struct ieee80211_node *,
-                    struct ieee80211_key *);
-    void            (*ic_delete_key)(struct ieee80211com *,
-                    struct ieee80211_node *,
-                    struct ieee80211_key *);
-    int            (*ic_ampdu_tx_start)(struct ieee80211com *,
-                    struct ieee80211_node *, uint8_t);
-    void            (*ic_ampdu_tx_stop)(struct ieee80211com *,
-                    struct ieee80211_node *, uint8_t);
-    int            (*ic_ampdu_rx_start)(struct ieee80211com *,
-                    struct ieee80211_node *, uint8_t);
-    void            (*ic_ampdu_rx_stop)(struct ieee80211com *,
-                    struct ieee80211_node *, uint8_t);
-    uint8_t        ic_myaddr[IEEE80211_ADDR_LEN];
-    struct ieee80211_rateset ic_sup_rates[IEEE80211_MODE_MAX];
-    struct ieee80211_channel ic_channels[IEEE80211_CHAN_MAX+1];
-    u_char            ic_chan_avail[howmany(IEEE80211_CHAN_MAX,NBBY)];
-    u_char            ic_chan_active[howmany(IEEE80211_CHAN_MAX, NBBY)];
-    u_char            ic_chan_scan[howmany(IEEE80211_CHAN_MAX,NBBY)];
-    struct ifqueue        ic_mgtq;
-    struct ifqueue        ic_pwrsaveq;
-    unsigned int            ic_scan_lock;    /* user-initiated scan */
-    uint8_t        ic_scan_count;    /* count scans */
-    uint32_t        ic_flags;    /* state flags */
-    uint32_t        ic_caps;    /* capabilities */
-    uint16_t        ic_modecaps;    /* set of mode capabilities */
-    uint16_t        ic_curmode;    /* current mode */
-    enum ieee80211_phytype    ic_phytype;    /* XXX wrong for multi-mode */
-    enum ieee80211_opmode    ic_opmode;    /* operation mode */
-    enum ieee80211_state    ic_state;    /* 802.11 state */
-    uint32_t        *ic_aid_bitmap;
-    uint16_t        ic_max_aid;
-    enum ieee80211_protmode    ic_protmode;    /* 802.11g protection mode */
-    struct ifmedia        ic_media;    /* interface media config */
-    void             *ic_rawbpf;    /* packet filter structure */
-    struct ieee80211_node    *ic_bss;    /* information for this node */
-    struct ieee80211_channel *ic_ibss_chan;
-    int            ic_fixed_rate;    /* index to ic_sup_rates[] */
-    uint16_t        ic_rtsthreshold;
-    uint16_t        ic_fragthreshold;
-    unsigned int            ic_scangen;    /* gen# for timeout scan */
-    struct ieee80211_node    *(*ic_node_alloc)(struct ieee80211com *);
-    void            (*ic_node_free)(struct ieee80211com *,
-                    struct ieee80211_node *);
-    void            (*ic_node_copy)(struct ieee80211com *,
-                    struct ieee80211_node *,
-                    const struct ieee80211_node *);
-    uint8_t        (*ic_node_getrssi)(struct ieee80211com *,
-                    const struct ieee80211_node *);
-    uint8_t        ic_max_rssi;
-    struct ieee80211_tree    ic_tree;
-    int            ic_nnodes;    /* length of ic_nnodes */
-    int            ic_max_nnodes;    /* max length of ic_nnodes */
-    uint16_t        ic_lintval;    /* listen interval */
-    int16_t            ic_txpower;    /* tx power setting (dBm) */
-    uint16_t        ic_bmisstimeout;/* beacon miss threshold (ms) */
-    uint16_t        ic_nonerpsta;    /* # non-ERP stations */
-    uint16_t        ic_longslotsta;    /* # long slot time stations */
-    uint16_t        ic_rsnsta;    /* # RSN stations */
-    uint16_t        ic_pssta;    /* # ps mode stations */
-    int            ic_mgt_timer;    /* mgmt timeout */
+struct ieee80211com
+{
+  struct ifnet ic_if;
+  LIST_ENTRY(ieee80211com) ic_list;    /* chain of all ieee80211com */
+  void            (*ic_recv_mgmt)(struct ieee80211com *,
+                  struct mbuf *, struct ieee80211_node *,
+                  struct ieee80211_rxinfo *, int);
+  int            (*ic_send_mgmt)(struct ieee80211com *,
+                  struct ieee80211_node *, int, int, int);
+  int            (*ic_newstate)(struct ieee80211com *,
+                  enum ieee80211_state, int);
+  void            (*ic_newassoc)(struct ieee80211com *,
+                  struct ieee80211_node *, int);
+  void            (*ic_node_leave)(struct ieee80211com *,
+                  struct ieee80211_node *);
+  void            (*ic_updateslot)(struct ieee80211com *);
+  void            (*ic_updateedca)(struct ieee80211com *);
+  void            (*ic_set_tim)(struct ieee80211com *, int, int);
+  int            (*ic_set_key)(struct ieee80211com *,
+                  struct ieee80211_node *,
+                  struct ieee80211_key *);
+  void            (*ic_delete_key)(struct ieee80211com *,
+                  struct ieee80211_node *,
+                  struct ieee80211_key *);
+  int            (*ic_ampdu_tx_start)(struct ieee80211com *,
+                  struct ieee80211_node *, uint8_t);
+  void            (*ic_ampdu_tx_stop)(struct ieee80211com *,
+                  struct ieee80211_node *, uint8_t);
+  int            (*ic_ampdu_rx_start)(struct ieee80211com *,
+                  struct ieee80211_node *, uint8_t);
+  void            (*ic_ampdu_rx_stop)(struct ieee80211com *,
+                  struct ieee80211_node *, uint8_t);
+  uint8_t        ic_myaddr[IEEE80211_ADDR_LEN];
+  struct ieee80211_rateset ic_sup_rates[IEEE80211_MODE_MAX];
+  struct ieee80211_channel ic_channels[IEEE80211_CHAN_MAX+1];
+  uint8_t            ic_chan_avail[howmany(IEEE80211_CHAN_MAX,NBBY)];
+  uint8_t            ic_chan_active[howmany(IEEE80211_CHAN_MAX, NBBY)];
+  uint8_t            ic_chan_scan[howmany(IEEE80211_CHAN_MAX,NBBY)];
+  struct ifqueue        ic_mgtq;
+  struct ifqueue        ic_pwrsaveq;
+  unsigned int            ic_scan_lock;    /* user-initiated scan */
+  uint8_t        ic_scan_count;    /* count scans */
+  uint32_t        ic_flags;    /* state flags */
+  uint32_t        ic_caps;    /* capabilities */
+  uint16_t        ic_modecaps;    /* set of mode capabilities */
+  uint16_t        ic_curmode;    /* current mode */
+  enum ieee80211_phytype    ic_phytype;    /* XXX wrong for multi-mode */
+  enum ieee80211_opmode    ic_opmode;    /* operation mode */
+  enum ieee80211_state    ic_state;    /* 802.11 state */
+  uint32_t        *ic_aid_bitmap;
+  uint16_t        ic_max_aid;
+  enum ieee80211_protmode    ic_protmode;    /* 802.11g protection mode */
+  struct ifmedia        ic_media;    /* interface media config */
+  void             *ic_rawbpf;    /* packet filter structure */
+  struct ieee80211_node    *ic_bss;    /* information for this node */
+  struct ieee80211_channel *ic_ibss_chan;
+  int            ic_fixed_rate;    /* index to ic_sup_rates[] */
+  uint16_t        ic_rtsthreshold;
+  uint16_t        ic_fragthreshold;
+  unsigned int            ic_scangen;    /* gen# for timeout scan */
+  struct ieee80211_node    *(*ic_node_alloc)(struct ieee80211com *);
+  void            (*ic_node_free)(struct ieee80211com *,
+                  struct ieee80211_node *);
+  void            (*ic_node_copy)(struct ieee80211com *,
+                  struct ieee80211_node *,
+                  const struct ieee80211_node *);
+  uint8_t        (*ic_node_getrssi)(struct ieee80211com *,
+                  const struct ieee80211_node *);
+  uint8_t        ic_max_rssi;
+  struct ieee80211_tree    ic_tree;
+  int            ic_nnodes;    /* length of ic_nnodes */
+  int            ic_max_nnodes;    /* max length of ic_nnodes */
+  uint16_t        ic_lintval;    /* listen interval */
+  int16_t            ic_txpower;    /* tx power setting (dBm) */
+  uint16_t        ic_bmisstimeout;/* beacon miss threshold (ms) */
+  uint16_t        ic_nonerpsta;    /* # non-ERP stations */
+  uint16_t        ic_longslotsta;    /* # long slot time stations */
+  uint16_t        ic_rsnsta;    /* # RSN stations */
+  uint16_t        ic_pssta;    /* # ps mode stations */
+  int            ic_mgt_timer;    /* mgmt timeout */
 #ifndef IEEE80211_STA_ONLY
-    WDOG_ID        ic_inact_timeout; /* node inactivity timeout */
-    WDOG_ID        ic_node_cache_timeout;
+  WDOG_ID        ic_inact_timeout; /* node inactivity timeout */
+  WDOG_ID        ic_node_cache_timeout;
 #endif
-    int            ic_des_esslen;
-    uint8_t        ic_des_essid[IEEE80211_NWID_LEN];
-    struct ieee80211_channel *ic_des_chan;    /* desired channel */
-    uint8_t        ic_des_bssid[IEEE80211_ADDR_LEN];
-    struct ieee80211_key    ic_nw_keys[IEEE80211_GROUP_NKID];
-    int            ic_def_txkey;    /* group data key index */
+  int            ic_des_esslen;
+  uint8_t        ic_des_essid[IEEE80211_NWID_LEN];
+  struct ieee80211_channel *ic_des_chan;    /* desired channel */
+  uint8_t        ic_des_bssid[IEEE80211_ADDR_LEN];
+  struct ieee80211_key    ic_nw_keys[IEEE80211_GROUP_NKID];
+  int            ic_def_txkey;    /* group data key index */
 #define ic_wep_txkey    ic_def_txkey
-    int            ic_igtk_kid;    /* IGTK key index */
-    uint32_t        ic_iv;        /* initial vector for wep */
-    struct ieee80211_stats    ic_stats;    /* statistics */
-    struct timeval        ic_last_merge_print;    /* for rate-limiting
+  int            ic_igtk_kid;    /* IGTK key index */
+  uint32_t        ic_iv;        /* initial vector for wep */
+  struct ieee80211_stats    ic_stats;    /* statistics */
+  struct timeval        ic_last_merge_print;    /* for rate-limiting
                              * IBSS merge print-outs
                              */
-    struct ieee80211_edca_ac_params ic_edca_ac[EDCA_NUM_AC];
-    unsigned int            ic_edca_updtcount;
-    uint16_t        ic_tid_noack;
-    uint8_t        ic_globalcnt[EAPOL_KEY_NONCE_LEN];
-    uint8_t        ic_nonce[EAPOL_KEY_NONCE_LEN];
-    uint8_t        ic_psk[IEEE80211_PMK_LEN];
-    WDOG_ID        ic_rsn_timeout;
-    uint16_t        ic_rsn_keydonesta;
-    int            ic_tkip_micfail;
-    uint64_t        ic_tkip_micfail_last_tsc;
+  struct ieee80211_edca_ac_params ic_edca_ac[EDCA_NUM_AC];
+  unsigned int            ic_edca_updtcount;
+  uint16_t        ic_tid_noack;
+  uint8_t        ic_globalcnt[EAPOL_KEY_NONCE_LEN];
+  uint8_t        ic_nonce[EAPOL_KEY_NONCE_LEN];
+  uint8_t        ic_psk[IEEE80211_PMK_LEN];
+  WDOG_ID        ic_rsn_timeout;
+  uint16_t        ic_rsn_keydonesta;
+  int            ic_tkip_micfail;
+  uint64_t        ic_tkip_micfail_last_tsc;
 
-    TAILQ_HEAD(, ieee80211_pmk) ic_pmksa;    /* PMKSA cache */
-    unsigned int            ic_rsnprotos;
-    unsigned int            ic_rsnakms;
-    unsigned int            ic_rsnciphers;
-    enum ieee80211_cipher    ic_rsngroupcipher;
-    enum ieee80211_cipher    ic_rsngroupmgmtcipher;
+  sq_queue_t ic_pmksa;    /* PMKSA cache */
+  unsigned int            ic_rsnprotos;
+  unsigned int            ic_rsnakms;
+  unsigned int            ic_rsnciphers;
+  enum ieee80211_cipher    ic_rsngroupcipher;
+  enum ieee80211_cipher    ic_rsngroupmgmtcipher;
 
-    struct ieee80211_defrag    ic_defrag[IEEE80211_DEFRAG_SIZE];
-    int            ic_defrag_cur;
+  struct ieee80211_defrag    ic_defrag[IEEE80211_DEFRAG_SIZE];
+  int            ic_defrag_cur;
 
-    uint8_t        *ic_tim_bitmap;
-    unsigned int            ic_tim_len;
-    unsigned int            ic_tim_mcast_pending;
-    unsigned int            ic_dtim_period;
-    unsigned int            ic_dtim_count;
+  uint8_t        *ic_tim_bitmap;
+  unsigned int            ic_tim_len;
+  unsigned int            ic_tim_mcast_pending;
+  unsigned int            ic_dtim_period;
+  unsigned int            ic_dtim_count;
+  uint32_t        ic_txbfcaps;
+  uint16_t        ic_htcaps;
+  uint16_t        ic_htxcaps;
+  uint8_t        ic_aselcaps;
+  uint8_t        ic_sup_mcs[16];
+  uint8_t        ic_dialog_token;
 
-    uint32_t        ic_txbfcaps;
-    uint16_t        ic_htcaps;
-    uint16_t        ic_htxcaps;
-    uint8_t        ic_aselcaps;
-    uint8_t        ic_sup_mcs[16];
-    uint8_t        ic_dialog_token;
-
-    LIST_HEAD(, ieee80211_vap) ic_vaps;
+  LIST_HEAD(, ieee80211_vap) ic_vaps;
 };
-#define ic_if        ic_ac.ac_if
-#define ic_softc    ic_if.if_softc
 
-LIST_HEAD(ieee80211com_head, ieee80211com);
-extern struct ieee80211com_head ieee80211com_head;
+extern dq_queue_t ieee80211com_head;
 
 #define IEEE80211_ADDR_EQ(a1,a2)    (memcmp(a1,a2,IEEE80211_ADDR_LEN) == 0)
 #define IEEE80211_ADDR_COPY(dst,src)    memcpy(dst,src,IEEE80211_ADDR_LEN)
 
 /* ic_flags */
-#define IEEE80211_F_ASCAN    0x00000001    /* STATUS: active scan */
-#define IEEE80211_F_SIBSS    0x00000002    /* STATUS: start IBSS */
-#define IEEE80211_F_WEPON    0x00000100    /* CONF: WEP enabled */
-#define IEEE80211_F_IBSSON    0x00000200    /* CONF: IBSS creation enable */
-#define IEEE80211_F_PMGTON    0x00000400    /* CONF: Power mgmt enable */
+
+#define IEEE80211_F_ASCAN       0x00000001    /* STATUS: active scan */
+#define IEEE80211_F_SIBSS       0x00000002    /* STATUS: start IBSS */
+#define IEEE80211_F_WEPON       0x00000100    /* CONF: WEP enabled */
+#define IEEE80211_F_IBSSON      0x00000200    /* CONF: IBSS creation enable */
+#define IEEE80211_F_PMGTON      0x00000400    /* CONF: Power mgmt enable */
 #define IEEE80211_F_DESBSSID    0x00000800    /* CONF: des_bssid is set */
-#define IEEE80211_F_ROAMING    0x00002000    /* CONF: roaming enabled */
-#define IEEE80211_F_TXPMGT    0x00018000    /* STATUS: tx power */
-#define IEEE80211_F_TXPOW_OFF    0x00000000    /* TX Power: radio disabled */
-#define IEEE80211_F_TXPOW_FIXED    0x00008000    /* TX Power: fixed rate */
-#define IEEE80211_F_TXPOW_AUTO    0x00010000    /* TX Power: undefined */
-#define IEEE80211_F_SHSLOT    0x00020000    /* STATUS: short slot time */
-#define IEEE80211_F_SHPREAMBLE    0x00040000    /* STATUS: short preamble */
-#define IEEE80211_F_QOS        0x00080000    /* CONF: QoS enabled */
-#define IEEE80211_F_USEPROT    0x00100000    /* STATUS: protection enabled */
-#define IEEE80211_F_RSNON    0x00200000    /* CONF: RSN enabled */
-#define IEEE80211_F_PSK        0x00400000    /* CONF: pre-shared key set */
+#define IEEE80211_F_ROAMING     0x00002000    /* CONF: roaming enabled */
+#define IEEE80211_F_TXPMGT      0x00018000    /* STATUS: tx power */
+#define IEEE80211_F_TXPOW_OFF   0x00000000    /* TX Power: radio disabled */
+#define IEEE80211_F_TXPOW_FIXED 0x00008000    /* TX Power: fixed rate */
+#define IEEE80211_F_TXPOW_AUTO  0x00010000    /* TX Power: undefined */
+#define IEEE80211_F_SHSLOT      0x00020000    /* STATUS: short slot time */
+#define IEEE80211_F_SHPREAMBLE  0x00040000    /* STATUS: short preamble */
+#define IEEE80211_F_QOS         0x00080000    /* CONF: QoS enabled */
+#define IEEE80211_F_USEPROT     0x00100000    /* STATUS: protection enabled */
+#define IEEE80211_F_RSNON       0x00200000    /* CONF: RSN enabled */
+#define IEEE80211_F_PSK         0x00400000    /* CONF: pre-shared key set */
 #define IEEE80211_F_COUNTERM    0x00800000    /* STATUS: countermeasures */
-#define IEEE80211_F_MFPR    0x01000000    /* CONF: MFP required */
-#define IEEE80211_F_HTON    0x02000000    /* CONF: HT enabled */
-#define IEEE80211_F_PBAR    0x04000000    /* CONF: PBAC required */
+#define IEEE80211_F_MFPR        0x01000000    /* CONF: MFP required */
+#define IEEE80211_F_HTON        0x02000000    /* CONF: HT enabled */
+#define IEEE80211_F_PBAR        0x04000000    /* CONF: PBAC required */
 #define IEEE80211_F_USERMASK    0xf0000000    /* CONF: ioctl flag mask */
 
 /* ic_caps */
-#define IEEE80211_C_WEP        0x00000001    /* CAPABILITY: WEP available */
-#define IEEE80211_C_IBSS    0x00000002    /* CAPABILITY: IBSS available */
-#define IEEE80211_C_PMGT    0x00000004    /* CAPABILITY: Power mgmt */
-#define IEEE80211_C_HOSTAP    0x00000008    /* CAPABILITY: HOSTAP avail */
-#define IEEE80211_C_AHDEMO    0x00000010    /* CAPABILITY: Old Adhoc Demo */
-#define IEEE80211_C_APPMGT    0x00000020    /* CAPABILITY: AP power mgmt */
-#define IEEE80211_C_TXPMGT    0x00000040    /* CAPABILITY: tx power mgmt */
-#define IEEE80211_C_SHSLOT    0x00000080    /* CAPABILITY: short slottime */
-#define IEEE80211_C_SHPREAMBLE    0x00000100    /* CAPABILITY: short preamble */
-#define IEEE80211_C_MONITOR    0x00000200    /* CAPABILITY: monitor mode */
-#define IEEE80211_C_SCANALL    0x00000400    /* CAPABILITY: scan all chan */
-#define IEEE80211_C_QOS        0x00000800    /* CAPABILITY: QoS avail */
-#define IEEE80211_C_RSN        0x00001000    /* CAPABILITY: RSN avail */
-#define IEEE80211_C_MFP        0x00002000    /* CAPABILITY: MFP avail */
-#define IEEE80211_C_RAWCTL    0x00004000    /* CAPABILITY: raw ctl */
+
+#define IEEE80211_C_WEP         0x00000001    /* CAPABILITY: WEP available */
+#define IEEE80211_C_IBSS        0x00000002    /* CAPABILITY: IBSS available */
+#define IEEE80211_C_PMGT        0x00000004    /* CAPABILITY: Power mgmt */
+#define IEEE80211_C_HOSTAP      0x00000008    /* CAPABILITY: HOSTAP avail */
+#define IEEE80211_C_AHDEMO      0x00000010    /* CAPABILITY: Old Adhoc Demo */
+#define IEEE80211_C_APPMGT      0x00000020    /* CAPABILITY: AP power mgmt */
+#define IEEE80211_C_TXPMGT      0x00000040    /* CAPABILITY: tx power mgmt */
+#define IEEE80211_C_SHSLOT      0x00000080    /* CAPABILITY: short slottime */
+#define IEEE80211_C_SHPREAMBLE  0x00000100    /* CAPABILITY: short preamble */
+#define IEEE80211_C_MONITOR     0x00000200    /* CAPABILITY: monitor mode */
+#define IEEE80211_C_SCANALL     0x00000400    /* CAPABILITY: scan all chan */
+#define IEEE80211_C_QOS         0x00000800    /* CAPABILITY: QoS avail */
+#define IEEE80211_C_RSN         0x00001000    /* CAPABILITY: RSN avail */
+#define IEEE80211_C_MFP         0x00002000    /* CAPABILITY: MFP avail */
+#define IEEE80211_C_RAWCTL      0x00004000    /* CAPABILITY: raw ctl */
 
 /* flags for ieee80211_fix_rate() */
-#define IEEE80211_F_DOSORT    0x00000001    /* sort rate list */
-#define IEEE80211_F_DOFRATE    0x00000002    /* use fixed rate */
-#define IEEE80211_F_DONEGO    0x00000004    /* calc negotiated rate */
-#define IEEE80211_F_DODEL    0x00000008    /* delete ignore rate */
+
+#define IEEE80211_F_DOSORT      0x00000001    /* sort rate list */
+#define IEEE80211_F_DOFRATE     0x00000002    /* use fixed rate */
+#define IEEE80211_F_DONEGO      0x00000004    /* calc negotiated rate */
+#define IEEE80211_F_DODEL       0x00000008    /* delete ignore rate */
 
 void    ieee80211_ifattach(struct ifnet *);
 void    ieee80211_ifdetach(struct ifnet *);

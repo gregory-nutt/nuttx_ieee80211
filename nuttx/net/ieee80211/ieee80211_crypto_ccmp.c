@@ -80,7 +80,7 @@ ieee80211_ccmp_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
  */
 static void
 ieee80211_ccmp_phase1(rijndael_ctx *ctx, const struct ieee80211_frame *wh,
-    u_int64_t pn, int lm, uint8_t b[16], uint8_t a[16], uint8_t s0[16])
+    uint64_t pn, int lm, uint8_t b[16], uint8_t a[16], uint8_t s0[16])
 {
 	uint8_t auth[32], nonce[13];
 	uint8_t *aad;
@@ -303,7 +303,7 @@ ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 {
 	struct ieee80211_ccmp_ctx *ctx = k->k_priv;
 	struct ieee80211_frame *wh;
-	u_int64_t pn, *prsc;
+	uint64_t pn, *prsc;
 	const uint8_t *ivp, *src;
 	uint8_t *dst;
 	uint8_t mic0[IEEE80211_CCMP_MICLEN];
@@ -338,12 +338,12 @@ ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct mbuf *m0,
 		prsc = &k->k_mgmt_rsc;
 
 	/* extract the 48-bit PN from the CCMP header */
-	pn = (u_int64_t)ivp[0]       |
-	     (u_int64_t)ivp[1] <<  8 |
-	     (u_int64_t)ivp[4] << 16 |
-	     (u_int64_t)ivp[5] << 24 |
-	     (u_int64_t)ivp[6] << 32 |
-	     (u_int64_t)ivp[7] << 40;
+	pn = (uint64_t)ivp[0]       |
+	     (uint64_t)ivp[1] <<  8 |
+	     (uint64_t)ivp[4] << 16 |
+	     (uint64_t)ivp[5] << 24 |
+	     (uint64_t)ivp[6] << 32 |
+	     (uint64_t)ivp[7] << 40;
 	if (pn <= *prsc) {
 		/* replayed frame, discard */
 		ic->ic_stats.is_ccmp_replays++;

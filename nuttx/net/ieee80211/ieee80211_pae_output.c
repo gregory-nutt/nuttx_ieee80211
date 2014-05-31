@@ -62,7 +62,7 @@ uint8_t    *ieee80211_add_pmkid_kde(uint8_t *, const uint8_t *);
 uint8_t    *ieee80211_add_igtk_kde(uint8_t *,
             const struct ieee80211_key *);
 #endif
-struct mbuf     *ieee80211_get_eapol_key(int, int, u_int);
+struct mbuf     *ieee80211_get_eapol_key(int, int, unsigned int);
 
 /*
  * Send an EAPOL-Key frame to node `ni'.  If MIC or encryption is required,
@@ -241,7 +241,7 @@ ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
 #endif    /* IEEE80211_STA_ONLY */
 
 struct mbuf *
-ieee80211_get_eapol_key(int flags, int type, u_int pktlen)
+ieee80211_get_eapol_key(int flags, int type, unsigned int pktlen)
 {
     struct mbuf *m;
 
@@ -618,7 +618,7 @@ ieee80211_send_group_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
  */
 int
 ieee80211_send_eapol_key_req(struct ieee80211com *ic,
-    struct ieee80211_node *ni, uint16_t info, u_int64_t tsc)
+    struct ieee80211_node *ni, uint16_t info, uint64_t tsc)
 {
     struct ieee80211_eapol_key *key;
     struct mbuf *m;

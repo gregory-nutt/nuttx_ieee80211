@@ -82,7 +82,7 @@ static const struct ieee80211_rssadapt_expavgctl master_expavgctl = {
 int
 ieee80211_rssadapt_choose(struct ieee80211_rssadapt *ra,
     const struct ieee80211_rateset *rs, const struct ieee80211_frame *wh,
-    u_int len, int fixed_rate, const char *dvname, int do_not_adapt)
+    unsigned int len, int fixed_rate, const char *dvname, int do_not_adapt)
 {
 	uint16_t (*thrs)[IEEE80211_RATE_SIZE];
 	int flags = 0, i, rateidx = 0, thridx, top;
@@ -179,7 +179,7 @@ ieee80211_rssadapt_lower_rate(struct ieee80211com *ic,
 {
 	const struct ieee80211_rateset *rs = &ni->ni_rates;
 	uint16_t last_thr;
-	u_int i, thridx, top;
+	unsigned int i, thridx, top;
 
 	ra->ra_nfail++;
 

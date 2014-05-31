@@ -47,8 +47,8 @@
 #include <net/if_media.h>
 
 #ifdef INET
-#include <netinet/in.h>
-#include <netinet/if_ether.h>
+#  include <netinet/in.h>
+#  include <netinet/if_ether.h>
 #endif
 
 #include <nuttx/tree.h>
@@ -193,9 +193,6 @@ static int ieee80211_ioctl_getnwkeys(struct ieee80211com *ic,
     for (i = 0; i < IEEE80211_WEP_NKID; i++) {
         if (nwkey->i_key[i].i_keydat == NULL)
             continue;
-        /* do not show any keys to non-root user */
-        if ((error = suser(curproc, 0)) != 0)
-            return error;
         k = &ic->ic_nw_keys[i];
         if (k->k_cipher != IEEE80211_CIPHER_WEP40 &&
             k->k_cipher != IEEE80211_CIPHER_WEP104)
@@ -338,7 +335,7 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
     struct ieee80211_nodereq *nr, nrbuf;
     struct ieee80211_nodereq_all *na;
     struct ieee80211_node *ni;
-    u_int32_t flags;
+    uint32_t flags;
 
     switch (cmd) {
     case SIOCSIFMEDIA:
@@ -346,18 +343,16 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         error = ifmedia_ioctl(ifp, ifr, &ic->ic_media, cmd);
         break;
     case SIOCS80211NWID:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         if ((error = copyin(ifr->ifr_data, &nwid, sizeof(nwid))) != 0)
             break;
         if (nwid.i_len > IEEE80211_NWID_LEN) {
-            error = EINVAL;
+            error = -EINVAL;
             break;
         }
         memset(ic->ic_des_essid, 0, IEEE80211_NWID_LEN);
         ic->ic_des_esslen = nwid.i_len;
         memcpy(ic->ic_des_essid, nwid.i_nwid, nwid.i_len);
-        error = ENETRESET;
+        error = -ENETRESET;
         break;
     case SIOCG80211NWID:
         memset(&nwid, 0, sizeof(nwid));
@@ -375,18 +370,14 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         error = copyout(&nwid, ifr->ifr_data, sizeof(nwid));
         break;
     case SIOCS80211NWKEY:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         error = ieee80211_ioctl_setnwkeys(ic, (void *)data);
         break;
     case SIOCG80211NWKEY:
         error = ieee80211_ioctl_getnwkeys(ic, (void *)data);
         break;
     case SIOCS80211WMMPARMS:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         if (!(ic->ic_flags & IEEE80211_C_QOS)) {
-            error = ENODEV;
+            error = -ENODEV;
             break;
         }
         wmm = (struct ieee80211_wmmparams *)data;
@@ -394,23 +385,19 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
             ic->ic_flags |= IEEE80211_F_QOS;
         else
             ic->ic_flags &= ~IEEE80211_F_QOS;
-        error = ENETRESET;
+        error = -ENETRESET;
         break;
     case SIOCG80211WMMPARMS:
         wmm = (struct ieee80211_wmmparams *)data;
         wmm->i_enabled = (ic->ic_flags & IEEE80211_F_QOS) ? 1 : 0;
         break;
     case SIOCS80211WPAPARMS:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         error = ieee80211_ioctl_setwpaparms(ic, (void *)data);
         break;
     case SIOCG80211WPAPARMS:
         error = ieee80211_ioctl_getwpaparms(ic, (void *)data);
         break;
     case SIOCS80211WPAPSK:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         psk = (struct ieee80211_wpapsk *)data;
         if (psk->i_enabled) {
             ic->ic_flags |= IEEE80211_F_PSK;
@@ -419,51 +406,39 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
             ic->ic_flags &= ~IEEE80211_F_PSK;
             memset(ic->ic_psk, 0, sizeof(ic->ic_psk));
         }
-        error = ENETRESET;
+        error = -ENETRESET;
         break;
     case SIOCG80211WPAPSK:
         psk = (struct ieee80211_wpapsk *)data;
         if (ic->ic_flags & IEEE80211_F_PSK) {
             psk->i_enabled = 1;
-            /* do not show any keys to non-root user */
-            if (suser(curproc, 0) != 0) {
-                psk->i_enabled = 2;
-                memset(psk->i_psk, 0, sizeof(psk->i_psk));
-                break;    /* return ok but w/o key */
-            }
             memcpy(psk->i_psk, ic->ic_psk, sizeof(psk->i_psk));
         } else
             psk->i_enabled = 0;
         break;
     case SIOCS80211KEYAVAIL:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         ka = (struct ieee80211_keyavail *)data;
         (void)ieee80211_pmksa_add(ic, IEEE80211_AKM_8021X,
             ka->i_macaddr, ka->i_key, ka->i_lifetime);
         break;
     case SIOCS80211KEYRUN:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         kr = (struct ieee80211_keyrun *)data;
         error = ieee80211_keyrun(ic, kr->i_macaddr);
         break;
     case SIOCS80211POWER:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         power = (struct ieee80211_power *)data;
         ic->ic_lintval = power->i_maxsleep;
         if (power->i_enabled != 0) {
             if ((ic->ic_caps & IEEE80211_C_PMGT) == 0)
-                error = EINVAL;
+                error = -EINVAL;
             else if ((ic->ic_flags & IEEE80211_F_PMGTON) == 0) {
                 ic->ic_flags |= IEEE80211_F_PMGTON;
-                error = ENETRESET;
+                error = -ENETRESET;
             }
         } else {
             if (ic->ic_flags & IEEE80211_F_PMGTON) {
                 ic->ic_flags &= ~IEEE80211_F_PMGTON;
-                error = ENETRESET;
+                error = -ENETRESET;
             }
         }
         break;
@@ -473,8 +448,6 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         power->i_maxsleep = ic->ic_lintval;
         break;
     case SIOCS80211BSSID:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         bssid = (struct ieee80211_bssid *)data;
         if (IEEE80211_ADDR_EQ(bssid->i_bssid, empty_macaddr))
             ic->ic_flags &= ~IEEE80211_F_DESBSSID;
@@ -489,13 +462,13 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         switch (ic->ic_state) {
         case IEEE80211_S_INIT:
         case IEEE80211_S_SCAN:
-            error = ENETRESET;
+            error = -ENETRESET;
             break;
         default:
             if ((ic->ic_flags & IEEE80211_F_DESBSSID) &&
                 !IEEE80211_ADDR_EQ(ic->ic_des_bssid,
                 ic->ic_bss->ni_bssid))
-                error = ENETRESET;
+                error = -ENETRESET;
             break;
         }
         break;
@@ -523,14 +496,12 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         }
         break;
     case SIOCS80211CHANNEL:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         chanreq = (struct ieee80211chanreq *)data;
         if (chanreq->i_channel == IEEE80211_CHAN_ANY)
             ic->ic_des_chan = IEEE80211_CHAN_ANYC;
         else if (chanreq->i_channel > IEEE80211_CHAN_MAX ||
             isclr(ic->ic_chan_active, chanreq->i_channel)) {
-            error = EINVAL;
+            error = -EINVAL;
             break;
         } else
             ic->ic_ibss_chan = ic->ic_des_chan =
@@ -538,16 +509,16 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         switch (ic->ic_state) {
         case IEEE80211_S_INIT:
         case IEEE80211_S_SCAN:
-            error = ENETRESET;
+            error = -ENETRESET;
             break;
         default:
             if (ic->ic_opmode == IEEE80211_M_STA) {
                 if (ic->ic_des_chan != IEEE80211_CHAN_ANYC &&
                     ic->ic_bss->ni_chan != ic->ic_des_chan)
-                    error = ENETRESET;
+                    error = -ENETRESET;
             } else {
                 if (ic->ic_bss->ni_chan != ic->ic_ibss_chan)
-                    error = ENETRESET;
+                    error = -ENETRESET;
             }
             break;
         }
@@ -586,25 +557,23 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
 #endif
         break;
     case SIOCS80211TXPOWER:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         txpower = (struct ieee80211_txpower *)data;
         if ((ic->ic_caps & IEEE80211_C_TXPMGT) == 0) {
-            error = EINVAL;
+            error = -EINVAL;
             break;
         }
         if (!(IEEE80211_TXPOWER_MIN <= txpower->i_val &&
             txpower->i_val <= IEEE80211_TXPOWER_MAX)) {
-            error = EINVAL;
+            error = -EINVAL;
             break;
         }
         ic->ic_txpower = txpower->i_val;
-        error = ENETRESET;
+        error = -ENETRESET;
         break;
     case SIOCG80211TXPOWER:
         txpower = (struct ieee80211_txpower *)data;
         if ((ic->ic_caps & IEEE80211_C_TXPMGT) == 0)
-            error = EINVAL;
+            error = -EINVAL;
         else
             txpower->i_val = ic->ic_txpower;
         break;
@@ -612,20 +581,18 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         ifr = (struct ifreq *)data;
         if (!(IEEE80211_MTU_MIN <= ifr->ifr_mtu &&
             ifr->ifr_mtu <= IEEE80211_MTU_MAX))
-            error = EINVAL;
+            error = -EINVAL;
         else
             ifp->if_mtu = ifr->ifr_mtu;
         break;
     case SIOCS80211SCAN:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
 #ifndef IEEE80211_STA_ONLY
         if (ic->ic_opmode == IEEE80211_M_HOSTAP)
             break;
 #endif
         if ((ifp->if_flags & (IFF_UP | IFF_RUNNING)) !=
             (IFF_UP | IFF_RUNNING)) {
-            error = ENETDOWN;
+            error = -ENETDOWN;
             break;
         }
         if ((ic->ic_scan_lock & IEEE80211_SCAN_REQUEST) == 0) {
@@ -643,17 +610,15 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         nr = (struct ieee80211_nodereq *)data;
         ni = ieee80211_find_node(ic, nr->nr_macaddr);
         if (ni == NULL) {
-            error = ENOENT;
+            error = -ENOENT;
             break;
         }
         ieee80211_node2req(ic, ni, nr);
         break;
     case SIOCS80211NODE:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
 #ifndef IEEE80211_STA_ONLY
         if (ic->ic_opmode == IEEE80211_M_HOSTAP) {
-            error = EINVAL;
+            error = -EINVAL;
             break;
         }
 #endif
@@ -663,7 +628,7 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         if (ni == NULL)
             ni = ieee80211_alloc_node(ic, nr->nr_macaddr);
         if (ni == NULL) {
-            error = ENOENT;
+            error = -ENOENT;
             break;
         }
 
@@ -672,14 +637,12 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         break;
 #ifndef IEEE80211_STA_ONLY
     case SIOCS80211DELNODE:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
         nr = (struct ieee80211_nodereq *)data;
         ni = ieee80211_find_node(ic, nr->nr_macaddr);
         if (ni == NULL)
-            error = ENOENT;
+            error = -ENOENT;
         else if (ni == ic->ic_bss)
-            error = EPERM;
+            error = -EPERM;
         else {
             if (ni->ni_state == IEEE80211_STA_COLLECT)
                 break;
@@ -709,7 +672,7 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
             ieee80211_node2req(ic, ni, &nrbuf);
             error = copyout(&nrbuf, (void *)na->na_node + i,
                 sizeof(struct ieee80211_nodereq));
-            if (error)
+            if (error < 0)
                 break;
             i += sizeof(struct ieee80211_nodereq);
             na->na_nodes++;
@@ -725,22 +688,20 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         ifr->ifr_flags = flags >> IEEE80211_F_USERSHIFT;
         break;
     case SIOCS80211FLAGS:
-        if ((error = suser(curproc, 0)) != 0)
-            break;
-        flags = (u_int32_t)ifr->ifr_flags << IEEE80211_F_USERSHIFT;
+        flags = (uint32_t)ifr->ifr_flags << IEEE80211_F_USERSHIFT;
         if (
 #ifndef IEEE80211_STA_ONLY
             ic->ic_opmode != IEEE80211_M_HOSTAP &&
 #endif
             (flags & IEEE80211_F_HOSTAPMASK)) {
-            error = EINVAL;
+            error = -EINVAL;
             break;
         }
         ic->ic_flags = (ic->ic_flags & ~IEEE80211_F_USERMASK) | flags;
-        error = ENETRESET;
+        error = -ENETRESET;
         break;
     default:
-        error = ether_ioctl(ifp, &ic->ic_ac, cmd, data);
+      error = -ENOTTY;
     }
 
     return error;

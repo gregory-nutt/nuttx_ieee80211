@@ -510,7 +510,7 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
         return;    /* ..authenticator will retry */
 
     if (ni->ni_rsncipher != IEEE80211_CIPHER_USEGROUP) {
-        u_int64_t prsc;
+        uint64_t prsc;
 
         /* check that key length matches that of pairwise cipher */
         keylen = ieee80211_cipher_keylen(ni->ni_rsncipher);

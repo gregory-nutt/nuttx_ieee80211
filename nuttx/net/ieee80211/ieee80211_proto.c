@@ -768,7 +768,7 @@ ieee80211_newstate(struct ieee80211com *ic, enum ieee80211_state nstate,
     struct ifnet *ifp = &ic->ic_if;
     struct ieee80211_node *ni;
     enum ieee80211_state ostate;
-    u_int rate;
+    unsigned int rate;
 #ifndef IEEE80211_STA_ONLY
     int s;
 #endif

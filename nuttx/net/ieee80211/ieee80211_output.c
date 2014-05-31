@@ -76,7 +76,7 @@ int    ieee80211_mgmt_output(struct ifnet *, struct ieee80211_node *,
         struct mbuf *, int);
 uint8_t *ieee80211_add_rsn_body(uint8_t *, struct ieee80211com *,
         const struct ieee80211_node *, int);
-struct    mbuf *ieee80211_getmgmt(int, int, u_int);
+struct    mbuf *ieee80211_getmgmt(int, int, unsigned int);
 struct    mbuf *ieee80211_get_probe_req(struct ieee80211com *,
         struct ieee80211_node *);
 #ifndef IEEE80211_STA_ONLY
@@ -133,7 +133,7 @@ ieee80211_output(struct ifnet *ifp, struct mbuf *m, struct sockaddr *dst,
     /* Try to get the DLT from a mbuf tag */
     if ((mtag = m_tag_find(m, PACKET_TAG_DLT, NULL)) != NULL) {
         struct ieee80211com *ic = (void *)ifp;
-        u_int dlt = *(u_int *)(mtag + 1);
+        unsigned int dlt = *(unsigned int *)(mtag + 1);
 
         /* Fallback to ethernet for non-802.11 linktypes */
         if (!(dlt == DLT_IEEE802_11 || dlt == DLT_IEEE802_11_RADIO))
@@ -446,7 +446,7 @@ ieee80211_classify(struct ieee80211com *ic, struct mbuf *m)
 #ifdef INET6
     else if (eh->ether_type == htons(ETHERTYPE_IPV6)) {
         struct ip6_hdr *ip6 = (struct ip6_hdr *)&eh[1];
-        u_int32_t flowlabel;
+        uint32_t flowlabel;
 
         flowlabel = ntohl(ip6->ip6_flow);
         if ((flowlabel >> 28) != 6)
@@ -500,12 +500,12 @@ ieee80211_encap(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node **pni)
     struct llc *llc;
     struct m_tag *mtag;
     uint8_t *addr;
-    u_int dlt, hdrlen;
+    unsigned int dlt, hdrlen;
     int addqos, tid;
 
     /* Handle raw frames if mbuf is tagged as 802.11 */
     if ((mtag = m_tag_find(m, PACKET_TAG_DLT, NULL)) != NULL) {
-        dlt = *(u_int *)(mtag + 1);
+        dlt = *(unsigned int *)(mtag + 1);
 
         if (!(dlt == DLT_IEEE802_11 || dlt == DLT_IEEE802_11_RADIO))
             goto fallback;
@@ -707,7 +707,7 @@ ieee80211_add_capinfo(uint8_t *frm, struct ieee80211com *ic,
  * Add an SSID element to a frame (see 7.3.2.1).
  */
 uint8_t *
-ieee80211_add_ssid(uint8_t *frm, const uint8_t *ssid, u_int len)
+ieee80211_add_ssid(uint8_t *frm, const uint8_t *ssid, unsigned int len)
 {
     *frm++ = IEEE80211_ELEMID_SSID;
     *frm++ = len;
@@ -750,7 +750,7 @@ ieee80211_add_ds_params(uint8_t *frm, struct ieee80211com *ic,
 uint8_t *
 ieee80211_add_tim(uint8_t *frm, struct ieee80211com *ic)
 {
-    u_int i, offset = 0, len;
+    unsigned int i, offset = 0, len;
 
     /* find first non-zero octet in the virtual bit map */
     for (i = 0; i < ic->ic_tim_len && ic->ic_tim_bitmap[i] == 0; i++);
@@ -1077,7 +1077,7 @@ ieee80211_add_htop(uint8_t *frm, struct ieee80211com *ic)
  * Add a Timeout Interval element to a frame (see 7.3.2.49).
  */
 uint8_t *
-ieee80211_add_tie(uint8_t *frm, uint8_t type, u_int32_t value)
+ieee80211_add_tie(uint8_t *frm, uint8_t type, uint32_t value)
 {
     *frm++ = IEEE80211_ELEMID_TIE;
     *frm++ = 5;    /* length */
@@ -1088,7 +1088,7 @@ ieee80211_add_tie(uint8_t *frm, uint8_t type, u_int32_t value)
 #endif
 
 struct mbuf *
-ieee80211_getmgmt(int flags, int type, u_int pktlen)
+ieee80211_getmgmt(int flags, int type, unsigned int pktlen)
 {
     struct mbuf *m;
 

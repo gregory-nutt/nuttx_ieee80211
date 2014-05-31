@@ -156,7 +156,7 @@ ieee80211_node_attach(struct ifnet *ifp)
     else if (ic->ic_max_aid > IEEE80211_AID_MAX)
         ic->ic_max_aid = IEEE80211_AID_MAX;
 #ifndef IEEE80211_STA_ONLY
-    size = howmany(ic->ic_max_aid, 32) * sizeof(u_int32_t);
+    size = howmany(ic->ic_max_aid, 32) * sizeof(uint32_t);
     ic->ic_aid_bitmap = malloc(size, M_DEVBUF, M_NOWAIT | M_ZERO);
     if (ic->ic_aid_bitmap == NULL) {
         /* XXX no way to recover */
@@ -560,7 +560,7 @@ ieee80211_end_scan(struct ifnet *ifp)
 #ifndef IEEE80211_STA_ONLY
     if (ic->ic_opmode == IEEE80211_M_HOSTAP) {
         /* XXX off stack? */
-        u_char occupied[howmany(IEEE80211_CHAN_MAX, NBBY)];
+        uint8_t occupied[howmany(IEEE80211_CHAN_MAX, NBBY)];
         int i, fail;
 
         /*
@@ -1154,7 +1154,7 @@ void
 ieee80211_clean_nodes(struct ieee80211com *ic, int cache_timeout)
 {
     struct ieee80211_node *ni, *next_ni;
-    u_int gen = ic->ic_scangen++;        /* NB: ok 'cuz single-threaded*/
+    unsigned int gen = ic->ic_scangen++;        /* NB: ok 'cuz single-threaded*/
     int s;
 #ifndef IEEE80211_STA_ONLY
     int nnodes = 0;
@@ -1678,12 +1678,12 @@ ieee80211_do_slow_print(struct ieee80211com *ic, int *did_print)
  */
 int
 ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni,
-    u_int64_t local_tsft)
+    uint64_t local_tsft)
 {
-    u_int64_t beacon_tsft;
+    uint64_t beacon_tsft;
     int did_print = 0, sign;
     union {
-        u_int64_t    word;
+        uint64_t    word;
         uint8_t    tstamp[8];
     } u;
 
@@ -1758,12 +1758,11 @@ ieee80211_set_tim(struct ieee80211com *ic, int aid, int set)
         clrbit(ic->ic_tim_bitmap, aid & ~0xc000);
 }
 
-/*
- * This function shall be called by drivers immediately after every DTIM.
+/* This function shall be called by drivers immediately after every DTIM.
  * Transmit all group addressed MSDUs buffered at the AP.
  */
-void
-ieee80211_notify_dtim(struct ieee80211com *ic)
+
+void ieee80211_notify_dtim(struct ieee80211com *ic)
 {
     /* NB: group addressed MSDUs are buffered in ic_bss */
     struct ieee80211_node *ni = ic->ic_bss;

@@ -53,7 +53,7 @@
 
 typedef uint8_t  byte;    /* 8-bit byte (octet) */
 typedef uint16_t u16b;    /* 16-bit unsigned word */
-typedef u_int32_t u32b;    /* 32-bit unsigned word */
+typedef uint32_t u32b;    /* 32-bit unsigned word */
 
 static void    Phase1(u16b *, const byte *, const byte *, u32b);
 static void    Phase2(byte *, const byte *, const u16b *, u16b);
@@ -196,7 +196,7 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
     const struct ieee80211_frame *wh;
     uint8_t *ivp, *mic, *icvp;
     struct mbuf *n0, *m, *n;
-    u_int32_t crc;
+    uint32_t crc;
     int left, moff, noff, len, hdrlen;
 
     MGET(n0, M_DONTWAIT, m0->m_type);
@@ -328,8 +328,8 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
     uint16_t wepseed[8];    /* needs to be 16-bit aligned for Phase2 */
     uint8_t buf[IEEE80211_TKIP_MICLEN + IEEE80211_WEP_CRCLEN];
     uint8_t mic[IEEE80211_TKIP_MICLEN];
-    u_int64_t tsc, *prsc;
-    u_int32_t crc, crc0;
+    uint64_t tsc, *prsc;
+    uint32_t crc, crc0;
     uint8_t *ivp, *mic0;
     uint8_t tid;
     struct mbuf *n0, *m, *n;
@@ -356,12 +356,12 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
     prsc = &k->k_rsc[tid];
 
     /* extract the 48-bit TSC from the TKIP header */
-    tsc = (u_int64_t)ivp[2]       |
-          (u_int64_t)ivp[0] <<  8 |
-          (u_int64_t)ivp[4] << 16 |
-          (u_int64_t)ivp[5] << 24 |
-          (u_int64_t)ivp[6] << 32 |
-          (u_int64_t)ivp[7] << 40;
+    tsc = (uint64_t)ivp[2]       |
+          (uint64_t)ivp[0] <<  8 |
+          (uint64_t)ivp[4] << 16 |
+          (uint64_t)ivp[5] << 24 |
+          (uint64_t)ivp[6] << 32 |
+          (uint64_t)ivp[7] << 40;
     if (tsc <= *prsc) {
         /* replayed frame, discard */
         ic->ic_stats.is_tkip_replays++;
@@ -447,7 +447,7 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
     crc = ~crc;
 
     /* decrypt ICV and compare it with calculated ICV */
-    crc0 = *(u_int32_t *)(buf + IEEE80211_TKIP_MICLEN);
+    crc0 = *(uint32_t *)(buf + IEEE80211_TKIP_MICLEN);
     if (crc != letoh32(crc0)) {
         ic->ic_stats.is_tkip_icv_errs++;
         m_freem(m0);
@@ -507,7 +507,7 @@ ieee80211_tkip_deauth(void *arg, struct ieee80211_node *ni)
  * drivers when their hardware crypto engines detect a Michael MIC failure.
  */
 void
-ieee80211_michael_mic_failure(struct ieee80211com *ic, u_int64_t tsc)
+ieee80211_michael_mic_failure(struct ieee80211com *ic, uint64_t tsc)
 {
     extern int ticks;
 

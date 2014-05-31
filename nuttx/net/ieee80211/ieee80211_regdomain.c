@@ -109,7 +109,7 @@ ieee80211_name2countrycode(const char *name)
 	return (CTRY_DEFAULT);
 }
 
-u_int32_t
+uint32_t
 ieee80211_name2regdomain(const char *name)
 {
 	const struct ieee80211_regdomainname *value;
@@ -122,9 +122,9 @@ ieee80211_name2regdomain(const char *name)
 	    sizeof(ieee80211_r_names) / sizeof(ieee80211_r_names[0]),
 	    sizeof(struct ieee80211_regdomainname),
 	    ieee80211_regdomain_compare_rn)) != NULL)
-		return ((u_int32_t)value->rn_domain);
+		return ((uint32_t)value->rn_domain);
 
-	return ((u_int32_t)DMN_DEFAULT);
+	return ((uint32_t)DMN_DEFAULT);
 }
 
 const char *
@@ -142,7 +142,7 @@ ieee80211_countrycode2name(uint16_t code)
 }
 
 const char *
-ieee80211_regdomain2name(u_int32_t regdomain)
+ieee80211_regdomain2name(uint32_t regdomain)
 {
 	int i;
 
@@ -155,7 +155,7 @@ ieee80211_regdomain2name(u_int32_t regdomain)
 	return (ieee80211_r_names[0].rn_name);
 }
 
-u_int32_t
+uint32_t
 ieee80211_regdomain2flag(uint16_t regdomain, uint16_t mhz)
 {
 	int i;
@@ -164,19 +164,19 @@ ieee80211_regdomain2flag(uint16_t regdomain, uint16_t mhz)
 		sizeof(ieee80211_r_map[0])); i++) {
 		if (ieee80211_r_map[i].rm_domain == regdomain) {
 			if (mhz >= 2000 && mhz <= 3000)
-				return ((u_int32_t)
+				return ((uint32_t)
 				    ieee80211_r_map[i].rm_domain_2ghz);
 			if (mhz >= IEEE80211_CHANNELS_5GHZ_MIN &&
 			    mhz <= IEEE80211_CHANNELS_5GHZ_MAX)
-				return ((u_int32_t)
+				return ((uint32_t)
 				    ieee80211_r_map[i].rm_domain_5ghz);
 		}
 	}
 
-	return ((u_int32_t)DMN_DEBUG);
+	return ((uint32_t)DMN_DEBUG);
 }
 
-u_int32_t
+uint32_t
 ieee80211_countrycode2regdomain(uint16_t code)
 {
 	int i;
@@ -186,5 +186,5 @@ ieee80211_countrycode2regdomain(uint16_t code)
 		if (ieee80211_r_ctry[i].cn_code == code)
 			return (ieee80211_r_ctry[i].cn_domain);
 
-	return ((u_int32_t)DMN_DEFAULT);
+	return ((uint32_t)DMN_DEFAULT);
 }
