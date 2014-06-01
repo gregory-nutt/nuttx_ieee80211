@@ -50,10 +50,6 @@
 #include <net/if_arp.h>
 #include <net/if_llc.h>
 
-#if NBPFILTER > 0
-#include <net/bpf.h>
-#endif
-
 #ifdef INET
 #include <netinet/in.h>
 #include <netinet/if_ether.h>

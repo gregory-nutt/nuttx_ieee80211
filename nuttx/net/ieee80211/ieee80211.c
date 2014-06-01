@@ -52,10 +52,6 @@
 #include <net/if_media.h>
 #include <net/if_arp.h>
 
-#if NBPFILTER > 0
-#include <net/bpf.h>
-#endif
-
 #ifdef INET
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
@@ -86,10 +82,6 @@ void ieee80211_ifattach(struct ifnet *ifp)
 
     ifp->if_output = ieee80211_output;
 
-#if NBPFILTER > 0
-    bpfattach(&ic->ic_rawbpf, ifp, DLT_IEEE802_11,
-        sizeof(struct ieee80211_frame_addr4));
-#endif
     ieee80211_crypto_attach(ifp);
 
     /*

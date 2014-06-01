@@ -55,10 +55,6 @@
 #include <net/if_arp.h>
 #include <net/if_llc.h>
 
-#if NBPFILTER > 0
-#include <net/bpf.h>
-#endif
-
 #ifdef INET
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
@@ -472,12 +468,6 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
             goto out;
         }
 
-#if NBPFILTER > 0
-        /* copy to listener after decrypt */
-        if (ic->ic_rawbpf)
-            bpf_mtap(ic->ic_rawbpf, m, BPF_DIRECTION_IN);
-#endif
-
 #ifdef CONFIG_IEEE80211_HT
         if ((ni->ni_flags & IEEE80211_NODE_HT) &&
             hasqos && (qos & IEEE80211_QOS_AMSDU))
@@ -537,22 +527,6 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
        ieee80211_input_print(ic, ifp, wh, rxi);
 #endif
 
-#if NBPFILTER > 0
-        if (ic->ic_rawbpf)
-          {
-            bpf_mtap(ic->ic_rawbpf, m, BPF_DIRECTION_IN);
-          }
-
-        /* Drop mbuf if it was filtered by bpf. Normally, this is
-         * done in ether_input() but IEEE 802.11 management frames
-         * are a special case.
-         */
-
-        if (m->m_flags & M_FILDROP) {
-            m_freem(m);
-            return;
-        }
-#endif
         (*ic->ic_recv_mgmt)(ic, m, ni, rxi, subtype);
         m_freem(m);
         return;
@@ -585,10 +559,6 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
     ifp->if_ierrors++;
  out:
     if (m != NULL) {
-#if NBPFILTER > 0
-        if (ic->ic_rawbpf)
-            bpf_mtap(ic->ic_rawbpf, m, BPF_DIRECTION_IN);
-#endif
         m_freem(m);
     }
 }
@@ -859,14 +829,6 @@ ieee80211_deliver_data(struct ieee80211com *ic, struct mbuf *m,
     }
 #endif
     if (m != NULL) {
-#if NBPFILTER > 0
-        /*
-         * If we forward frame into transmitter of the AP,
-         * we don't need to duplicate for DLT_EN10MB.
-         */
-        if (ifp->if_bpf && m1 == NULL)
-            bpf_mtap(ifp->if_bpf, m, BPF_DIRECTION_IN);
-#endif
         if ((ic->ic_flags & IEEE80211_F_RSNON) &&
             eh->ether_type == htons(ETHERTYPE_PAE))
             ieee80211_eapol_key_input(ic, m, ni);
