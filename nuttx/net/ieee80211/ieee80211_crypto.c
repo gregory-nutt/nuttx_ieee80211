@@ -1,6 +1,6 @@
-/*    $OpenBSD: ieee80211_crypto.c,v 1.61 2013/11/21 16:16:08 mpi Exp $    */
-
-/*-
+/****************************************************************************
+ * net/ieee80211_cypto.c
+ *
  * Copyright (c) 2008 Damien Bergamini <damien.bergamini@free.fr>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -14,32 +14,29 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
 
 #include <queue.h>
 
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
 #include <sys/socket.h>
-#include <sys/sockio.h>
-#include <sys/endian.h>
-#include <sys/errno.h>
-#include <sys/proc.h>
-#include <sys/sysctl.h>
+
+#include <stdlib.h>
+#include <queue.h>
+#include <errno.h>
 
 #include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
 
 #ifdef CONFIG_NET_ETHERNET
-#include <netinet/in.h>
-#include <nuttx/net/uip/uip.h>
+#  include <netinet/in.h>
+#  include <nuttx/net/uip/uip.h>
 #endif
-
-#include <queue.h>
 
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>

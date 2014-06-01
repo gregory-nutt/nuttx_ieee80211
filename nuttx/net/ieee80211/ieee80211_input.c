@@ -34,10 +34,15 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #include <sys/socket.h>
 
 #include <stdlib.h>
+#include <wdog.h>
+#include <assert.h>
 #include <errno.h>
+#include <debug.h>
 
 #include <net/if.h>
 
@@ -45,10 +50,6 @@
 #  include <netinet/in.h>
 #  include <nuttx/net/uip/uip.h>
 #endif
-
-#include <wdog.h>
-#include <assert.h>
-#include <debug.h>
 
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>

@@ -25,21 +25,17 @@
  * Included Files
  ****************************************************************************/
 
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
+#include <nuttx/config.h>
+
 #include <sys/socket.h>
-#include <sys/endian.h>
+
+#include <stdlib.h>
 
 #include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
 
 #ifdef CONFIG_NET_ETHERNET
-#include <netinet/in.h>
-#include <nuttx/net/uip/uip.h>
+#  include <netinet/in.h>
+#  include <nuttx/net/uip/uip.h>
 #endif
 
 #include <nuttx/net/ieee80211/ieee80211_var.h>
@@ -48,8 +44,10 @@
 #include <crypto/rijndael.h>
 
 /* CCMP software crypto context */
-struct ieee80211_ccmp_ctx {
-    rijndael_ctx    rijndael;
+
+struct ieee80211_ccmp_ctx
+{
+  rijndael_ctx    rijndael;
 };
 
 /*

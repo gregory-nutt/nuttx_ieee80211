@@ -27,29 +27,19 @@
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
 
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
 #include <sys/socket.h>
-#include <sys/endian.h>
-#include <sys/syslog.h>
+
+#include <stdlib.h>
 
 #include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
 
 #ifdef CONFIG_NET_ETHERNET
-#include <netinet/in.h>
-#include <nuttx/net/uip/uip.h>
+#  include <netinet/in.h>
+#  include <nuttx/net/uip/uip.h>
 #endif
 
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
-
-#include <crypto/arc4.h>
-#include <crypto/michael.h>
 
 typedef uint8_t  byte;    /* 8-bit byte (octet) */
 typedef uint16_t u16b;    /* 16-bit unsigned word */

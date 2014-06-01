@@ -34,41 +34,24 @@
  * Included Files
  ****************************************************************************/
 
-#include "vlan.h"
+#include <nuttx/config.h>
 
-#include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/socket.h>
-#include <sys/sockio.h>
-#include <sys/endian.h>
-#include <sys/errno.h>
-#include <sys/proc.h>
-#include <sys/sysctl.h>
-
-#include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
-#include <net/if_llc.h>
-#include <net/bpf.h>
-
-#ifdef CONFIG_NET_ETHERNET
-#include <netinet/in.h>
-#include <nuttx/net/uip/uip.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
-#ifdef CONFIG_NET_IPv6
-#include <netinet/ip6.h>
-#endif
-#endif
-
-#if NVLAN > 0
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-#endif
 
 #include <wdog.h>
+#include <errno.h>
 #include <debug.h>
+
+#include <net/if.h>
+
+#ifdef CONFIG_NET_ETHERNET
+#  include <netinet/in.h>
+#  include <nuttx/net/uip/uip.h>
+#  include <netinet/ip.h>
+#  ifdef CONFIG_NET_IPv6
+#    include <netinet/ip6.h>
+#  endif
+#endif
 
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>

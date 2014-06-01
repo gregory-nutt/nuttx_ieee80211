@@ -27,32 +27,25 @@
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
 
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
 #include <sys/socket.h>
-#include <sys/endian.h>
+
+#include <stdlib.h>
 
 #include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
 
 #ifdef CONFIG_NET_ETHERNET
-#include <netinet/in.h>
-#include <nuttx/net/uip/uip.h>
+#  include <netinet/in.h>
+#  include <nuttx/net/uip/uip.h>
 #endif
 
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-#include <crypto/rijndael.h>
-#include <crypto/cmac.h>
-
 /* BIP software crypto context */
-struct ieee80211_bip_ctx {
+
+struct ieee80211_bip_ctx
+{
     AES_CMAC_CTX    cmac;
 };
 

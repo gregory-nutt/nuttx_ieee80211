@@ -23,28 +23,24 @@
  * Included Files
  ****************************************************************************/
 
-#include <sys/param.h>
+#include <nuttx/config.h>
+
 #include <sys/socket.h>
-#include <sys/sockio.h>
-#include <sys/endian.h>
-#include <sys/errno.h>
+
+#include <errno.h>
 
 #include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
-#include <net/if_llc.h>
 
 #ifdef CONFIG_NET_ETHERNET
-#include <netinet/in.h>
-#include <nuttx/net/uip/uip.h>
+#  include <netinet/in.h>
+#  include <nuttx/net/uip/uip.h>
 #endif
 
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_regdomain.h>
 
-int     ieee80211_regdomain_compare_cn(const void *, const void *);
-int     ieee80211_regdomain_compare_rn(const void *, const void *);
+int ieee80211_regdomain_compare_cn(const void *, const void *);
+int ieee80211_regdomain_compare_rn(const void *, const void *);
 
 static const struct ieee80211_regdomainname
 ieee80211_r_names[] = IEEE80211_REGDOMAIN_NAMES;

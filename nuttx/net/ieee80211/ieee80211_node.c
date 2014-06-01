@@ -34,24 +34,17 @@
  * Included Files
  ****************************************************************************/
 
-#include "bridge.h"
+#include <nuttx/config.h>
 
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
 #include <sys/socket.h>
-#include <sys/sockio.h>
-#include <sys/endian.h>
-#include <sys/errno.h>
-#include <sys/proc.h>
-#include <sys/sysctl.h>
-#include <sys/tree.h>
+
+#include <stdlib.h>
+#include <wdog.h>
+#include <assert.h>
+#include <errno.h>
+#include <debug.h>
 
 #include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
 
 #ifdef CONFIG_NET_ETHERNET
 #include <netinet/in.h>
@@ -62,16 +55,10 @@
 #include <net/if_bridge.h>
 #endif
 
-#include <wdog.h>
-#include <assert.h>
-#include <debug.h>
-
 #include <nuttx/tree.h>
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
-
-#include <dev/rndvar.h>
 
 struct ieee80211_node *ieee80211_node_alloc(struct ieee80211com *);
 void ieee80211_node_free(struct ieee80211com *, struct ieee80211_node *);

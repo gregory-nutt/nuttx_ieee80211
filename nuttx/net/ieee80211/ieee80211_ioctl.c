@@ -33,18 +33,9 @@
  * Included Files
  ****************************************************************************/
 
-#include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/sockio.h>
-#include <sys/systm.h>
-#include <sys/endian.h>
-#include <sys/proc.h>
-#include <sys/tree.h>
+#include <nuttx/config.h>
 
 #include <net/if.h>
-#include <net/if_arp.h>
-#include <net/if_media.h>
 
 #ifdef CONFIG_NET_ETHERNET
 #  include <netinet/in.h>

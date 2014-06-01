@@ -27,29 +27,19 @@
 
 #include <nuttx/config.h>
 
-#include <sys/param.h>
 #include <sys/socket.h>
-#include <sys/sockio.h>
-#include <sys/endian.h>
-#include <sys/errno.h>
-#include <sys/proc.h>
 
-#include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
-#include <net/if_llc.h>
-#include <net/bpf.h>
-
-#ifdef CONFIG_NET_ETHERNET
-#include <netinet/in.h>
-#include <nuttx/net/uip/uip.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
-#endif
-
+#include <errno.h>
 #include <wdog.h>
 #include <debug.h>
+
+#include <net/if.h>
+
+#ifdef CONFIG_NET_ETHERNET
+#  include <netinet/in.h>
+#  include <nuttx/net/uip/uip.h>
+#  include <netinet/ip.h>
+#endif
 
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
