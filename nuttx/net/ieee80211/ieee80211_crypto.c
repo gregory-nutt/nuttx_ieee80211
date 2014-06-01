@@ -20,7 +20,6 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/mbuf.h>
 #include <sys/malloc.h>
 #include <sys/kernel.h>
 #include <sys/socket.h>
@@ -197,7 +196,7 @@ struct ieee80211_key *ieee80211_get_txkey(struct ieee80211com *ic, const struct 
     return &ic->ic_nw_keys[kid];
 }
 
-struct mbuf *ieee80211_encrypt(struct ieee80211com *ic, struct mbuf *m0,
+struct ieee80211_iobuf *ieee80211_encrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
     struct ieee80211_key *k)
 {
     switch (k->k_cipher) {
@@ -222,7 +221,7 @@ struct mbuf *ieee80211_encrypt(struct ieee80211com *ic, struct mbuf *m0,
     return m0;
 }
 
-struct mbuf *ieee80211_decrypt(struct ieee80211com *ic, struct mbuf *m0,
+struct ieee80211_iobuf *ieee80211_decrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
     struct ieee80211_node *ni)
 {
     struct ieee80211_frame *wh;

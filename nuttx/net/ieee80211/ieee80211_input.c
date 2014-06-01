@@ -38,7 +38,6 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/mbuf.h>
 #include <sys/malloc.h>
 #include <sys/kernel.h>
 #include <sys/socket.h>
@@ -67,22 +66,22 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-struct    mbuf *ieee80211_defrag(struct ieee80211com *, struct mbuf *, int);
+struct    ieee80211_iobuf *ieee80211_defrag(struct ieee80211com *, struct ieee80211_iobuf *, int);
 void    ieee80211_defrag_timeout(void *);
 #ifdef CONFIG_IEEE80211_HT
-void    ieee80211_input_ba(struct ifnet *, struct mbuf *,
+void    ieee80211_input_ba(struct ifnet *, struct ieee80211_iobuf *,
         struct ieee80211_node *, int, struct ieee80211_rxinfo *);
 void    ieee80211_ba_move_window(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint16_t);
 #endif
-struct    mbuf *ieee80211_align_mbuf(struct mbuf *);
-void    ieee80211_decap(struct ieee80211com *, struct mbuf *,
+struct    ieee80211_iobuf *ieee80211_align_iobuf(struct ieee80211_iobuf *);
+void    ieee80211_decap(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *, int);
 #ifdef CONFIG_IEEE80211_HT
-void    ieee80211_amsdu_decap(struct ieee80211com *, struct mbuf *,
+void    ieee80211_amsdu_decap(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *, int);
 #endif
-void    ieee80211_deliver_data(struct ieee80211com *, struct mbuf *,
+void    ieee80211_deliver_data(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *);
 int    ieee80211_parse_edca_params_body(struct ieee80211com *,
         const uint8_t *);
@@ -93,46 +92,46 @@ enum    ieee80211_akm ieee80211_parse_rsn_akm(const uint8_t[]);
 int    ieee80211_parse_rsn_body(struct ieee80211com *, const uint8_t *,
         unsigned int, struct ieee80211_rsnparams *);
 int    ieee80211_save_ie(const uint8_t *, uint8_t **);
-void    ieee80211_recv_probe_resp(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_probe_resp(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 #ifdef CONFIG_IEEE80211_AP
-void    ieee80211_recv_probe_req(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_probe_req(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
 #endif
-void    ieee80211_recv_auth(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_auth(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
 #ifdef CONFIG_IEEE80211_AP
-void    ieee80211_recv_assoc_req(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_assoc_req(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 #endif
-void    ieee80211_recv_assoc_resp(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_assoc_resp(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *, int);
-void    ieee80211_recv_deauth(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_deauth(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *);
-void    ieee80211_recv_disassoc(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_disassoc(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_HT
-void    ieee80211_recv_addba_req(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_addba_req(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *);
-void    ieee80211_recv_addba_resp(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_addba_resp(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *);
-void    ieee80211_recv_delba(struct ieee80211com *, struct mbuf *,
-        struct ieee80211_node *);
-#endif
-void    ieee80211_recv_sa_query_req(struct ieee80211com *, struct mbuf *,
-        struct ieee80211_node *);
-#ifdef CONFIG_IEEE80211_AP
-void    ieee80211_recv_sa_query_resp(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_delba(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *);
 #endif
-void    ieee80211_recv_action(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_sa_query_req(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_AP
-void    ieee80211_recv_pspoll(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_sa_query_resp(struct ieee80211com *, struct ieee80211_iobuf *,
+        struct ieee80211_node *);
+#endif
+void    ieee80211_recv_action(struct ieee80211com *, struct ieee80211_iobuf *,
+        struct ieee80211_node *);
+#ifdef CONFIG_IEEE80211_AP
+void    ieee80211_recv_pspoll(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *);
 #endif
 #ifdef CONFIG_IEEE80211_HT
-void    ieee80211_recv_bar(struct ieee80211com *, struct mbuf *,
+void    ieee80211_recv_bar(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *);
 void    ieee80211_bar_tid(struct ieee80211com *, struct ieee80211_node *,
         uint8_t, uint16_t);
@@ -209,7 +208,7 @@ static void ieee80211_input_print(struct ieee80211com *ic,  struct ifnet *ifp,
  * by the 802.11 layer.
  */
 void
-ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
+ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_node *ni,
     struct ieee80211_rxinfo *rxi)
 {
     struct ieee80211com *ic = (void *)ifp;
@@ -307,8 +306,8 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
 
             /* dequeue buffered unicast frames */
             while (!sq_empty(&ni->ni_savedq)) {
-                struct mbuf *m;
-                m = (struct mbuf *m)sq_remfirst(&ni->ni_savedq);
+                struct ieee80211_iobuf *m;
+                m = (struct ieee80211_iobuf *m)sq_remfirst(&ni->ni_savedq);
                 sq_addlast(&ic->ic_pwrsaveq, (sq_entry_t)m);
                 ieee80211_ifstart();
             }
@@ -564,12 +563,11 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
     }
 }
 
-/*
- * Handle defragmentation (see 9.5 and Annex C).  We support the concurrent
+/* Handle defragmentation (see 9.5 and Annex C).  We support the concurrent
  * reception of fragments of three fragmented MSDUs or MMPDUs.
  */
-struct mbuf *
-ieee80211_defrag(struct ieee80211com *ic, struct mbuf *m, int hdrlen)
+
+struct ieee80211_iobuf *ieee80211_defrag(struct ieee80211com *ic, struct ieee80211_iobuf *m, int hdrlen)
 {
     const struct ieee80211_frame *owh, *wh;
     struct ieee80211_defrag *df;
@@ -627,7 +625,7 @@ ieee80211_defrag(struct ieee80211com *ic, struct mbuf *m, int hdrlen)
     /* strip 802.11 header and concatenate fragment */
     m_adj(m, hdrlen);
     m_cat(df->df_m, m);
-    df->df_m->m_pkthdr.len += m->m_pkthdr.len;
+    df->df_m->m_pktlen += m->m_pktlen;
 
     if (wh->i_fc[1] & IEEE80211_FC1_MORE_FRAG)
         return NULL;    /* MSDU or MMPDU not yet complete */
@@ -656,12 +654,11 @@ ieee80211_defrag_timeout(void *arg)
 }
 
 #ifdef CONFIG_IEEE80211_HT
-/*
- * Process a received data MPDU related to a specific HT-immediate Block Ack
+/* Process a received data MPDU related to a specific HT-immediate Block Ack
  * agreement (see 9.10.7.6).
  */
-void
-ieee80211_input_ba(struct ifnet *ifp, struct mbuf *m,
+
+void ieee80211_input_ba(struct ifnet *ifp, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni, int tid, struct ieee80211_rxinfo *rxi)
 {
     struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
@@ -769,12 +766,12 @@ ieee80211_ba_move_window(struct ieee80211com *ic, struct ieee80211_node *ni,
 }
 #endif /* !CONFIG_IEEE80211_HT */
 
-void ieee80211_deliver_data(struct ieee80211com *ic, struct mbuf *m,
+void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
   struct ifnet *ifp = &ic->ic_if;
   struct ether_header *eh;
-  struct mbuf *m1;
+  struct ieee80211_iobuf *m1;
 
   eh = mtod(m, struct ether_header *);
 
@@ -827,7 +824,7 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct mbuf *m,
 
       if (m1 != NULL)
         {
-          len = m1->m_pkthdr.len;
+          len = m1->m_pktlen;
           error = ieee80211_ifsend(m1);
           if (error)
             {
@@ -861,9 +858,8 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct mbuf *m,
 }
 
 #ifdef __STRICT_ALIGNMENT
-/*
- * Make sure protocol header (e.g. IP) is aligned on a 32-bit boundary.
- * This is achieved by copying mbufs so drivers should try to map their
+/* Make sure protocol header (e.g. IP) is aligned on a 32-bit boundary.
+ * This is achieved by copying I/O buffers so drivers should try to map their
  * buffers such that this copying is not necessary.  It is however not
  * always possible because 802.11 header length may vary (non-QoS+LLC
  * is 32 bytes while QoS+LLC is 34 bytes).  Some devices are smart and
@@ -872,17 +868,17 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct mbuf *m,
  *
  * XXX -- this is horrible
  */
-struct mbuf *
-ieee80211_align_mbuf(struct mbuf *m)
+
+struct ieee80211_iobuf *ieee80211_align_iobuf(struct ieee80211_iobuf *m)
 {
-    struct mbuf *n, *n0, **np;
+    struct ieee80211_iobuf *n, *n0, **np;
     void *newdata;
     int off, pktlen;
 
     n0 = NULL;
     np = &n0;
     off = 0;
-    pktlen = m->m_pkthdr.len;
+    pktlen = m->m_pktlen;
     while (pktlen > off) {
         if (n0 == NULL) {
             MGETHDR(n, M_DONTWAIT, MT_DATA);
@@ -921,15 +917,14 @@ ieee80211_align_mbuf(struct mbuf *m)
         m_copydata(m, off, n->m_len, mtod(n, void *));
         off += n->m_len;
         *np = n;
-        np = &n->m_next;
+        np = &(struct ieee80211_iobuf *)n->m_link.flink;
     }
     m_freem(m);
     return n0;
 }
 #endif /* __STRICT_ALIGNMENT */
 
-void
-ieee80211_decap(struct ieee80211com *ic, struct mbuf *m,
+void ieee80211_decap(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni, int hdrlen)
 {
     struct ether_header eh;
@@ -971,13 +966,13 @@ ieee80211_decap(struct ieee80211com *ic, struct mbuf *m,
         eh.ether_type = llc->llc_snap.ether_type;
         m_adj(m, hdrlen + LLC_SNAPFRAMELEN - ETHER_HDR_LEN);
     } else {
-        eh.ether_type = htons(m->m_pkthdr.len - hdrlen);
+        eh.ether_type = htons(m->m_pktlen - hdrlen);
         m_adj(m, hdrlen - ETHER_HDR_LEN);
     }
     memcpy(mtod(m, void *), &eh, ETHER_HDR_LEN);
 #ifdef __STRICT_ALIGNMENT
     if (!ALIGNED_POINTER(mtod(m, void *) + ETHER_HDR_LEN, uint32_t)) {
-        if ((m = ieee80211_align_mbuf(m)) == NULL) {
+        if ((m = ieee80211_align_iobuf(m)) == NULL) {
             ic->ic_stats.is_rx_decap++;
             return;
         }
@@ -987,14 +982,12 @@ ieee80211_decap(struct ieee80211com *ic, struct mbuf *m,
 }
 
 #ifdef CONFIG_IEEE80211_HT
-/*
- * Decapsulate an Aggregate MSDU (see 7.2.2.2).
- */
-void
-ieee80211_amsdu_decap(struct ieee80211com *ic, struct mbuf *m,
+/* Decapsulate an Aggregate MSDU (see 7.2.2.2) */
+
+void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni, int hdrlen)
 {
-    struct mbuf *n;
+    struct ieee80211_iobuf *n;
     struct ether_header *eh;
     struct llc *llc;
     int len, pad;
@@ -1321,8 +1314,7 @@ ieee80211_save_ie(const uint8_t *frm, uint8_t **ie)
     return 0;
 }
 
-/*-
- * Beacon/Probe response frame format:
+/* Beacon/Probe response frame format:
  * [8]   Timestamp
  * [2]   Beacon interval
  * [2]   Capability
@@ -1337,8 +1329,8 @@ ieee80211_save_ie(const uint8_t *frm, uint8_t **ie)
  * [tlv] HT Capabilities (802.11n)
  * [tlv] HT Operation (802.11n)
  */
-void
-ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int isprobe)
 {
     const struct ieee80211_frame *wh;
@@ -1646,8 +1638,8 @@ ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
  * [tlv] Extended Supported Rates (802.11g)
  * [tlv] HT Capabilities (802.11n)
  */
-void
-ieee80211_recv_probe_req(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_probe_req(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi)
 {
     const struct ieee80211_frame *wh;
@@ -1739,14 +1731,13 @@ ieee80211_recv_probe_req(struct ieee80211com *ic, struct mbuf *m,
 }
 #endif /* CONFIG_IEEE80211_AP */
 
-/*-
- * Authentication frame format:
+/* Authentication frame format:
  * [2] Authentication algorithm number
  * [2] Authentication transaction sequence number
  * [2] Status code
  */
-void
-ieee80211_recv_auth(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_auth(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi)
 {
     const struct ieee80211_frame *wh;
@@ -1788,8 +1779,7 @@ ieee80211_recv_auth(struct ieee80211com *ic, struct mbuf *m,
 }
 
 #ifdef CONFIG_IEEE80211_AP
-/*-
- * (Re)Association request frame format:
+/* (Re)Association request frame format:
  * [2]   Capability information
  * [2]   Listen interval
  * [6*]  Current AP address (Reassociation only)
@@ -1800,8 +1790,8 @@ ieee80211_recv_auth(struct ieee80211com *ic, struct mbuf *m,
  * [tlv] QoS Capability (802.11e)
  * [tlv] HT Capabilities (802.11n)
  */
-void
-ieee80211_recv_assoc_req(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int reassoc)
 {
     const struct ieee80211_frame *wh;
@@ -2102,8 +2092,7 @@ ieee80211_recv_assoc_req(struct ieee80211com *ic, struct mbuf *m,
 }
 #endif /* CONFIG_IEEE80211_AP */
 
-/*-
- * (Re)Association response frame format:
+/* (Re)Association response frame format:
  * [2]   Capability information
  * [2]   Status code
  * [2]   Association ID (AID)
@@ -2113,8 +2102,8 @@ ieee80211_recv_assoc_req(struct ieee80211com *ic, struct mbuf *m,
  * [tlv] HT Capabilities (802.11n)
  * [tlv] HT Operation (802.11n)
  */
-void
-ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni, int reassoc)
 {
     struct ifnet *ifp = &ic->ic_if;
@@ -2258,12 +2247,11 @@ ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct mbuf *m,
         IEEE80211_FC0_SUBTYPE_ASSOC_RESP);
 }
 
-/*-
- * Deauthentication frame format:
+/* Deauthentication frame format:
  * [2] Reason code
  */
-void
-ieee80211_recv_deauth(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_deauth(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2306,7 +2294,7 @@ ieee80211_recv_deauth(struct ieee80211com *ic, struct mbuf *m,
  * [2] Reason code
  */
 
-void ieee80211_recv_disassoc(struct ieee80211com *ic, struct mbuf *m,
+void ieee80211_recv_disassoc(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2346,8 +2334,7 @@ void ieee80211_recv_disassoc(struct ieee80211com *ic, struct mbuf *m,
 }
 
 #ifdef CONFIG_IEEE80211_HT
-/*-
- * ADDBA Request frame format:
+/* ADDBA Request frame format:
  * [1] Category
  * [1] Action
  * [1] Dialog Token
@@ -2355,8 +2342,8 @@ void ieee80211_recv_disassoc(struct ieee80211com *ic, struct mbuf *m,
  * [2] Block Ack Timeout Value
  * [2] Block Ack Starting Sequence Control
  */
-void
-ieee80211_recv_addba_req(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_addba_req(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2470,8 +2457,7 @@ ieee80211_recv_addba_req(struct ieee80211com *ic, struct mbuf *m,
         IEEE80211_ACTION_ADDBA_RESP, status << 16 | token << 8 | tid);
 }
 
-/*-
- * ADDBA Response frame format:
+/* ADDBA Response frame format:
  * [1] Category
  * [1] Action
  * [1] Dialog Token
@@ -2479,8 +2465,8 @@ ieee80211_recv_addba_req(struct ieee80211com *ic, struct mbuf *m,
  * [2] Block Ack Parameter Set
  * [2] Block Ack Timeout Value
  */
-void
-ieee80211_recv_addba_resp(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_addba_resp(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2540,15 +2526,14 @@ ieee80211_recv_addba_resp(struct ieee80211com *ic, struct mbuf *m,
         wd_start(ba->ba_to, USEC2TICK(ba->ba_timeout_val), ieee80211_rx_ba_timeout, 1, ba);
 }
 
-/*-
- * DELBA frame format:
+/* DELBA frame format:
  * [1] Category
  * [1] Action
  * [2] DELBA Parameter Set
  * [2] Reason Code
  */
-void
-ieee80211_recv_delba(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_delba(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2615,14 +2600,13 @@ ieee80211_recv_delba(struct ieee80211com *ic, struct mbuf *m,
 }
 #endif /* !CONFIG_IEEE80211_HT */
 
-/*-
- * SA Query Request frame format:
+/* SA Query Request frame format:
  * [1] Category
  * [1] Action
  * [2] Transaction Identifier
  */
-void
-ieee80211_recv_sa_query_req(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_sa_query_req(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2652,14 +2636,13 @@ ieee80211_recv_sa_query_req(struct ieee80211com *ic, struct mbuf *m,
 }
 
 #ifdef CONFIG_IEEE80211_AP
-/*-
- * SA Query Response frame format:
+/* SA Query Response frame format:
  * [1] Category
  * [1] Action
  * [2] Transaction Identifier
  */
-void
-ieee80211_recv_sa_query_resp(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_sa_query_resp(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2689,13 +2672,12 @@ ieee80211_recv_sa_query_resp(struct ieee80211com *ic, struct mbuf *m,
 }
 #endif
 
-/*-
- * Action frame format:
+/* Action frame format:
  * [1] Category
  * [1] Action
  */
-void
-ieee80211_recv_action(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_recv_action(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2742,8 +2724,7 @@ ieee80211_recv_action(struct ieee80211com *ic, struct mbuf *m,
     }
 }
 
-void
-ieee80211_recv_mgmt(struct ieee80211com *ic, struct mbuf *m,
+void ieee80211_recv_mgmt(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int subtype)
 {
     switch (subtype) {
@@ -2795,7 +2776,7 @@ ieee80211_recv_mgmt(struct ieee80211com *ic, struct mbuf *m,
 #ifdef CONFIG_IEEE80211_AP
 /* Process an incoming PS-Poll control frame (see 11.2) */
 
-void ieee80211_recv_pspoll(struct ieee80211com *ic, struct mbuf *m,
+void ieee80211_recv_pspoll(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
     struct ifnet *ifp = &ic->ic_if;
@@ -2831,7 +2812,7 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct mbuf *m,
 
     /* take the first queued frame and put it out.. */
 
-    m = (struct mbuf *)sq_remfirst(&ni->ni_savedq);
+    m = (struct ieee80211_iobuf *)sq_remfirst(&ni->ni_savedq);
     if (m == NULL)
       {
         return;
@@ -2857,11 +2838,9 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct mbuf *m,
 #endif /* CONFIG_IEEE80211_AP */
 
 #ifdef CONFIG_IEEE80211_HT
-/*
- * Process an incoming BlockAckReq control frame (see 7.2.1.7).
- */
-void
-ieee80211_recv_bar(struct ieee80211com *ic, struct mbuf *m,
+/* Process an incoming BlockAckReq control frame (see 7.2.1.7) */
+
+void ieee80211_recv_bar(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame_min *wh;

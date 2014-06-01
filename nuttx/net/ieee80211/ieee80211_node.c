@@ -38,7 +38,6 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/mbuf.h>
 #include <sys/malloc.h>
 #include <sys/kernel.h>
 #include <sys/socket.h>
@@ -1756,13 +1755,13 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
     struct ieee80211_node *ni = ic->ic_bss;
     struct ifnet *ifp = &ic->ic_if;
     struct ieee80211_frame *wh;
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
 
     KASSERT(ic->ic_opmode == IEEE80211_M_HOSTAP);
 
     for (;;)
       {
-        m = (struct mbuf *)sq_remfirst(&ni->ni_savedq, m);
+        m = (struct ieee80211_iobuf *)sq_remfirst(&ni->ni_savedq, m);
         if (m == NULL)
           {
             break;

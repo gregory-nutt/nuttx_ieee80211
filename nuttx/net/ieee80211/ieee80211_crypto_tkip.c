@@ -17,7 +17,8 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ****************************************************************************/
 
 /****************************************************************************
  * Included Files
@@ -28,7 +29,6 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/mbuf.h>
 #include <sys/malloc.h>
 #include <sys/kernel.h>
 #include <sys/socket.h>
@@ -116,19 +116,19 @@ struct ieee80211_tkip_frame {
 } packed_struct;
 
 /*
- * Compute TKIP MIC over an mbuf chain starting "off" bytes from the
+ * Compute TKIP MIC over an buffer chain starting "off" bytes from the
  * beginning.  This function should be kept independant from the software
  * TKIP crypto code so that drivers doing hardware crypto but not MIC can
  * call it without a software crypto context.
  */
 void
-ieee80211_tkip_mic(struct mbuf *m0, int off, const uint8_t *key,
+ieee80211_tkip_mic(struct ieee80211_iobuf *m0, int off, const uint8_t *key,
     uint8_t mic[IEEE80211_TKIP_MICLEN])
 {
     const struct ieee80211_frame *wh;
     struct ieee80211_tkip_frame wht;
     MICHAEL_CTX ctx;    /* small enough */
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     void *pos;
     int len;
 
@@ -170,13 +170,17 @@ ieee80211_tkip_mic(struct mbuf *m0, int off, const uint8_t *key,
     /* assumes the first "off" bytes are contiguous */
     pos = mtod(m, void *) + off;
     len = m->m_len - off;
-    for (;;) {
+    for (;;)
+      {
         michael_update(&ctx, pos, len);
-        if ((m = m->m_next) == NULL)
+        if ((m = (struct ieee80211_iobuf *)m->m_link.flink) == NULL)
+          {
             break;
+          }
+
         pos = mtod(m, void *);
         len = m->m_len;
-    }
+      }
 
     michael_final(mic, &ctx);
 }
@@ -187,15 +191,14 @@ ieee80211_tkip_mic(struct mbuf *m0, int off, const uint8_t *key,
 #define IEEE80211_TKIP_OVHD    \
     (IEEE80211_TKIP_HDRLEN + IEEE80211_TKIP_TAILLEN)
 
-struct mbuf *
-ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
+struct ieee80211_iobuf *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_tkip_ctx *ctx = k->k_priv;
     uint16_t wepseed[8];    /* needs to be 16-bit aligned for Phase2 */
     const struct ieee80211_frame *wh;
     uint8_t *ivp, *mic, *icvp;
-    struct mbuf *n0, *m, *n;
+    struct ieee80211_iobuf *n0, *m, *n;
     uint32_t crc;
     int left, moff, noff, len, hdrlen;
 
@@ -204,15 +207,15 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
         goto nospace;
     if (m_dup_pkthdr(n0, m0, M_DONTWAIT))
         goto nospace;
-    n0->m_pkthdr.len += IEEE80211_TKIP_HDRLEN;
+    n0->m_pktlen += IEEE80211_TKIP_HDRLEN;
     n0->m_len = MHLEN;
-    if (n0->m_pkthdr.len >= MINCLSIZE - IEEE80211_TKIP_TAILLEN) {
+    if (n0->m_pktlen >= MINCLSIZE - IEEE80211_TKIP_TAILLEN) {
         MCLGET(n0, M_DONTWAIT);
         if (n0->m_flags & M_EXT)
             n0->m_len = n0->m_ext.ext_size;
     }
-    if (n0->m_len > n0->m_pkthdr.len)
-        n0->m_len = n0->m_pkthdr.len;
+    if (n0->m_len > n0->m_pktlen)
+        n0->m_len = n0->m_pktlen;
 
     /* copy 802.11 header */
     wh = mtod(m0, struct ieee80211_frame *);
@@ -246,26 +249,39 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
     n = n0;
     moff = hdrlen;
     noff = hdrlen + IEEE80211_TKIP_HDRLEN;
-    left = m0->m_pkthdr.len - moff;
+    left = m0->m_pktlen - moff;
     crc = ~0;
-    while (left > 0) {
-        if (moff == m->m_len) {
-            /* nothing left to copy from m */
-            m = m->m_next;
+    while (left > 0)
+      {
+        if (moff == m->m_len)
+          {
+            /* Nothing left to copy from m */
+
+            m = (struct ieee80211_iobuf *)m->m_link.flink;
             moff = 0;
-        }
-        if (noff == n->m_len) {
+          }
+
+        if (noff == n->m_len)
+          {
             /* n is full and there's more data to copy */
-            MGET(n->m_next, M_DONTWAIT, n->m_type);
-            if (n->m_next == NULL)
+
+            MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+            if (n->m_link.flink == NULL)
+              {
                 goto nospace;
-            n = n->m_next;
+              }
+
+            n = (struct ieee80211_iobuf *)n->m_link.flink;
             n->m_len = MLEN;
-            if (left >= MINCLSIZE - IEEE80211_TKIP_TAILLEN) {
+            if (left >= MINCLSIZE - IEEE80211_TKIP_TAILLEN)
+              {
                 MCLGET(n, M_DONTWAIT);
                 if (n->m_flags & M_EXT)
+                  {
                     n->m_len = n->m_ext.ext_size;
-            }
+                  }
+              }
+
             if (n->m_len > left)
                 n->m_len = left;
             noff = 0;
@@ -282,13 +298,18 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
     }
 
     /* reserve trailing space for TKIP MIC and WEP ICV */
-    if (M_TRAILINGSPACE(n) < IEEE80211_TKIP_TAILLEN) {
-        MGET(n->m_next, M_DONTWAIT, n->m_type);
-        if (n->m_next == NULL)
+
+    if (M_TRAILINGSPACE(n) < IEEE80211_TKIP_TAILLEN)
+      {
+        MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+        if (n->m_link.flink == NULL)
+          {
             goto nospace;
-        n = n->m_next;
+          }
+
+        n = (struct ieee80211_iobuf *)n->m_link.flink;
         n->m_len = 0;
-    }
+      }
 
     /* compute TKIP MIC over clear text */
     mic = mtod(n, void *) + n->m_len;
@@ -307,7 +328,7 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
     rc4_crypt(&ctx->rc4, icvp, icvp, IEEE80211_WEP_CRCLEN);
     n->m_len += IEEE80211_WEP_CRCLEN;
 
-    n0->m_pkthdr.len += IEEE80211_TKIP_TAILLEN;
+    n0->m_pktlen += IEEE80211_TKIP_TAILLEN;
 
     m_freem(m0);
     return n0;
@@ -319,8 +340,7 @@ ieee80211_tkip_encrypt(struct ieee80211com *ic, struct mbuf *m0,
     return NULL;
 }
 
-struct mbuf *
-ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
+struct ieee80211_iobuf *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_tkip_ctx *ctx = k->k_priv;
@@ -332,13 +352,13 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
     uint32_t crc, crc0;
     uint8_t *ivp, *mic0;
     uint8_t tid;
-    struct mbuf *n0, *m, *n;
+    struct ieee80211_iobuf *n0, *m, *n;
     int hdrlen, left, moff, noff, len;
 
     wh = mtod(m0, struct ieee80211_frame *);
     hdrlen = ieee80211_get_hdrlen(wh);
 
-    if (m0->m_pkthdr.len < hdrlen + IEEE80211_TKIP_OVHD) {
+    if (m0->m_pktlen < hdrlen + IEEE80211_TKIP_OVHD) {
         m_freem(m0);
         return NULL;
     }
@@ -374,15 +394,15 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
         goto nospace;
     if (m_dup_pkthdr(n0, m0, M_DONTWAIT))
         goto nospace;
-    n0->m_pkthdr.len -= IEEE80211_TKIP_OVHD;
+    n0->m_pktlen -= IEEE80211_TKIP_OVHD;
     n0->m_len = MHLEN;
-    if (n0->m_pkthdr.len >= MINCLSIZE) {
+    if (n0->m_pktlen >= MINCLSIZE) {
         MCLGET(n0, M_DONTWAIT);
         if (n0->m_flags & M_EXT)
             n0->m_len = n0->m_ext.ext_size;
     }
-    if (n0->m_len > n0->m_pkthdr.len)
-        n0->m_len = n0->m_pkthdr.len;
+    if (n0->m_len > n0->m_pktlen)
+        n0->m_len = n0->m_pktlen;
 
     /* copy 802.11 header and clear protected bit */
     memcpy(mtod(n0, void *), wh, hdrlen);
@@ -402,28 +422,43 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
     n = n0;
     moff = hdrlen + IEEE80211_TKIP_HDRLEN;
     noff = hdrlen;
-    left = n0->m_pkthdr.len - noff;
+    left = n0->m_pktlen - noff;
     crc = ~0;
     while (left > 0) {
-        if (moff == m->m_len) {
-            /* nothing left to copy from m */
-            m = m->m_next;
+        if (moff == m->m_len)
+          {
+            /* Nothing left to copy from m */
+
+            m = (struct ieee80211_iobuf *)m->m_link.flink;
             moff = 0;
-        }
-        if (noff == n->m_len) {
+          }
+
+        if (noff == n->m_len)
+          {
             /* n is full and there's more data to copy */
-            MGET(n->m_next, M_DONTWAIT, n->m_type);
-            if (n->m_next == NULL)
+
+            MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+            if (n->m_link.flink == NULL)
+              {
                 goto nospace;
-            n = n->m_next;
+              }
+
+            n = (struct ieee80211_iobuf *)n->m_link.flink;
             n->m_len = MLEN;
-            if (left >= MINCLSIZE) {
+            if (left >= MINCLSIZE)
+              {
                 MCLGET(n, M_DONTWAIT);
                 if (n->m_flags & M_EXT)
+                  {
                     n->m_len = n->m_ext.ext_size;
-            }
+                  }
+              }
+
             if (n->m_len > left)
+              {
                 n->m_len = left;
+              }
+
             noff = 0;
         }
         len = min(m->m_len - moff, n->m_len - noff);

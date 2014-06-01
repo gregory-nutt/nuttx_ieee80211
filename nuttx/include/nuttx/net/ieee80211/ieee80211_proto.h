@@ -70,23 +70,23 @@ struct ieee80211_rxinfo;
 struct ieee80211_rsnparams;
 void ieee80211_set_link_state(struct ieee80211com *, int);
 unsigned int ieee80211_get_hdrlen(const struct ieee80211_frame *);
-void ieee80211_input(struct ifnet *, struct mbuf *,
+void ieee80211_input(struct ifnet *, struct ieee80211_iobuf *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
-int ieee80211_output(struct ifnet *, struct mbuf *, struct sockaddr *,
+int ieee80211_output(struct ifnet *, struct ieee80211_iobuf *, struct sockaddr *,
         struct rtentry *);
-void ieee80211_recv_mgmt(struct ieee80211com *, struct mbuf *,
+void ieee80211_recv_mgmt(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 int ieee80211_send_mgmt(struct ieee80211com *, struct ieee80211_node *,
         int, int, int);
-void ieee80211_eapol_key_input(struct ieee80211com *, struct mbuf *,
+void ieee80211_eapol_key_input(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *);
-struct mbuf *ieee80211_encap(struct ifnet *, struct mbuf *,
+struct ieee80211_iobuf *ieee80211_encap(struct ifnet *, struct ieee80211_iobuf *,
         struct ieee80211_node **);
-struct mbuf *ieee80211_get_rts(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_rts(struct ieee80211com *,
         const struct ieee80211_frame *, uint16_t);
-struct mbuf *ieee80211_get_cts_to_self(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_cts_to_self(struct ieee80211com *,
         uint16_t);
-struct mbuf *ieee80211_beacon_alloc(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_beacon_alloc(struct ieee80211com *,
         struct ieee80211_node *);
 extern int ieee80211_save_ie(const uint8_t *, uint8_t **);
 void ieee80211_eapol_timeout(void *);
@@ -106,8 +106,7 @@ int ieee80211_send_group_msg2(struct ieee80211com *,
         struct ieee80211_node *, const struct ieee80211_key *);
 int ieee80211_send_eapol_key_req(struct ieee80211com *,
         struct ieee80211_node *, uint16_t, uint64_t);
-
-        int ieee80211_pwrsave(struct ieee80211com *, struct mbuf *,
+int ieee80211_pwrsave(struct ieee80211com *, struct ieee80211_iobuf *,
         struct ieee80211_node *);
 #define    ieee80211_new_state(_ic, _nstate, _arg) \
     (((_ic)->ic_newstate)((_ic), (_nstate), (_arg)))
@@ -178,6 +177,6 @@ void ieee80211_ifstart(void);
 
 /* Enqueue the packet to be sent by the Ethernet driver */
 
-int ieee80211_ifsend(struct mbuf *m);
+int ieee80211_ifsend(struct ieee80211_iobuf *m);
 
 #endif /* _NET80211_IEEE80211_PROTO_H_ */

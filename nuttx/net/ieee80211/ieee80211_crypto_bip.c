@@ -17,7 +17,8 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ****************************************************************************/
 
 /****************************************************************************
  * Included Files
@@ -28,7 +29,6 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/mbuf.h>
 #include <sys/malloc.h>
 #include <sys/kernel.h>
 #include <sys/socket.h>
@@ -89,15 +89,14 @@ struct ieee80211_bip_frame {
     uint8_t    i_addr3[IEEE80211_ADDR_LEN];
 } packed_struct;
 
-struct mbuf *
-ieee80211_bip_encap(struct ieee80211com *ic, struct mbuf *m0,
+struct ieee80211_iobuf *ieee80211_bip_encap(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_bip_ctx *ctx = k->k_priv;
     struct ieee80211_bip_frame aad;
     struct ieee80211_frame *wh;
     uint8_t *mmie, mic[AES_CMAC_DIGEST_LENGTH];
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
 
     wh = mtod(m0, struct ieee80211_frame *);
     KASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
@@ -120,14 +119,20 @@ ieee80211_bip_encap(struct ieee80211com *ic, struct mbuf *m0,
         m0->m_len - sizeof(*wh));
 
     m = m0;
-    /* reserve trailing space for MMIE */
-    if (M_TRAILINGSPACE(m) < IEEE80211_MMIE_LEN) {
-        MGET(m->m_next, M_DONTWAIT, m->m_type);
-        if (m->m_next == NULL)
+
+    /* Reserve trailing space for MMIE */
+
+    if (M_TRAILINGSPACE(m) < IEEE80211_MMIE_LEN)
+      {
+        MGET((struct ieee80211_iobuf *)m->m_link.flink, M_DONTWAIT, m->m_type);
+        if (m->m_link.flink == NULL)
+          {
             goto nospace;
-        m = m->m_next;
+          }
+
+        m = (struct ieee80211_iobuf *)m->m_link.flink;
         m->m_len = 0;
-    }
+      }
 
     /* construct Management MIC IE */
     mmie = mtod(m, uint8_t *) + m->m_len;
@@ -143,7 +148,7 @@ ieee80211_bip_encap(struct ieee80211com *ic, struct mbuf *m0,
     memcpy(&mmie[10], mic, 8);
 
     m->m_len += IEEE80211_MMIE_LEN;
-    m0->m_pkthdr.len += IEEE80211_MMIE_LEN;
+    m0->m_pktlen += IEEE80211_MMIE_LEN;
 
     k->k_tsc++;
 
@@ -154,8 +159,7 @@ ieee80211_bip_encap(struct ieee80211com *ic, struct mbuf *m0,
     return NULL;
 }
 
-struct mbuf *
-ieee80211_bip_decap(struct ieee80211com *ic, struct mbuf *m0,
+struct ieee80211_iobuf *ieee80211_bip_decap(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_bip_ctx *ctx = k->k_priv;
@@ -168,11 +172,11 @@ ieee80211_bip_decap(struct ieee80211com *ic, struct mbuf *m0,
     KASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
         IEEE80211_FC0_TYPE_MGT);
 
-    /*
-     * It is assumed that management frames are contiguous and that
-     * the mbuf length has already been checked to contain at least
+    /* It is assumed that management frames are contiguous and that
+     * the buffer length has already been checked to contain at least
      * a header and a MMIE (checked in ieee80211_decrypt()).
      */
+
     KASSERT(m0->m_len >= sizeof(*wh) + IEEE80211_MMIE_LEN);
     mmie = mtod(m0, uint8_t *) + m0->m_len - IEEE80211_MMIE_LEN;
 
@@ -210,12 +214,13 @@ ieee80211_bip_decap(struct ieee80211com *ic, struct mbuf *m0,
         m_freem(m0);
         return NULL;
     }
-    /*
-     * There is no need to trim the MMIE from the mbuf since it is
+
+    /* There is no need to trim the MMIE from the buffer since it is
      * an information element and will be ignored by upper layers.
      * We do it anyway as it is cheap to do it here and because it
      * may be confused with fixed fields by upper layers.
      */
+
     m_adj(m0, -IEEE80211_MMIE_LEN);
 
     /* update last seen packet number (MIC is validated) */

@@ -36,7 +36,6 @@
 #include "vlan.h"
 
 #include <sys/param.h>
-#include <sys/mbuf.h>
 #include <sys/kernel.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
@@ -73,50 +72,50 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-int ieee80211_classify(struct ieee80211com *, struct mbuf *);
+int ieee80211_classify(struct ieee80211com *, struct ieee80211_iobuf *);
 int ieee80211_mgmt_output(struct ifnet *, struct ieee80211_node *,
-        struct mbuf *, int);
+        struct ieee80211_iobuf *, int);
 uint8_t *ieee80211_add_rsn_body(uint8_t *, struct ieee80211com *,
         const struct ieee80211_node *, int);
-struct mbuf *ieee80211_getmgmt(int, int, unsigned int);
-struct mbuf *ieee80211_get_probe_req(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_getmgmt(int, int, unsigned int);
+struct ieee80211_iobuf *ieee80211_get_probe_req(struct ieee80211com *,
         struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_AP
-struct mbuf *ieee80211_get_probe_resp(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_probe_resp(struct ieee80211com *,
         struct ieee80211_node *);
 #endif
-struct mbuf *ieee80211_get_auth(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_auth(struct ieee80211com *,
         struct ieee80211_node *, uint16_t, uint16_t);
-struct mbuf *ieee80211_get_deauth(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_deauth(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
-struct mbuf *ieee80211_get_assoc_req(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_assoc_req(struct ieee80211com *,
         struct ieee80211_node *, int);
 #ifdef CONFIG_IEEE80211_AP
-struct mbuf *ieee80211_get_assoc_resp(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_assoc_resp(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
 #endif
-struct mbuf *ieee80211_get_disassoc(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_disassoc(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
 #ifdef CONFIG_IEEE80211_HT
-struct mbuf *ieee80211_get_addba_req(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_addba_req(struct ieee80211com *,
         struct ieee80211_node *, uint8_t);
-struct mbuf *ieee80211_get_addba_resp(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_addba_resp(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint8_t, uint16_t);
-struct mbuf *ieee80211_get_delba(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_delba(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint8_t, uint16_t);
 #endif
-struct mbuf *ieee80211_get_sa_query(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_sa_query(struct ieee80211com *,
         struct ieee80211_node *, uint8_t);
-struct mbuf *ieee80211_get_action(struct ieee80211com *,
+struct ieee80211_iobuf *ieee80211_get_action(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint8_t, int);
 
 /* IEEE 802.11 output routine. Normally this will directly call the
  * Ethernet output routine because 802.11 encapsulation is called
  * later by the driver. This function can be used to send raw frames
- * if the mbuf has been tagged with a 802.11 data link type.
+ * if the buffer has been tagged with a 802.11 data link type.
  */
 
-int ieee80211_output(struct ifnet *ifp, struct mbuf *m, struct sockaddr *dst, struct rtentry *rt)
+int ieee80211_output(struct ifnet *ifp, struct ieee80211_iobuf *m, struct sockaddr *dst, struct rtentry *rt)
 {
   struct ieee80211_frame *wh;
   struct m_tag *mtag;
@@ -133,7 +132,7 @@ int ieee80211_output(struct ifnet *ifp, struct mbuf *m, struct sockaddr *dst, st
       goto bad;
     }
 
-  /* Try to get the DLT from a mbuf tag */
+  /* Try to get the DLT from a buffer tag */
 
   if ((mtag = m_tag_find(m, PACKET_TAG_DLT, NULL)) != NULL)
     {
@@ -147,7 +146,7 @@ int ieee80211_output(struct ifnet *ifp, struct mbuf *m, struct sockaddr *dst, st
           goto fallback;
         }
 
-      if (m->m_pkthdr.len < sizeof(struct ieee80211_frame_min))
+      if (m->m_pktlen < sizeof(struct ieee80211_frame_min))
         {
           return -EINVAL;
         }
@@ -170,12 +169,12 @@ int ieee80211_output(struct ifnet *ifp, struct mbuf *m, struct sockaddr *dst, st
        */
 
       mflags = m->m_flags;
-      len = m->m_pkthdr.len;
+      len = m->m_pktlen;
       s = splnet();
       error = ieee80211_ifsend(m);
       if (error)
         {
-          /* mbuf is already freed */
+          /* buffer is already freed */
 
           splx(s);
           ndbg("ERROR: %s: failed to queue raw tx frame\n", ifp->if_xname);
@@ -215,7 +214,7 @@ fallback:
  */
 int
 ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
-    struct mbuf *m, int type)
+    struct ieee80211_iobuf *m, int type)
 {
     struct ieee80211com *ic = (void *)ifp;
     struct ieee80211_frame *wh;
@@ -227,14 +226,14 @@ ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
     /*
      * We want to pass the node down to the driver's start
      * routine.  We could stick this in an m_tag and tack that
-     * on to the mbuf.  However that's rather expensive to do
+     * on to the buffer.  However that's rather expensive to do
      * for every frame so instead we stuff it in a special pkthdr
      * field.
      */
     M_PREPEND(m, sizeof(struct ieee80211_frame), M_DONTWAIT);
     if (m == NULL)
         return ENOMEM;
-    m->m_pkthdr.ph_cookie = ni;
+    m->m_priv = ni;
 
     wh = mtod(m, struct ieee80211_frame *);
     wh->i_fc[0] = IEEE80211_FC0_VERSION_0 | IEEE80211_FC0_TYPE_MGT | type;
@@ -258,7 +257,7 @@ ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
          * indication to the drivers that they must encrypt the
          * frame.  Drivers should clear this bit from group
          * management frames (software crypto code will do it).
-         * XXX could use an mbuf flag..
+         * XXX could use an buffer flag..
          */
         if (IEEE80211_IS_MULTICAST(wh->i_addr1) ||
             (ni->ni_flags & IEEE80211_NODE_TXMGMTPROT))
@@ -438,11 +437,11 @@ ieee80211_up_to_ac(struct ieee80211com *ic, int up)
 }
 
 /*
- * Get mbuf's user-priority: if mbuf is not VLAN tagged, select user-priority
+ * Get buffer's user-priority: if buffer is not VLAN tagged, select user-priority
  * based on the DSCP (Differentiated Services Codepoint) field.
  */
 int
-ieee80211_classify(struct ieee80211com *ic, struct mbuf *m)
+ieee80211_classify(struct ieee80211com *ic, struct ieee80211_iobuf *m)
 {
 #ifdef CONFIG_NET_ETHERNET
     struct ether_header *eh;
@@ -450,7 +449,7 @@ ieee80211_classify(struct ieee80211com *ic, struct mbuf *m)
 #endif
 #if NVLAN > 0
     if (m->m_flags & M_VLANTAG)    /* use VLAN 802.1D user-priority */
-        return EVL_PRIOFTAG(m->m_pkthdr.ether_vtag);
+        return EVL_PRIOFTAG(m->m_vtag);
 #endif
 #ifdef CONFIG_NET_ETHERNET
     eh = mtod(m, struct ether_header *);
@@ -498,8 +497,7 @@ ieee80211_classify(struct ieee80211com *ic, struct mbuf *m)
     return 0;    /* default to Best-Effort */
 }
 
-/*
- * Encapsulate an outbound data frame.  The mbuf chain is updated and
+/* Encapsulate an outbound data frame.  The buffer chain is updated and
  * a reference to the destination node is returned.  If an error is
  * encountered NULL is returned and the node reference will also be NULL.
  *
@@ -507,8 +505,8 @@ ieee80211_classify(struct ieee80211com *ic, struct mbuf *m)
  *     The convention is ic_bss is not reference counted; the caller must
  *     maintain that.
  */
-struct mbuf *
-ieee80211_encap(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node **pni)
+
+struct ieee80211_iobuf *ieee80211_encap(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_node **pni)
 {
     struct ieee80211com *ic = (void *)ifp;
     struct ether_header eh;
@@ -520,7 +518,7 @@ ieee80211_encap(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node **pni)
     unsigned int dlt, hdrlen;
     int addqos, tid;
 
-    /* Handle raw frames if mbuf is tagged as 802.11 */
+    /* Handle raw frames if buffer is tagged as 802.11 */
     if ((mtag = m_tag_find(m, PACKET_TAG_DLT, NULL)) != NULL) {
         dlt = *(unsigned int *)(mtag + 1);
 
@@ -1101,10 +1099,9 @@ ieee80211_add_tie(uint8_t *frm, uint8_t type, uint32_t value)
 }
 #endif
 
-struct mbuf *
-ieee80211_getmgmt(int flags, int type, unsigned int pktlen)
+struct (struct ieee80211_iobuf *) *ieee80211_getmgmt(int flags, int type, unsigned int pktlen)
 {
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
 
     /* reserve space for 802.11 header */
     pktlen += sizeof(struct ieee80211_frame);
@@ -1123,19 +1120,18 @@ ieee80211_getmgmt(int flags, int type, unsigned int pktlen)
     return m;
 }
 
-/*-
- * Probe request frame format:
+/* Probe request frame format:
  * [tlv] SSID
  * [tlv] Supported rates
  * [tlv] Extended Supported Rates (802.11g)
  * [tlv] HT Capabilities (802.11n)
  */
-struct mbuf *
-ieee80211_get_probe_req(struct ieee80211com *ic, struct ieee80211_node *ni)
+ 
+struct ieee80211_iobuf *ieee80211_get_probe_req(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     const struct ieee80211_rateset *rs =
         &ic->ic_sup_rates[ieee80211_chan2mode(ic, ni->ni_chan)];
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     uint8_t *frm;
 
     m = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
@@ -1157,14 +1153,13 @@ ieee80211_get_probe_req(struct ieee80211com *ic, struct ieee80211_node *ni)
         frm = ieee80211_add_htcaps(frm, ic);
 #endif
 
-    m->m_pkthdr.len = m->m_len = frm - mtod(m, uint8_t *);
+    m->m_pktlen = m->m_len = frm - mtod(m, uint8_t *);
 
     return m;
 }
 
 #ifdef CONFIG_IEEE80211_AP
-/*-
- * Probe response frame format:
+/* Probe response frame format:
  * [8]   Timestamp
  * [2]   Beacon interval
  * [2]   Capability
@@ -1178,11 +1173,11 @@ ieee80211_get_probe_req(struct ieee80211com *ic, struct ieee80211_node *ni)
  * [tlv] HT Capabilities (802.11n)
  * [tlv] HT Operation (802.11n)
  */
-struct mbuf *
-ieee80211_get_probe_resp(struct ieee80211com *ic, struct ieee80211_node *ni)
+
+struct ieee80211_iobuf *ieee80211_get_probe_resp(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     const struct ieee80211_rateset *rs = &ic->ic_bss->ni_rates;
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     uint8_t *frm;
 
     m = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
@@ -1234,30 +1229,29 @@ ieee80211_get_probe_resp(struct ieee80211com *ic, struct ieee80211_node *ni)
     }
 #endif
 
-    m->m_pkthdr.len = m->m_len = frm - mtod(m, uint8_t *);
+    m->m_pktlen = m->m_len = frm - mtod(m, uint8_t *);
 
     return m;
 }
 #endif /* CONFIG_IEEE80211_AP */
 
-/*-
- * Authentication frame format:
+/* Authentication frame format:
  * [2] Authentication algorithm number
  * [2] Authentication transaction sequence number
  * [2] Status code
  */
-struct mbuf *
-ieee80211_get_auth(struct ieee80211com *ic, struct ieee80211_node *ni,
+
+struct ieee80211_iobuf *ieee80211_get_auth(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint16_t status, uint16_t seq)
 {
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     uint8_t *frm;
 
     MGETHDR(m, M_DONTWAIT, MT_DATA);
     if (m == NULL)
         return NULL;
     MH_ALIGN(m, 2 * 3);
-    m->m_pkthdr.len = m->m_len = 2 * 3;
+    m->m_pktlen = m->m_len = 2 * 3;
 
     frm = mtod(m, uint8_t *);
     LE_WRITE_2(frm, IEEE80211_AUTH_ALG_OPEN); frm += 2;
@@ -1267,29 +1261,27 @@ ieee80211_get_auth(struct ieee80211com *ic, struct ieee80211_node *ni,
     return m;
 }
 
-/*-
- * Deauthentication frame format:
+/* Deauthentication frame format:
  * [2] Reason code
  */
-struct mbuf *
-ieee80211_get_deauth(struct ieee80211com *ic, struct ieee80211_node *ni,
+
+struct ieee80211_iobuf *ieee80211_get_deauth(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint16_t reason)
 {
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
 
     MGETHDR(m, M_DONTWAIT, MT_DATA);
     if (m == NULL)
         return NULL;
     MH_ALIGN(m, 2);
 
-    m->m_pkthdr.len = m->m_len = 2;
+    m->m_pktlen = m->m_len = 2;
     *mtod(m, uint16_t *) = htole16(reason);
 
     return m;
 }
 
-/*-
- * (Re)Association request frame format:
+/* (Re)Association request frame format:
  * [2]   Capability information
  * [2]   Listen interval
  * [6*]  Current AP address (Reassociation only)
@@ -1300,12 +1292,12 @@ ieee80211_get_deauth(struct ieee80211com *ic, struct ieee80211_node *ni,
  * [tlv] QoS Capability (802.11e)
  * [tlv] HT Capabilities (802.11n)
  */
-struct mbuf *
-ieee80211_get_assoc_req(struct ieee80211com *ic, struct ieee80211_node *ni,
+
+struct ieee80211_iobuf *ieee80211_get_assoc_req(struct ieee80211com *ic, struct ieee80211_node *ni,
     int type)
 {
     const struct ieee80211_rateset *rs = &ni->ni_rates;
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     uint8_t *frm;
     uint16_t capinfo;
 
@@ -1360,14 +1352,13 @@ ieee80211_get_assoc_req(struct ieee80211com *ic, struct ieee80211_node *ni,
         frm = ieee80211_add_htcaps(frm, ic);
 #endif
 
-    m->m_pkthdr.len = m->m_len = frm - mtod(m, uint8_t *);
+    m->m_pktlen = m->m_len = frm - mtod(m, uint8_t *);
 
     return m;
 }
 
 #ifdef CONFIG_IEEE80211_AP
-/*-
- * (Re)Association response frame format:
+/* (Re)Association response frame format:
  * [2]   Capability information
  * [2]   Status code
  * [2]   Association ID (AID)
@@ -1378,12 +1369,12 @@ ieee80211_get_assoc_req(struct ieee80211com *ic, struct ieee80211_node *ni,
  * [tlv] HT Capabilities (802.11n)
  * [tlv] HT Operation (802.11n)
  */
-struct mbuf *
-ieee80211_get_assoc_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
+
+struct ieee80211_iobuf *ieee80211_get_assoc_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint16_t status)
 {
     const struct ieee80211_rateset *rs = &ni->ni_rates;
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     uint8_t *frm;
 
     m = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
@@ -1422,36 +1413,34 @@ ieee80211_get_assoc_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
     }
 #endif
 
-    m->m_pkthdr.len = m->m_len = frm - mtod(m, uint8_t *);
+    m->m_pktlen = m->m_len = frm - mtod(m, uint8_t *);
 
     return m;
 }
 #endif /* CONFIG_IEEE80211_AP */
 
-/*-
- * Disassociation frame format:
+/* Disassociation frame format:
  * [2] Reason code
  */
-struct mbuf *
-ieee80211_get_disassoc(struct ieee80211com *ic, struct ieee80211_node *ni,
+
+struct ieee80211_iobuf *ieee80211_get_disassoc(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint16_t reason)
 {
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
 
     MGETHDR(m, M_DONTWAIT, MT_DATA);
     if (m == NULL)
         return NULL;
     MH_ALIGN(m, 2);
 
-    m->m_pkthdr.len = m->m_len = 2;
+    m->m_pktlen = m->m_len = 2;
     *mtod(m, uint16_t *) = htole16(reason);
 
     return m;
 }
 
 #ifdef CONFIG_IEEE80211_HT
-/*-
- * ADDBA Request frame format:
+/* ADDBA Request frame format:
  * [1] Category
  * [1] Action
  * [1] Dialog Token
@@ -1459,12 +1448,12 @@ ieee80211_get_disassoc(struct ieee80211com *ic, struct ieee80211_node *ni,
  * [2] Block Ack Timeout Value
  * [2] Block Ack Starting Sequence Control
  */
-struct mbuf *
-ieee80211_get_addba_req(struct ieee80211com *ic, struct ieee80211_node *ni,
+
+struct ieee80211_iobuf *ieee80211_get_addba_req(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint8_t tid)
 {
     struct ieee80211_tx_ba *ba = &ni->ni_tx_ba[tid];
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     uint8_t *frm;
     uint16_t params;
 
@@ -1481,13 +1470,12 @@ ieee80211_get_addba_req(struct ieee80211com *ic, struct ieee80211_node *ni,
     LE_WRITE_2(frm, ba->ba_timeout_val); frm += 2;
     LE_WRITE_2(frm, ba->ba_winstart); frm += 2;
 
-    m->m_pkthdr.len = m->m_len = frm - mtod(m, uint8_t *);
+    m->m_pktlen = m->m_len = frm - mtod(m, uint8_t *);
 
     return m;
 }
 
-/*-
- * ADDBA Response frame format:
+/* ADDBA Response frame format:
  * [1] Category
  * [1] Action
  * [1] Dialog Token
@@ -1495,12 +1483,12 @@ ieee80211_get_addba_req(struct ieee80211com *ic, struct ieee80211_node *ni,
  * [2] Block Ack Parameter Set
  * [2] Block Ack Timeout Value
  */
-struct mbuf *
-ieee80211_get_addba_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
+
+struct ieee80211_iobuf *ieee80211_get_addba_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint8_t tid, uint8_t token, uint16_t status)
 {
     struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     uint8_t *frm;
     uint16_t params;
 
@@ -1523,23 +1511,23 @@ ieee80211_get_addba_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
         LE_WRITE_2(frm, 0);
     frm += 2;
 
-    m->m_pkthdr.len = m->m_len = frm - mtod(m, uint8_t *);
+    m->m_pktlen = m->m_len = frm - mtod(m, uint8_t *);
 
     return m;
 }
 
-/*-
- * DELBA frame format:
+/* DELBA frame format:
  * [1] Category
  * [1] Action
  * [2] DELBA Parameter Set
  * [2] Reason Code
  */
-struct mbuf *
+
+struct ieee80211_iobuf *
 ieee80211_get_delba(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint8_t tid, uint8_t dir, uint16_t reason)
 {
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     uint8_t *frm;
     uint16_t params;
 
@@ -1556,23 +1544,22 @@ ieee80211_get_delba(struct ieee80211com *ic, struct ieee80211_node *ni,
     LE_WRITE_2(frm, params); frm += 2;
     LE_WRITE_2(frm, reason); frm += 2;
 
-    m->m_pkthdr.len = m->m_len = frm - mtod(m, uint8_t *);
+    m->m_pktlen = m->m_len = frm - mtod(m, uint8_t *);
 
     return m;
 }
 #endif /* !CONFIG_IEEE80211_HT */
 
-/*-
- * SA Query Request/Reponse frame format:
+/* SA Query Request/Reponse frame format:
  * [1]  Category
  * [1]  Action
  * [16] Transaction Identifier
  */
-struct mbuf *
-ieee80211_get_sa_query(struct ieee80211com *ic, struct ieee80211_node *ni,
+
+struct ieee80211_iobuf *ieee80211_get_sa_query(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint8_t action)
 {
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     uint8_t *frm;
 
     m = ieee80211_getmgmt(M_DONTWAIT, MT_DATA, 4);
@@ -1584,16 +1571,15 @@ ieee80211_get_sa_query(struct ieee80211com *ic, struct ieee80211_node *ni,
     *frm++ = action;    /* ACTION_SA_QUERY_REQ/RESP */
     LE_WRITE_2(frm, ni->ni_sa_query_trid); frm += 2;
 
-    m->m_pkthdr.len = m->m_len = frm - mtod(m, uint8_t *);
+    m->m_pktlen = m->m_len = frm - mtod(m, uint8_t *);
 
     return m;
 }
 
-struct mbuf *
-ieee80211_get_action(struct ieee80211com *ic, struct ieee80211_node *ni,
+struct ieee80211_iobuf *ieee80211_get_action(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint8_t categ, uint8_t action, int arg)
 {
-    struct mbuf *m = NULL;
+    struct ieee80211_iobuf *m = NULL;
 
     switch (categ) {
 #ifdef CONFIG_IEEE80211_HT
@@ -1638,7 +1624,7 @@ ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
 {
 #define    senderr(_x, _v)    do { ic->ic_stats._v++; ret = _x; goto bad; } while (0)
     struct ifnet *ifp = &ic->ic_if;
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     int ret, timer;
 
     if (ni == NULL)
@@ -1730,21 +1716,19 @@ bad:
 #undef senderr
 }
 
-/*
- * Build a RTS (Request To Send) control frame (see 7.2.1.1).
- */
-struct mbuf *
-ieee80211_get_rts(struct ieee80211com *ic, const struct ieee80211_frame *wh,
+/* Build a RTS (Request To Send) control frame (see 7.2.1.1) */
+
+struct ieee80211_iobuf *ieee80211_get_rts(struct ieee80211com *ic, const struct ieee80211_frame *wh,
     uint16_t dur)
 {
     struct ieee80211_frame_rts *rts;
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
 
     MGETHDR(m, M_DONTWAIT, MT_DATA);
     if (m == NULL)
         return NULL;
 
-    m->m_pkthdr.len = m->m_len = sizeof(struct ieee80211_frame_rts);
+    m->m_pktlen = m->m_len = sizeof(struct ieee80211_frame_rts);
 
     rts = mtod(m, struct ieee80211_frame_rts *);
     rts->i_fc[0] = IEEE80211_FC0_VERSION_0 | IEEE80211_FC0_TYPE_CTL |
@@ -1757,20 +1741,18 @@ ieee80211_get_rts(struct ieee80211com *ic, const struct ieee80211_frame *wh,
     return m;
 }
 
-/*
- * Build a CTS-to-self (Clear To Send) control frame (see 7.2.1.2).
- */
-struct mbuf *
-ieee80211_get_cts_to_self(struct ieee80211com *ic, uint16_t dur)
+/* Build a CTS-to-self (Clear To Send) control frame (see 7.2.1.2) */
+
+struct ieee80211_iobuf *ieee80211_get_cts_to_self(struct ieee80211com *ic, uint16_t dur)
 {
     struct ieee80211_frame_cts *cts;
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
 
     MGETHDR(m, M_DONTWAIT, MT_DATA);
     if (m == NULL)
         return NULL;
 
-    m->m_pkthdr.len = m->m_len = sizeof(struct ieee80211_frame_cts);
+    m->m_pktlen = m->m_len = sizeof(struct ieee80211_frame_cts);
 
     cts = mtod(m, struct ieee80211_frame_cts *);
     cts->i_fc[0] = IEEE80211_FC0_VERSION_0 | IEEE80211_FC0_TYPE_CTL |
@@ -1783,8 +1765,7 @@ ieee80211_get_cts_to_self(struct ieee80211com *ic, uint16_t dur)
 }
 
 #ifdef CONFIG_IEEE80211_AP
-/*-
- * Beacon frame format:
+/* Beacon frame format:
  * [8]   Timestamp
  * [2]   Beacon interval
  * [2]   Capability
@@ -1800,12 +1781,12 @@ ieee80211_get_cts_to_self(struct ieee80211com *ic, uint16_t dur)
  * [tlv] HT Capabilities (802.11n)
  * [tlv] HT Operation (802.11n)
  */
-struct mbuf *
-ieee80211_beacon_alloc(struct ieee80211com *ic, struct ieee80211_node *ni)
+
+struct ieee80211_iobuf *ieee80211_beacon_alloc(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     const struct ieee80211_rateset *rs = &ni->ni_rates;
     struct ieee80211_frame *wh;
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     uint8_t *frm;
 
     m = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
@@ -1874,8 +1855,8 @@ ieee80211_beacon_alloc(struct ieee80211com *ic, struct ieee80211_node *ni)
     }
 #endif
 
-    m->m_pkthdr.len = m->m_len = frm - mtod(m, uint8_t *);
-    m->m_pkthdr.ph_cookie = ni;
+    m->m_pktlen = m->m_len = frm - mtod(m, uint8_t *);
+    m->m_priv = ni;
 
     return m;
 }
@@ -1886,7 +1867,7 @@ ieee80211_beacon_alloc(struct ieee80211com *ic, struct ieee80211_node *ni)
  * the AP, or 0 if the frame shall be transmitted immediately.
  */
 int
-ieee80211_pwrsave(struct ieee80211com *ic, struct mbuf *m,
+ieee80211_pwrsave(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
   const struct ieee80211_frame *wh;
@@ -1931,7 +1912,7 @@ ieee80211_pwrsave(struct ieee80211com *ic, struct mbuf *m,
    * special pkthdr field.
    */
 
-  m->m_pkthdr.ph_cookie = ni;
+  m->m_priv = ni;
   return 1;
 }
 #endif /* CONFIG_IEEE80211_AP */

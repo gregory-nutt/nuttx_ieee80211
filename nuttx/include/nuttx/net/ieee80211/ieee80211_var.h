@@ -161,6 +161,22 @@ struct ieee80211_channel
 #define IEEE80211_IS_CHAN_XR(_c) \
     (((_c)->ic_flags & IEEE80211_CHAN_XR) != 0)
 
+/* Represents one packet buffer */
+
+struct ieee80211_iobuf
+{
+  sq_entry_t m_link;
+  uint16_t   m_flags;
+  uint16_t   m_len;
+  uint16_t   m_pktlen;
+  uint16_t   m_hdrlen;
+#if NVLAN > 0
+  uint16_t   m_vtag;
+#endif
+  void      *m_priv;
+  uint8_t    m_data[CONFIG_IEEE80211_BUFSIZE];
+};
+
 /* EDCA AC parameters */
 
 struct ieee80211_edca_ac_params
@@ -181,7 +197,7 @@ struct ieee80211_edca_ac_params
 struct ieee80211_defrag
 {
   WDOG_ID      df_to;
-  struct mbuf *df_m;
+  struct ieee80211_iobuf *df_m;
   uint16_t     df_seq;
   uint8_t      df_frag;
 };
@@ -203,7 +219,7 @@ struct ieee80211com
 #warning REVISIT: ic_if represents the device interface and needs to go away
   struct ifnet ic_if;
   void            (*ic_recv_mgmt)(struct ieee80211com *,
-                  struct mbuf *, struct ieee80211_node *,
+                  struct ieee80211_iobuf *, struct ieee80211_node *,
                   struct ieee80211_rxinfo *, int);
   int            (*ic_send_mgmt)(struct ieee80211com *,
                   struct ieee80211_node *, int, int, int);

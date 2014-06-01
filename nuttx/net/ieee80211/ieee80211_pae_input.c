@@ -28,7 +28,6 @@
 #include <nuttx/config.h>
 
 #include <sys/param.h>
-#include <sys/mbuf.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/errno.h>
@@ -79,12 +78,11 @@ void    ieee80211_recv_eapol_key_req(struct ieee80211com *,
         struct ieee80211_eapol_key *, struct ieee80211_node *);
 #endif
 
-/*
- * Process an incoming EAPOL frame.  Notice that we are only interested in
+/* Process an incoming EAPOL frame.  Notice that we are only interested in
  * EAPOL-Key frames with an IEEE 802.11 or WPA descriptor type.
  */
-void
-ieee80211_eapol_key_input(struct ieee80211com *ic, struct mbuf *m,
+
+void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     struct ieee80211_node *ni)
 {
     struct ifnet *ifp = &ic->ic_if;
@@ -93,7 +91,7 @@ ieee80211_eapol_key_input(struct ieee80211com *ic, struct mbuf *m,
     uint16_t info, desc;
     int totlen;
 
-    ifp->if_ibytes += m->m_pkthdr.len;
+    ifp->if_ibytes += m->m_pktlen;
 
     eh = mtod(m, struct ether_header *);
     if (IEEE80211_IS_MULTICAST(eh->ether_dhost)) {
@@ -102,7 +100,7 @@ ieee80211_eapol_key_input(struct ieee80211com *ic, struct mbuf *m,
     }
     m_adj(m, sizeof(*eh));
 
-    if (m->m_pkthdr.len < sizeof(*key))
+    if (m->m_pktlen < sizeof(*key))
         goto done;
     if (m->m_len < sizeof(*key) &&
         (m = m_pullup(m, sizeof(*key))) == NULL) {
@@ -122,12 +120,12 @@ ieee80211_eapol_key_input(struct ieee80211com *ic, struct mbuf *m,
         goto done;
 
     /* check packet body length */
-    if (m->m_pkthdr.len < 4 + BE_READ_2(key->len))
+    if (m->m_pktlen < 4 + BE_READ_2(key->len))
         goto done;
 
     /* check key data length */
     totlen = sizeof(*key) + BE_READ_2(key->paylen);
-    if (m->m_pkthdr.len < totlen || totlen > MCLBYTES)
+    if (m->m_pktlen < totlen || totlen > MCLBYTES)
         goto done;
 
     info = BE_READ_2(key->info);

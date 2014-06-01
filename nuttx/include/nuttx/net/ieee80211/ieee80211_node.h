@@ -162,7 +162,7 @@ struct ieee80211_rx_ba
   struct ieee80211_node *ba_ni;        /* backpointer for callbacks */
   struct
   {
-    struct mbuf *m;
+    struct ieee80211_iobuf *m;
     struct ieee80211_rxinfo rxi;
   }             *ba_buf;
   WDOG_ID        ba_to;
