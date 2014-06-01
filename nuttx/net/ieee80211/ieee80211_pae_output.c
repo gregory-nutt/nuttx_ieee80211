@@ -42,7 +42,7 @@
 #include <net/if_llc.h>
 #include <net/bpf.h>
 
-#ifdef INET
+#ifdef CONFIG_NET_ETHERNET
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
 #include <netinet/in_systm.h>

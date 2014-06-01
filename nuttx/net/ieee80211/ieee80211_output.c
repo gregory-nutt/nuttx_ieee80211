@@ -52,12 +52,12 @@
 #include <net/if_llc.h>
 #include <net/bpf.h>
 
-#ifdef INET
+#ifdef CONFIG_NET_ETHERNET
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#ifdef INET6
+#ifdef CONFIG_NET_IPv6
 #include <netinet/ip6.h>
 #endif
 #endif
@@ -365,7 +365,7 @@ static const struct ieee80211_edca_ac_params
         [EDCA_AC_VO] = { 2,  2, 1,  47 }
     }
 };
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 /*
  * Return the EDCA Access Category to be used for transmitting a frame with
@@ -427,7 +427,7 @@ ieee80211_up_to_ac(struct ieee80211com *ic, int up)
 int
 ieee80211_classify(struct ieee80211com *ic, struct mbuf *m)
 {
-#ifdef INET
+#ifdef CONFIG_NET_ETHERNET
     struct ether_header *eh;
     uint8_t ds_field;
 #endif
@@ -435,7 +435,7 @@ ieee80211_classify(struct ieee80211com *ic, struct mbuf *m)
     if (m->m_flags & M_VLANTAG)    /* use VLAN 802.1D user-priority */
         return EVL_PRIOFTAG(m->m_pkthdr.ether_vtag);
 #endif
-#ifdef INET
+#ifdef CONFIG_NET_ETHERNET
     eh = mtod(m, struct ether_header *);
     if (eh->ether_type == htons(ETHERTYPE_IP)) {
         struct ip *ip = (struct ip *)&eh[1];
@@ -443,7 +443,7 @@ ieee80211_classify(struct ieee80211com *ic, struct mbuf *m)
             return 0;
         ds_field = ip->ip_tos;
     }
-#ifdef INET6
+#ifdef CONFIG_NET_IPv6
     else if (eh->ether_type == htons(ETHERTYPE_IPV6)) {
         struct ip6_hdr *ip6 = (struct ip6_hdr *)&eh[1];
         uint32_t flowlabel;
@@ -453,7 +453,7 @@ ieee80211_classify(struct ieee80211com *ic, struct mbuf *m)
             return 0;
         ds_field = (flowlabel >> 20) & 0xff;
     }
-#endif    /* INET6 */
+#endif /* CONFIG_NET_IPv6 */
     else    /* neither IPv4 nor IPv6 */
         return 0;
 
@@ -477,7 +477,7 @@ ieee80211_classify(struct ieee80211com *ic, struct mbuf *m)
     case IPTOS_PREC_NETCONTROL:
         return 7;
     }
-#endif    /* INET */
+#endif /* CONFIG_NET_ETHERNET */
     return 0;    /* default to Best-Effort */
 }
 
@@ -852,7 +852,7 @@ ieee80211_add_erp(uint8_t *frm, struct ieee80211com *ic)
     *frm++ = erp;
     return frm;
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 /*
  * Add a QoS Capability element to a frame (see 7.3.2.35).
@@ -1066,8 +1066,8 @@ ieee80211_add_htop(uint8_t *frm, struct ieee80211com *ic)
     memset(frm, 0, 16); frm += 16;
     return frm;
 }
-#endif    /* !CONFIG_IEEE80211_AP */
-#endif    /* !CONFIG_IEEE80211_HT */
+#endif /* !CONFIG_IEEE80211_AP */
+#endif /* !CONFIG_IEEE80211_HT */
 
 #ifdef CONFIG_IEEE80211_AP
 /*
@@ -1221,7 +1221,7 @@ ieee80211_get_probe_resp(struct ieee80211com *ic, struct ieee80211_node *ni)
 
     return m;
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 /*-
  * Authentication frame format:
@@ -1409,7 +1409,7 @@ ieee80211_get_assoc_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
 
     return m;
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 /*-
  * Disassociation frame format:
@@ -1543,7 +1543,7 @@ ieee80211_get_delba(struct ieee80211com *ic, struct ieee80211_node *ni,
 
     return m;
 }
-#endif    /* !CONFIG_IEEE80211_HT */
+#endif /* !CONFIG_IEEE80211_HT */
 
 /*-
  * SA Query Request/Reponse frame format:
@@ -1915,4 +1915,4 @@ ieee80211_pwrsave(struct ieee80211com *ic, struct mbuf *m,
     }
     return 1;
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */

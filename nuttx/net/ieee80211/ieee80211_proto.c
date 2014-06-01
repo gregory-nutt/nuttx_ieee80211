@@ -50,7 +50,7 @@
 #include <net/if_arp.h>
 #include <net/if_llc.h>
 
-#ifdef INET
+#ifdef CONFIG_NET_ETHERNET
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
 #endif
