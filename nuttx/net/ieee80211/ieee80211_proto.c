@@ -58,6 +58,8 @@
 #include <debug.h>
 
 #include <nuttx/tree.h>
+
+#include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -169,25 +171,25 @@ void ieee80211_dump_pkt(const uint8_t *buf, int len, int rate, int rssi)
     wh = (struct ieee80211_frame *)buf;
     switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK) {
     case IEEE80211_FC1_DIR_NODS:
-        nvdbg("NODS %s", ether_sprintf(wh->i_addr2));
-        nvdbg("->%s", ether_sprintf(wh->i_addr1));
-        nvdbg("(%s)", ether_sprintf(wh->i_addr3));
+        nvdbg("NODS %s", ieee80211_addr2str(wh->i_addr2));
+        nvdbg("->%s", ieee80211_addr2str(wh->i_addr1));
+        nvdbg("(%s)", ieee80211_addr2str(wh->i_addr3));
         break;
     case IEEE80211_FC1_DIR_TODS:
-        nvdbg("TODS %s", ether_sprintf(wh->i_addr2));
-        nvdbg("->%s", ether_sprintf(wh->i_addr3));
-        nvdbg("(%s)", ether_sprintf(wh->i_addr1));
+        nvdbg("TODS %s", ieee80211_addr2str(wh->i_addr2));
+        nvdbg("->%s", ieee80211_addr2str(wh->i_addr3));
+        nvdbg("(%s)", ieee80211_addr2str(wh->i_addr1));
         break;
     case IEEE80211_FC1_DIR_FROMDS:
-        nvdbg("FRDS %s", ether_sprintf(wh->i_addr3));
-        nvdbg("->%s", ether_sprintf(wh->i_addr1));
-        nvdbg("(%s)", ether_sprintf(wh->i_addr2));
+        nvdbg("FRDS %s", ieee80211_addr2str(wh->i_addr3));
+        nvdbg("->%s", ieee80211_addr2str(wh->i_addr1));
+        nvdbg("(%s)", ieee80211_addr2str(wh->i_addr2));
         break;
     case IEEE80211_FC1_DIR_DSTODS:
-        nvdbg("DSDS %s", ether_sprintf((uint8_t *)&wh[1]));
-        nvdbg("->%s", ether_sprintf(wh->i_addr3));
-        nvdbg("(%s", ether_sprintf(wh->i_addr2));
-        nvdbg("->%s)", ether_sprintf(wh->i_addr1));
+        nvdbg("DSDS %s", ieee80211_addr2str((uint8_t *)&wh[1]));
+        nvdbg("->%s", ieee80211_addr2str(wh->i_addr3));
+        nvdbg("(%s", ieee80211_addr2str(wh->i_addr2));
+        nvdbg("->%s)", ieee80211_addr2str(wh->i_addr1));
         break;
     }
     switch (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) {
@@ -415,7 +417,7 @@ ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
 #ifdef CONFIG_IEEE80211_AP
     /* find the STA with which we must start the key exchange */
     if ((ni = ieee80211_find_node(ic, macaddr)) == NULL) {
-        ndbg("ERROR: no node found for %s\n", ether_sprintf(macaddr));
+        ndbg("ERROR: no node found for %s\n", ieee80211_addr2str(macaddr));
         return EINVAL;
     }
     /* check that the STA is in the correct state */
@@ -428,7 +430,7 @@ ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
 
     /* make sure a PMK is available for this STA, otherwise deauth it */
     if ((pmk = ieee80211_pmksa_find(ic, ni, NULL)) == NULL) {
-        ndbg("ERROR: no PMK available for %s\n", ether_sprintf(macaddr));
+        ndbg("ERROR: no PMK available for %s\n", ieee80211_addr2str(macaddr));
         IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_DEAUTH,
             IEEE80211_REASON_AUTH_LEAVE);
         ieee80211_node_leave(ic, ni);
@@ -706,7 +708,7 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
         if (ic->ic_state != IEEE80211_S_RUN ||
             seq != IEEE80211_AUTH_OPEN_REQUEST) {
             nvdbg("discard auth from %s; state %u, seq %u\n",
-                ether_sprintf((uint8_t *)wh->i_addr2),
+                ieee80211_addr2str((uint8_t *)wh->i_addr2),
                 ic->ic_state, seq);
             ic->ic_stats.is_rx_bad_auth++;
             return;
@@ -723,7 +725,7 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
         if (ic->ic_state != IEEE80211_S_RUN ||
             seq != IEEE80211_AUTH_OPEN_REQUEST) {
             nvdbg("discard auth from %s; state %u, seq %u\n",
-                ether_sprintf((uint8_t *)wh->i_addr2),
+                ieee80211_addr2str((uint8_t *)wh->i_addr2),
                 ic->ic_state, seq);
             ic->ic_stats.is_rx_bad_auth++;
             return;
@@ -745,7 +747,7 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
 
       nvdbg("%s: station %s %s authenticated (open)\n",
             ifp->if_xname,
-            ether_sprintf((uint8_t *)ni->ni_macaddr),
+            ieee80211_addr2str((uint8_t *)ni->ni_macaddr),
             ni->ni_state != IEEE80211_STA_CACHE ? "newly" : "already");
 
       ieee80211_node_newstate(ni, IEEE80211_STA_AUTH);
@@ -757,7 +759,7 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
             seq != IEEE80211_AUTH_OPEN_RESPONSE) {
             ic->ic_stats.is_rx_bad_auth++;
             nvdbg("discard auth from %s; state %u, seq %u\n",
-                ether_sprintf((uint8_t *)wh->i_addr2),
+                ieee80211_addr2str((uint8_t *)wh->i_addr2),
                 ic->ic_state, seq);
             return;
         }
@@ -773,7 +775,7 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
       if (status != 0)
         {
           nvdbg("%s: open authentication failed (reason %d) for %s\n",
-                ifp->if_xname, status, ether_sprintf((uint8_t *)wh->i_addr3));
+                ifp->if_xname, status, ieee80211_addr2str((uint8_t *)wh->i_addr3));
 
           if (ni != ic->ic_bss)
             {
@@ -917,7 +919,7 @@ justcleanup:
           /* beacon miss */
 
           nvdbg("%s: no recent beacons from %s; rescanning\n",
-                ifp->if_xname, ether_sprintf(ic->ic_bss->ni_bssid));
+                ifp->if_xname, ieee80211_addr2str(ic->ic_bss->ni_bssid));
 
           ieee80211_free_allnodes(ic);
 
@@ -1005,7 +1007,7 @@ justcleanup:
             nvdbg("%s: %s with %s ssid ",
                    ifp->if_xname,
                    ic->ic_opmode == IEEE80211_M_STA ? "associated" : "synchronized",
-                   ether_sprintf(ni->ni_bssid));
+                   ieee80211_addr2str(ni->ni_bssid));
             ieee80211_print_essid(ic->ic_bss->ni_essid, ni->ni_esslen);
             rate = ni->ni_rates.rs_rates[ni->ni_txrate] & IEEE80211_RATE_VAL;
             nvdbg(" channel %d start %u%sMb",

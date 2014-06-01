@@ -25,7 +25,8 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
- */
+ *
+ ****************************************************************************/
 
 /****************************************************************************
  * Included Files
@@ -41,6 +42,7 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
+#include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_rssadapt.h>
 
@@ -124,7 +126,7 @@ out:
 #ifdef CONFIG_DEBUG_NET
     if (ieee80211_rssadapt_debug && dvname != NULL) {
         nvdbg("%s: dst %s threshold[%d, %d.%d] %d < %d\n",
-            dvname, ether_sprintf((uint8_t *)wh->i_addr1), len,
+            dvname, ieee80211_addr2str((uint8_t *)wh->i_addr1), len,
             (rs->rs_rates[rateidx] & IEEE80211_RATE_VAL) / 2,
             (rs->rs_rates[rateidx] & IEEE80211_RATE_VAL) * 5 % 10,
             (*thrs)[rateidx], ra->ra_avg_rssi);
@@ -162,7 +164,7 @@ ieee80211_rssadapt_input(struct ieee80211com *ic,
         ra->ra_avg_rssi, (rssi << 8));
 
     RSSADAPT_PRINTF(("%s: src %s rssi %d avg %d -> %d\n",
-        ic->ic_if.if_xname, ether_sprintf((uint8_t *)ni->ni_macaddr),
+        ic->ic_if.if_xname, ieee80211_addr2str((uint8_t *)ni->ni_macaddr),
         rssi, last_avg_rssi, ra->ra_avg_rssi));
 }
 
@@ -186,7 +188,7 @@ ieee80211_rssadapt_lower_rate(struct ieee80211com *ic,
     if (id->id_rateidx >= rs->rs_nrates) {
         RSSADAPT_PRINTF(("ieee80211_rssadapt_lower_rate: "
             "%s rate #%d > #%d out of bounds\n",
-            ether_sprintf((uint8_t *)ni->ni_macaddr), id->id_rateidx,
+            ieee80211_addr2str((uint8_t *)ni->ni_macaddr), id->id_rateidx,
             rs->rs_nrates - 1));
         return;
     }
@@ -205,7 +207,7 @@ ieee80211_rssadapt_lower_rate(struct ieee80211com *ic,
         (id->id_rssi << 8));
 
     RSSADAPT_PRINTF(("%s: dst %s rssi %d threshold[%d, %d.%d] %d -> %d\n",
-        ic->ic_if.if_xname, ether_sprintf((uint8_t *)ni->ni_macaddr),
+        ic->ic_if.if_xname, ieee80211_addr2str((uint8_t *)ni->ni_macaddr),
         id->id_rssi, id->id_len,
         (rs->rs_rates[id->id_rateidx] & IEEE80211_RATE_VAL) / 2,
         (rs->rs_rates[id->id_rateidx] & IEEE80211_RATE_VAL) * 5 % 10,
@@ -260,7 +262,7 @@ ieee80211_rssadapt_raise_rate(struct ieee80211com *ic,
     if (RSSADAPT_DO_PRINT())
       {
         nvdbg("%s: dst %s thresholds\n", ic->ic_if.if_xname,
-            ether_sprintf((uint8_t *)ni->ni_macaddr));
+            ieee80211_addr2str((uint8_t *)ni->ni_macaddr));
 
         for (i = 0; i < IEEE80211_RSSADAPT_BKTS; i++)
           {

@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/ieee80211/ieee80211.h
+ * net/ieee80211/ieee80211_debug.c
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,45 +33,52 @@
  *
  ****************************************************************************/
 
-#ifndef _NET_IEEE80211_IEEE80211_H
-#define _NET_IEEE80211_IEEE80211_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#ifdef CONFIG_NET
+#include <nuttx/net/ieee80211/ieee80211_debug.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Private Data
  ****************************************************************************/
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C"
+static const char digits[] = "0123456789abcdef";
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: ieee80211_addr2str
+ *
+ * Description:
+ *   Convert an IEEE 802.11 address to printable representation
+ *
+ ****************************************************************************/
+
+char *ieee80211_addr2str(uint8_t *addr)
 {
-#else
-#define EXTERN extern
-#endif
+  static char buffer[IEEE80211_ADDR_LEN * 3];
+  char *str;
+  int i;
 
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
+   for (i = 0, str = bufffer; i < IEEE80211_ADDR_LEN; i++)
+     {
+       *str++ = digits[*addr >> 4];
+       *str++ = digits[*addr++ & 0xf];
+       *str++ = ':';
+     }
 
-#undef EXTERN
-#if defined(__cplusplus)
+  *--str = '\0';
+  return buffer;
 }
-#endif
-
-#endif /* CONFIG_NET */
-#endif /* _NET_IEEE80211_IEEE80211_H */

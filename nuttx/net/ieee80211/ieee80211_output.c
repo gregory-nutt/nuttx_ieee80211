@@ -27,7 +27,8 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ *
+ ****************************************************************************/
 
 /****************************************************************************
  * Included Files
@@ -69,6 +70,7 @@
 #include <wdog.h>
 #include <debug.h>
 
+#include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -276,7 +278,7 @@ ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
        nvdbg("%s: sending %s to %s on channel %u mode %s\n",
              ifp->if_xname,
              ieee80211_mgt_subtype_name[(type & IEEE80211_FC0_SUBTYPE_MASK) >> IEEE80211_FC0_SUBTYPE_SHIFT],
-             ether_sprintf(ni->ni_macaddr),
+             ieee80211_addr2str(ni->ni_macaddr),
              ieee80211_chan2ieee(ic, ni->ni_chan),
              ieee80211_phymode_name[ieee80211_chan2mode(ic, ni->ni_chan)]);
     }
@@ -544,7 +546,7 @@ struct ieee80211_iobuf *ieee80211_encap(struct ifnet *ifp, struct ieee80211_iobu
             ni = ieee80211_ref_node(ic->ic_bss);
         if (ni == NULL) {
             nvdbg("%s: no node for dst %s, discard raw tx frame\n",
-                  ifp->if_xname, ether_sprintf(addr));
+                  ifp->if_xname, ieee80211_addr2str(addr));
             ic->ic_stats.is_tx_nonode++;
             goto bad;
         }
@@ -566,7 +568,7 @@ struct ieee80211_iobuf *ieee80211_encap(struct ifnet *ifp, struct ieee80211_iobu
 
     ni = ieee80211_find_txnode(ic, eh.ether_dhost);
     if (ni == NULL) {
-        ndbg("ERROR: no node for dst %s, discard frame\n", ether_sprintf(eh.ether_dhost));
+        ndbg("ERROR: no node for dst %s, discard frame\n", ieee80211_addr2str(eh.ether_dhost));
         ic->ic_stats.is_tx_nonode++;
         goto bad;
     }
@@ -574,7 +576,7 @@ struct ieee80211_iobuf *ieee80211_encap(struct ifnet *ifp, struct ieee80211_iobu
     if ((ic->ic_flags & IEEE80211_F_RSNON) &&
         !ni->ni_port_valid &&
         eh.ether_type != htons(ETHERTYPE_PAE)) {
-        ndbg("ERROR: port not valid: %s\n", ether_sprintf(eh.ether_dhost));
+        ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(eh.ether_dhost));
         ic->ic_stats.is_tx_noauth++;
         goto bad;
     }
@@ -1664,7 +1666,7 @@ ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
             senderr(ENOMEM, is_tx_nombuf);
 
         nvdbg("%s: station %s deauthenticate (reason %d)\n",
-              ifp->if_xname, ether_sprintf(ni->ni_macaddr), arg1);
+              ifp->if_xname, ieee80211_addr2str(ni->ni_macaddr), arg1);
         }
         break;
 
@@ -1687,7 +1689,7 @@ ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
             senderr(ENOMEM, is_tx_nombuf);
 
         nvdbg("%s: station %s disassociate (reason %d)\n",
-              ifp->if_xname, ether_sprintf(ni->ni_macaddr), arg1);
+              ifp->if_xname, ieee80211_addr2str(ni->ni_macaddr), arg1);
         }
         break;
 

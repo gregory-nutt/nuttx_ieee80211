@@ -27,7 +27,8 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ *
+ ****************************************************************************/
 
 /****************************************************************************
  * Included Files
@@ -67,6 +68,7 @@
 #include <debug.h>
 
 #include <nuttx/tree.h>
+#include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -493,9 +495,9 @@ ieee80211_match_bss(struct ieee80211com *ic, struct ieee80211_node *ni)
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
   nvdbg(" %c %s",
         fail ? '-' : '+',
-        ether_sprintf(ni->ni_macaddr));
+        ieee80211_addr2str(ni->ni_macaddr));
   nvdbg(" %s%c",
-        ether_sprintf(ni->ni_bssid),
+        ieee80211_addr2str(ni->ni_bssid),
         fail & 0x20 ? '!' : ' ');
   nvdbg(" %3d%c",
         ieee80211_chan2ieee(ic, ni->ni_chan),
@@ -783,7 +785,7 @@ ieee80211_setup_node(struct ieee80211com *ic,
 {
     int s;
 
-    nvdbg("%s\n", ether_sprintf((uint8_t *)macaddr));
+    nvdbg("%s\n", ieee80211_addr2str((uint8_t *)macaddr));
     IEEE80211_ADDR_COPY(ni->ni_macaddr, macaddr);
     ieee80211_node_newstate(ni, IEEE80211_STA_CACHE);
 
@@ -1028,7 +1030,7 @@ ieee80211_find_rxnode(struct ieee80211com *ic,
         (*ic->ic_newassoc)(ic, ni, 1);
 
     nvdbg("faked-up node %p for %s\n", ni,
-        ether_sprintf((uint8_t *)wh->i_addr2));
+        ieee80211_addr2str((uint8_t *)wh->i_addr2));
 
     return ieee80211_ref_node(ni);
 }
@@ -1065,7 +1067,7 @@ ieee80211_free_node(struct ieee80211com *ic, struct ieee80211_node *ni)
 
     splassert(IPL_NET);
 
-    nvdbg("%s\n", ether_sprintf(ni->ni_macaddr));
+    nvdbg("%s\n", ieee80211_addr2str(ni->ni_macaddr));
 #ifdef CONFIG_IEEE80211_AP
     wd_cancel(ni->ni_eapol_to);
     wd_cancel(ni->ni_sa_query_to);
@@ -1090,7 +1092,7 @@ ieee80211_release_node(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     int s;
 
-    nvdbg("%s refcnt %u\n", ether_sprintf(ni->ni_macaddr), ni->ni_refcnt);
+    nvdbg("%s refcnt %u\n", ieee80211_addr2str(ni->ni_macaddr), ni->ni_refcnt);
     s = splnet();
     if (ieee80211_node_decref(ni) == 0 &&
         ni->ni_state == IEEE80211_STA_COLLECT) {
@@ -1179,7 +1181,7 @@ ieee80211_clean_nodes(struct ieee80211com *ic, int cache_timeout)
         }
 
         nvdbg("%s: station %s purged from node cache\n",
-              ifp->if_xname, ether_sprintf(ni->ni_macaddr));
+              ifp->if_xname, ieee80211_addr2str(ni->ni_macaddr));
 #endif
         /*
          * If we're hostap and the node is authenticated, send
@@ -1324,7 +1326,7 @@ void
 ieee80211_node_join_rsn(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     nvdbg("station %s associated using proto %d akm 0x%x cipher 0x%x groupcipher 0x%x\n",
-        ether_sprintf(ni->ni_macaddr), ni->ni_rsnprotos, ni->ni_rsnakms, ni->ni_rsnciphers,
+        ieee80211_addr2str(ni->ni_macaddr), ni->ni_rsnprotos, ni->ni_rsnakms, ni->ni_rsnciphers,
         ni->ni_rsngroupcipher);
 
     ni->ni_rsn_state = RSNA_AUTHENTICATION;
@@ -1373,7 +1375,7 @@ ieee80211_node_join_11g(struct ieee80211com *ic, struct ieee80211_node *ni)
                 ieee80211_set_shortslottime(ic, 0);
         }
         nvdbg("[%s] station needs long slot time, count %d\n",
-            ether_sprintf(ni->ni_macaddr), ic->ic_longslotsta);
+            ieee80211_addr2str(ni->ni_macaddr), ic->ic_longslotsta);
     }
 
     if (!ieee80211_iserp_sta(ni)) {
@@ -1383,7 +1385,7 @@ ieee80211_node_join_11g(struct ieee80211com *ic, struct ieee80211_node *ni)
         ic->ic_nonerpsta++;
 
         nvdbg("[%s] station is non-ERP, %d non-ERP stations associated\n",
-               ether_sprintf(ni->ni_macaddr), ic->ic_nonerpsta);
+               ieee80211_addr2str(ni->ni_macaddr), ic->ic_nonerpsta);
 
         /* must enable the use of protection */
         if (ic->ic_protmode != IEEE80211_PROT_NONE) {
@@ -1430,7 +1432,7 @@ ieee80211_node_join(struct ieee80211com *ic, struct ieee80211_node *ni,
         newassoc = 0;
 
     nvdbg("station %s %s associated at aid %d\n",
-        ether_sprintf(ni->ni_macaddr), newassoc ? "newly" : "already",
+        ieee80211_addr2str(ni->ni_macaddr), newassoc ? "newly" : "already",
         ni->ni_associd & ~0xc000);
 
     /* give driver a chance to setup state like ni_txrate */
@@ -1541,7 +1543,7 @@ ieee80211_node_leave_11g(struct ieee80211com *ic, struct ieee80211_node *ni)
         }
 
       nvdbg("[%s] long slot time station leaves, count %d\n",
-            ether_sprintf(ni->ni_macaddr), ic->ic_longslotsta);
+            ieee80211_addr2str(ni->ni_macaddr), ic->ic_longslotsta);
     }
 
   if (!(ni->ni_flags & IEEE80211_NODE_ERP))
@@ -1564,7 +1566,7 @@ ieee80211_node_leave_11g(struct ieee80211com *ic, struct ieee80211_node *ni)
         }
 
       nvdbg("[%s] non-ERP station leaves, count %d\n",
-            ether_sprintf(ni->ni_macaddr), ic->ic_nonerpsta);
+            ieee80211_addr2str(ni->ni_macaddr), ic->ic_nonerpsta);
     }
 }
 
@@ -1703,11 +1705,11 @@ ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni,
 
     if (ieee80211_do_slow_print(ic, &did_print)) {
         nvdbg("%s: ieee80211_ibss_merge: bssid mismatch %s\n",
-            ic->ic_if.if_xname, ether_sprintf(ni->ni_bssid));
+            ic->ic_if.if_xname, ieee80211_addr2str(ni->ni_bssid));
         nvdbg("%s: my tsft %llu beacon tsft %llu\n",
             ic->ic_if.if_xname, local_tsft, beacon_tsft);
         nvdbg("%s: sync TSF with %s\n",
-            ic->ic_if.if_xname, ether_sprintf(ni->ni_macaddr));
+            ic->ic_if.if_xname, ieee80211_addr2str(ni->ni_macaddr));
     }
 
     ic->ic_flags &= ~IEEE80211_F_SIBSS;
@@ -1718,16 +1720,16 @@ ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni,
     if (ni->ni_rates.rs_nrates == 0) {
         if (ieee80211_do_slow_print(ic, &did_print)) {
             nvdbg("%s: rates mismatch, BSSID %s\n",
-                ic->ic_if.if_xname, ether_sprintf(ni->ni_bssid));
+                ic->ic_if.if_xname, ieee80211_addr2str(ni->ni_bssid));
         }
         return 0;
     }
 
     if (ieee80211_do_slow_print(ic, &did_print)) {
         nvdbg("%s: sync BSSID %s -> ",
-            ic->ic_if.if_xname, ether_sprintf(ic->ic_bss->ni_bssid));
-        nvdbg("%s ", ether_sprintf(ni->ni_bssid));
-        nvdbg("(from %s)\n", ether_sprintf(ni->ni_macaddr));
+            ic->ic_if.if_xname, ieee80211_addr2str(ic->ic_bss->ni_bssid));
+        nvdbg("%s ", ieee80211_addr2str(ni->ni_bssid));
+        nvdbg("(from %s)\n", ieee80211_addr2str(ni->ni_macaddr));
     }
 
     ieee80211_node_newstate(ni, IEEE80211_STA_BSS);

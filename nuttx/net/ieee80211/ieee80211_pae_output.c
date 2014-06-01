@@ -51,6 +51,7 @@
 #include <wdog.h>
 #include <debug.h>
 
+#include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -184,7 +185,7 @@ ieee80211_eapol_timeout(void *arg)
     int s;
 
     ndbg("ERROR: no answer from station %s in state %d\n",
-        ether_sprintf(ni->ni_macaddr), ni->ni_rsn_state);
+        ieee80211_addr2str(ni->ni_macaddr), ni->ni_rsn_state);
 
     s = splnet();
 
@@ -332,7 +333,7 @@ ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
     m->m_pktlen = m->m_len = frm - (uint8_t *)key;
 
   nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
-        ic->ic_if.if_xname, 1, 4, "4-way", ether_sprintf(ni->ni_macaddr));
+        ic->ic_if.if_xname, 1, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
   ni->ni_replaycnt++;
   BE_WRITE_8(key->replaycnt, ni->ni_replaycnt);
@@ -385,7 +386,7 @@ ieee80211_send_4way_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
     m->m_pktlen = m->m_len = frm - (uint8_t *)key;
 
   nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
-        ic->ic_if.if_xname, 2, 4, "4-way", ether_sprintf(ni->ni_macaddr));
+        ic->ic_if.if_xname, 2, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
   return ieee80211_send_eapol_key(ic, m, ni, tptk);
 }
@@ -459,7 +460,7 @@ ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
     m->m_pktlen = m->m_len = frm - (uint8_t *)key;
 
   nvbg("%s: sending msg %d/%d of the %s handshake to %s\n",
-       ic->ic_if.if_xname, 3, 4, "4-way", ether_sprintf(ni->ni_macaddr));
+       ic->ic_if.if_xname, 3, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
   return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }
@@ -500,7 +501,7 @@ int ieee80211_send_4way_msg4(struct ieee80211com *ic, struct ieee80211_node *ni)
   m->m_pktlen = m->m_len = sizeof(*key);
 
   nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
-        ic->ic_if.if_xname, 4, 4, "4-way", ether_sprintf(ni->ni_macaddr));
+        ic->ic_if.if_xname, 4, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
   return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }
@@ -578,7 +579,7 @@ int ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni
   m->m_pktlen = m->m_len = frm - (uint8_t *)key;
 
   nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
-        ic->ic_if.if_xname, 1, 2, "group key", ether_sprintf(ni->ni_macaddr));
+        ic->ic_if.if_xname, 1, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
 
   return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }
@@ -619,7 +620,7 @@ int ieee80211_send_group_msg2(struct ieee80211com *ic, struct ieee80211_node *ni
   m->m_pktlen = m->m_len = sizeof(*key);
 
   nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
-        ic->ic_if.if_xname, 2, 2, "group key", ether_sprintf(ni->ni_macaddr));
+        ic->ic_if.if_xname, 2, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
 
   return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }
@@ -655,7 +656,7 @@ int ieee80211_send_eapol_key_req(struct ieee80211com *ic,
   ni->ni_reqreplaycnt++;
 
   nvdbg("%s: sending EAPOL-Key request to %s\n",
-        ic->ic_if.if_xname, ether_sprintf(ni->ni_macaddr));
+        ic->ic_if.if_xname, ieee80211_addr2str(ni->ni_macaddr));
 
   return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }

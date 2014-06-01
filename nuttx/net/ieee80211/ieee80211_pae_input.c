@@ -47,6 +47,7 @@
 #include <wdog.h>
 #include <debug.h>
 
+#include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -243,7 +244,7 @@ ieee80211_recv_4way_msg1(struct ieee80211com *ic,
         pmk = ieee80211_pmksa_find(ic, ni,
             (pmkid != NULL) ? &pmkid[6] : NULL);
         if (pmk == NULL) {
-            ndbg("ERROR: no PMK available for %s\n", ether_sprintf(ni->ni_macaddr));
+            ndbg("ERROR: no PMK available for %s\n", ieee80211_addr2str(ni->ni_macaddr));
             return;
         }
         memcpy(ni->ni_pmk, pmk->pmk_key, IEEE80211_PMK_LEN);
@@ -264,7 +265,7 @@ ieee80211_recv_4way_msg1(struct ieee80211com *ic,
 
     nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
           ic->ic_if.if_xname, 1, 4, "4-way",
-          ether_sprintf(ni->ni_macaddr));
+          ieee80211_addr2str(ni->ni_macaddr));
 
     /* Send message 2 to authenticator using TPTK */
 
@@ -327,7 +328,7 @@ ieee80211_recv_4way_msg2(struct ieee80211com *ic,
     }
 
   nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-        ic->ic_if.if_xname, 2, 4, "4-way", ether_sprintf(ni->ni_macaddr));
+        ic->ic_if.if_xname, 2, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
   /* Send message 3 to supplicant */
 
@@ -361,7 +362,7 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
     }
     /* make sure that a PMK has been selected */
     if (!(ni->ni_flags & IEEE80211_NODE_PMK)) {
-        ndbg("ERROR: no PMK found for %s\n", ether_sprintf(ni->ni_macaddr));
+        ndbg("ERROR: no PMK found for %s\n", ieee80211_addr2str(ni->ni_macaddr));
         return;
     }
     /* check that ANonce matches that of Message 1 */
@@ -500,7 +501,7 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
     ni->ni_replaycnt_ok = 1;
 
     nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-          ic->ic_if.if_xname, 3, 4, "4-way", ether_sprintf(ni->ni_macaddr));
+          ic->ic_if.if_xname, 3, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
     /* Send message 4 to authenticator */
 
@@ -599,7 +600,7 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
             ++ni->ni_key_count == 2)
 #endif
         {
-            ndbg("ERROR: marking port %s valid\n", ether_sprintf(ni->ni_macaddr));
+            ndbg("ERROR: marking port %s valid\n", ieee80211_addr2str(ni->ni_macaddr));
             ni->ni_port_valid = 1;
             ieee80211_set_link_state(ic, LINK_STATE_UP);
         }
@@ -663,12 +664,12 @@ ieee80211_recv_4way_msg4(struct ieee80211com *ic,
         ni->ni_flags |= IEEE80211_NODE_TXRXPROT;
     }
     if (ic->ic_opmode != IEEE80211_M_IBSS || ++ni->ni_key_count == 2) {
-        ndbg("ERROR: marking port %s valid\n", ether_sprintf(ni->ni_macaddr));
+        ndbg("ERROR: marking port %s valid\n", ieee80211_addr2str(ni->ni_macaddr));
         ni->ni_port_valid = 1;
     }
 
   nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-        ic->ic_if.if_xname, 4, 4, "4-way", ether_sprintf(ni->ni_macaddr));
+        ic->ic_if.if_xname, 4, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
   /* initiate a group key handshake for WPA */
 
@@ -855,7 +856,7 @@ ieee80211_recv_rsn_group_msg1(struct ieee80211com *ic,
             ++ni->ni_key_count == 2)
 #endif
         {
-            nvdbg("marking port %s valid\n", ether_sprintf(ni->ni_macaddr));
+            nvdbg("marking port %s valid\n", ieee80211_addr2str(ni->ni_macaddr));
             ni->ni_port_valid = 1;
             ieee80211_set_link_state(ic, LINK_STATE_UP);
         }
@@ -866,7 +867,7 @@ ieee80211_recv_rsn_group_msg1(struct ieee80211com *ic,
   ni->ni_replaycnt = BE_READ_8(key->replaycnt);
 
   nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-        ic->ic_if.if_xname, 1, 2, "group key", ether_sprintf(ni->ni_macaddr));
+        ic->ic_if.if_xname, 1, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
 
   /* Send message 2 to authenticator */
 
@@ -949,7 +950,7 @@ void ieee80211_recv_wpa_group_msg1(struct ieee80211com *ic,
             ++ni->ni_key_count == 2)
 #endif
         {
-            nvdbg("marking port %s valid\n",  ether_sprintf(ni->ni_macaddr));
+            nvdbg("marking port %s valid\n",  ieee80211_addr2str(ni->ni_macaddr));
             ni->ni_port_valid = 1;
             ieee80211_set_link_state(ic, LINK_STATE_UP);
         }
@@ -960,7 +961,7 @@ void ieee80211_recv_wpa_group_msg1(struct ieee80211com *ic,
   ni->ni_replaycnt = BE_READ_8(key->replaycnt);
 
   nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-        ic->ic_if.if_xname, 1, 2, "group key", ether_sprintf(ni->ni_macaddr));
+        ic->ic_if.if_xname, 1, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
 
   /* Send message 2 to authenticator */
 
@@ -1008,7 +1009,7 @@ ieee80211_recv_group_msg2(struct ieee80211com *ic,
     ni->ni_rsn_retries = 0;
 
   nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-        ic->ic_if.if_xname, 2, 2, "group key", ether_sprintf(ni->ni_macaddr));
+        ic->ic_if.if_xname, 2, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
 }
 
 /* EAPOL-Key Request frames are sent by the supplicant to request that the
@@ -1047,7 +1048,7 @@ void ieee80211_recv_eapol_key_req(struct ieee80211com *ic,
         /* ignore reports from STAs not using TKIP */
         if (ic->ic_bss->ni_rsngroupcipher != IEEE80211_CIPHER_TKIP &&
             ni->ni_rsncipher != IEEE80211_CIPHER_TKIP) {
-            ndbg("ERROR: MIC failure report from !TKIP STA: %s\n", ether_sprintf(ni->ni_macaddr));
+            ndbg("ERROR: MIC failure report from !TKIP STA: %s\n", ieee80211_addr2str(ni->ni_macaddr));
             return;
         }
         ic->ic_stats.is_rx_remmicfail++;

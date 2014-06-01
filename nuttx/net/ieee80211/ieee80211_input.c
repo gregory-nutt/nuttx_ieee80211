@@ -63,6 +63,7 @@
 #include <assert.h>
 #include <debug.h>
 
+#include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -188,7 +189,7 @@ static void ieee80211_input_print(struct ieee80211com *ic,  struct ifnet *ifp,
     snprintf(msg, 1024, "%s: received %s from %s rssi %d mode %s\n",
         ifp->if_xname,
         ieee80211_mgt_subtype_name[subtype >> IEEE80211_FC0_SUBTYPE_SHIFT],
-        ether_sprintf(wh->i_addr2), rxi->rxi_rssi,
+        ieee80211_addr2str(wh->i_addr2), rxi->rxi_rssi,
         ieee80211_phymode_name[ieee80211_chan2mode(ic, ic->ic_bss->ni_chan)]);
 
     error = workq_add_task(NULL, 0, ieee80211_input_print_task, msg, NULL);
@@ -293,14 +294,14 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_n
                 ni->ni_pwrsave = IEEE80211_PS_DOZE;
                 ic->ic_pssta++;
                 nvdbg("PS mode on for %s, count %d\n",
-                    ether_sprintf(wh->i_addr2), ic->ic_pssta);
+                    ieee80211_addr2str(wh->i_addr2), ic->ic_pssta);
             }
         } else if (ni->ni_pwrsave == IEEE80211_PS_DOZE) {
             /* turn off PS mode */
             ni->ni_pwrsave = IEEE80211_PS_AWAKE;
             ic->ic_pssta--;
             nvdbg("PS mode off for %s, count %d\n",
-                ether_sprintf(wh->i_addr2), ic->ic_pssta);
+                ieee80211_addr2str(wh->i_addr2), ic->ic_pssta);
 
             (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
 
@@ -326,7 +327,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_n
                 !IEEE80211_ADDR_EQ(wh->i_addr2, ni->ni_bssid)) {
                 /* Source address is not our BSS. */
                 nvdbg("discard frame from SA %s\n",
-                    ether_sprintf(wh->i_addr2));
+                    ieee80211_addr2str(wh->i_addr2));
                 ic->ic_stats.is_rx_wrongbss++;
                 goto out;
             }
@@ -357,7 +358,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_n
                 etherbroadcastaddr)) {
                 /* Destination is not our BSS or broadcast. */
                 nvdbg("discard data frame to DA %s\n",
-                    ether_sprintf(wh->i_addr3));
+                    ieee80211_addr2str(wh->i_addr3));
                 ic->ic_stats.is_rx_wrongbss++;
                 goto out;
             }
@@ -376,7 +377,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_n
                 etherbroadcastaddr)) {
                 /* BSS is not us or broadcast. */
                 nvdbg("discard data frame to BSS %s\n",
-                    ether_sprintf(wh->i_addr1));
+                    ieee80211_addr2str(wh->i_addr1));
                 ic->ic_stats.is_rx_wrongbss++;
                 goto out;
             }
@@ -385,7 +386,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_n
 
             if (ni == ic->ic_bss)
               {
-                ndbg("ERROR: data from unknown src %s\n",  ether_sprintf(wh->i_addr2));
+                ndbg("ERROR: data from unknown src %s\n",  ieee80211_addr2str(wh->i_addr2));
 
                 /* NB: caller deals with reference */
 
@@ -408,7 +409,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_n
 
             if (ni->ni_associd == 0) {
                 ndbg("ERROR: data from unassoc src %s\n",
-                    ether_sprintf(wh->i_addr2));
+                    ieee80211_addr2str(wh->i_addr2));
                 IEEE80211_SEND_MGMT(ic, ni,
                     IEEE80211_FC0_SUBTYPE_DISASSOC,
                     IEEE80211_REASON_NOT_ASSOCED);
@@ -430,7 +431,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_n
             if (ni->ni_rx_ba[tid].ba_state !=
                 IEEE80211_BA_AGREED) {
                 ndbg("ERROR: no BA agreement for %s, TID %d\n",
-                    ether_sprintf(ni->ni_macaddr), tid);
+                    ieee80211_addr2str(ni->ni_macaddr), tid);
                 /* send a DELBA with reason code UNKNOWN-BA */
                 IEEE80211_SEND_ACTION(ic, ni,
                     IEEE80211_CATEG_BA, IEEE80211_ACTION_DELBA,
@@ -778,7 +779,7 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf *m,
   if ((ic->ic_flags & IEEE80211_F_RSNON) && !ni->ni_port_valid &&
         eh->ether_type != htons(ETHERTYPE_PAE))
     {
-      ndbg("ERROR: port not valid: %s\n", ether_sprintf(eh->ether_dhost));
+      ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(eh->ether_dhost));
       ic->ic_stats.is_rx_unauth++;
       m_freem(m);
       return;
@@ -1494,7 +1495,7 @@ void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf *
             isprobe ? "probe response" : "beacon",
             chan, bchan);
         ieee80211_print_essid(ssid + 2, ssid[1]);
-        nvdbg(" from %s\n", ether_sprintf((uint8_t *)wh->i_addr2));
+        nvdbg(" from %s\n", ieee80211_addr2str((uint8_t *)wh->i_addr2));
         nvdbg("%s: caps 0x%x bintval %u erp 0x%x\n",
             __func__, capinfo, bintval, erp);
       }
@@ -1521,7 +1522,7 @@ void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf *
          */
         if (ni->ni_erp != erp) {
             nvdbg("[%s] erp change: was 0x%x, now 0x%x\n",
-                ether_sprintf((uint8_t *)wh->i_addr2),
+                ieee80211_addr2str((uint8_t *)wh->i_addr2),
                 ni->ni_erp, erp);
             if (ic->ic_curmode == IEEE80211_MODE_11G &&
                 (erp & IEEE80211_ERP_USE_PROTECTION))
@@ -1714,7 +1715,7 @@ void ieee80211_recv_probe_req(struct ieee80211com *ic, struct ieee80211_iobuf *m
         if (ni == NULL)
             return;
         ndbg("ERROR: new probe req from %s\n",
-            ether_sprintf((uint8_t *)wh->i_addr2));
+            ieee80211_addr2str((uint8_t *)wh->i_addr2));
       }
 
     ni->ni_rssi = rxi->rxi_rssi;
@@ -1724,7 +1725,7 @@ void ieee80211_recv_probe_req(struct ieee80211com *ic, struct ieee80211_iobuf *m
         IEEE80211_F_DODEL);
     if (rate & IEEE80211_RATE_BASIC) {
         ndbg("ERROR: rate mismatch for %s\n",
-            ether_sprintf((uint8_t *)wh->i_addr2));
+            ieee80211_addr2str((uint8_t *)wh->i_addr2));
         return;
     }
     IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_PROBE_RESP, 0);
@@ -1756,12 +1757,12 @@ void ieee80211_recv_auth(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     seq    = LE_READ_2(frm); frm += 2;
     status = LE_READ_2(frm); frm += 2;
     nvdbg("auth %d seq %d from %s\n", algo, seq,
-        ether_sprintf((uint8_t *)wh->i_addr2));
+        ieee80211_addr2str((uint8_t *)wh->i_addr2));
 
     /* only "open" auth mode is supported */
     if (algo != IEEE80211_AUTH_ALG_OPEN) {
         ndbg("ERROR: unsupported auth algorithm %d from %s\n",
-            algo, ether_sprintf((uint8_t *)wh->i_addr2));
+            algo, ieee80211_addr2str((uint8_t *)wh->i_addr2));
         ic->ic_stats.is_rx_auth_unsupported++;
 #ifdef CONFIG_IEEE80211_AP
         if (ic->ic_opmode == IEEE80211_M_HOSTAP)
@@ -1818,7 +1819,7 @@ void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct ieee80211_iobuf *m
     if (!IEEE80211_ADDR_EQ(wh->i_addr3, ic->ic_bss->ni_bssid))
       {
         ndbg("ERROR: ignore other bss from %s\n",
-            ether_sprintf((uint8_t *)wh->i_addr2));
+            ieee80211_addr2str((uint8_t *)wh->i_addr2));
         ic->ic_stats.is_rx_assoc_bss++;
         return;
       }
@@ -1896,7 +1897,7 @@ void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct ieee80211_iobuf *m
         ni->ni_state != IEEE80211_STA_ASSOC) {
         nvdbg("deny %sassoc from %s, not authenticated\n",
             reassoc ? "re" : "",
-            ether_sprintf((uint8_t *)wh->i_addr2));
+            ieee80211_addr2str((uint8_t *)wh->i_addr2));
         ni = ieee80211_find_node(ic, wh->i_addr2);
         if (ni == NULL)
             ni = ieee80211_dup_bss(ic, wh->i_addr2);
@@ -2134,7 +2135,7 @@ void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct ieee80211_iobuf *
       {
         nvdbg("%s: %sassociation failed (status %d) for %s\n",
               ifp->if_xname, reassoc ?  "re" : "",
-              status, ether_sprintf((uint8_t *)wh->i_addr3));
+              status, ieee80211_addr2str((uint8_t *)wh->i_addr3));
 
         if (ni != ic->ic_bss)
           {
@@ -2193,7 +2194,7 @@ void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct ieee80211_iobuf *
         IEEE80211_F_DODEL);
     if (rate & IEEE80211_RATE_BASIC) {
         ndbg("ERROR: rate mismatch for %s\n",
-            ether_sprintf((uint8_t *)wh->i_addr2));
+            ieee80211_addr2str((uint8_t *)wh->i_addr2));
         ic->ic_stats.is_rx_assoc_norate++;
         return;
     }
@@ -2279,7 +2280,7 @@ void ieee80211_recv_deauth(struct ieee80211com *ic, struct ieee80211_iobuf *m,
         if (ni != ic->ic_bss)
           {
             nvdbg("%s: station %s deauthenticated by peer (reason %d)\n",
-                  ic->ic_if.if_xname, ether_sprintf(ni->ni_macaddr), reason);
+                  ic->ic_if.if_xname, ieee80211_addr2str(ni->ni_macaddr), reason);
 
             ieee80211_node_leave(ic, ni);
           }
@@ -2322,7 +2323,7 @@ void ieee80211_recv_disassoc(struct ieee80211com *ic, struct ieee80211_iobuf *m,
         if (ni != ic->ic_bss)
           {
             nvdbg("%s: station %s disassociated by peer (reason %d)\n",
-                  ic->ic_if.if_xname, ether_sprintf(ni->ni_macaddr), reason);
+                  ic->ic_if.if_xname, ieee80211_addr2str(ni->ni_macaddr), reason);
 
             ieee80211_node_leave(ic, ni);
         }
@@ -2355,7 +2356,7 @@ void ieee80211_recv_addba_req(struct ieee80211com *ic, struct ieee80211_iobuf *m
     if (!(ni->ni_flags & IEEE80211_NODE_HT))
       {
         ndbg("ERROR: received ADDBA req from non-HT STA %s\n",
-            ether_sprintf(ni->ni_macaddr));
+            ieee80211_addr2str(ni->ni_macaddr));
         return;
       }
 
@@ -2490,7 +2491,7 @@ void ieee80211_recv_addba_resp(struct ieee80211com *ic, struct ieee80211_iobuf *
     timeout = LE_READ_2(&frm[7]);
 
     nvdbg("received ADDBA resp from %s, TID %d, status %d\n",
-        ether_sprintf(ni->ni_macaddr), tid, status);
+        ieee80211_addr2str(ni->ni_macaddr), tid, status);
 
     /*
      * Ignore if no ADDBA request has been sent for this RA/TID or
@@ -2503,7 +2504,7 @@ void ieee80211_recv_addba_resp(struct ieee80211com *ic, struct ieee80211_iobuf *
     }
     if (token != ba->ba_token) {
         ndbg("ERROR: ignoring ADDBA resp from %s: token %x!=%x\n",
-            ether_sprintf(ni->ni_macaddr), token, ba->ba_token);
+            ieee80211_addr2str(ni->ni_macaddr), token, ba->ba_token);
         return;
     }
     /* we got an ADDBA Response matching our request, stop timeout */
@@ -2554,7 +2555,7 @@ void ieee80211_recv_delba(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     tid = params >> 12;
 
     nvdbg("received DELBA from %s, TID %d, reason %d\n",
-        ether_sprintf(ni->ni_macaddr), tid, reason);
+        ieee80211_addr2str(ni->ni_macaddr), tid, reason);
 
     if (params & IEEE80211_DELBA_INITIATOR) {
         /* MLME-DELBA.indication(Originator) */
@@ -2615,7 +2616,7 @@ void ieee80211_recv_sa_query_req(struct ieee80211com *ic, struct ieee80211_iobuf
     if (ic->ic_opmode != IEEE80211_M_STA ||
         !(ni->ni_flags & IEEE80211_NODE_MFP)) {
         ndbg("ERROR: unexpected SA Query req from %s\n",
-            ether_sprintf(ni->ni_macaddr));
+            ieee80211_addr2str(ni->ni_macaddr));
         return;
     }
     if (m->m_len < sizeof(*wh) + 4) {
@@ -2651,7 +2652,7 @@ void ieee80211_recv_sa_query_resp(struct ieee80211com *ic, struct ieee80211_iobu
     /* ignore if we're not engaged in an SA Query with that STA */
     if (!(ni->ni_flags & IEEE80211_NODE_SA_QUERY)) {
         ndbg("ERROR: unexpected SA Query resp from %s\n",
-            ether_sprintf(ni->ni_macaddr));
+            ieee80211_addr2str(ni->ni_macaddr));
         return;
     }
     if (m->m_len < sizeof(*wh) + 4) {
@@ -2798,7 +2799,7 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     if (!IEEE80211_ADDR_EQ(psp->i_bssid, ic->ic_bss->ni_bssid))
       {
         ndbg("ERROR: discard pspoll frame to BSS %s\n",
-            ether_sprintf(psp->i_bssid));
+            ieee80211_addr2str(psp->i_bssid));
         ic->ic_stats.is_rx_wrongbss++;
         return;
       }
@@ -2806,7 +2807,7 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     aid = letoh16(*(uint16_t *)psp->i_aid);
     if (aid != ni->ni_associd) {
         ndbg("ERROR: invalid pspoll aid %x from %s\n", aid,
-            ether_sprintf(psp->i_ta));
+            ieee80211_addr2str(psp->i_ta));
         return;
     }
 
@@ -2850,7 +2851,7 @@ void ieee80211_recv_bar(struct ieee80211com *ic, struct ieee80211_iobuf *m,
 
     if (!(ni->ni_flags & IEEE80211_NODE_HT)) {
         ndbg("ERROR: received BlockAckReq from non-HT STA %s\n",
-            ether_sprintf(ni->ni_macaddr));
+            ieee80211_addr2str(ni->ni_macaddr));
         return;
     }
     if (m->m_len < sizeof(*wh) + 4) {
