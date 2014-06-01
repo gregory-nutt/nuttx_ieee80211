@@ -56,7 +56,7 @@
 
 #ifdef CONFIG_NET_ETHERNET
 #include <netinet/in.h>
-#include <netinet/if_ether.h>
+#include <nuttx/net/uip/uip.h>
 #endif
 
 #ifdef CONFIG_IEEE80211_BRIDGEPORT
@@ -419,7 +419,7 @@ ieee80211_create_ibss(struct ieee80211com* ic, struct ieee80211_channel *chan)
     wd_start(ic->ic_node_cache_timeout,  SEC2TICK(IEEE80211_CACHE_WAIT), ieee80211_node_cache_timeout, ic);
     ieee80211_new_state(ic, IEEE80211_S_RUN, -1);
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 int
 ieee80211_match_bss(struct ieee80211com *ic, struct ieee80211_node *ni)
@@ -912,7 +912,7 @@ ieee80211_find_txnode(struct ieee80211com *ic, const uint8_t *macaddr)
     return ieee80211_ref_node(ni);
 #else
     return NULL;    /* can't get there */
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 }
 
 /*
@@ -1329,7 +1329,7 @@ ieee80211_node_join_ht(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     /* TBD */
 }
-#endif    /* !CONFIG_IEEE80211_HT */
+#endif /* !CONFIG_IEEE80211_HT */
 
 /*
  * Handle a station joining an RSN network.
@@ -1498,7 +1498,7 @@ ieee80211_node_leave_ht(struct ieee80211com *ic, struct ieee80211_node *ni)
         }
     }
 }
-#endif    /* !CONFIG_IEEE80211_HT */
+#endif /* !CONFIG_IEEE80211_HT */
 
 /*
  * Handle a station leaving an RSN network.
@@ -1785,7 +1785,7 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
     /* XXX assumes everything has been sent */
     ic->ic_tim_mcast_pending = 0;
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 /*
  * Compare nodes in the tree by lladdr

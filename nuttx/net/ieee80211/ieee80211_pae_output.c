@@ -44,7 +44,7 @@
 
 #ifdef CONFIG_NET_ETHERNET
 #include <netinet/in.h>
-#include <netinet/if_ether.h>
+#include <nuttx/net/uip/uip.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #endif
@@ -240,7 +240,7 @@ ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
     memcpy(frm, k->k_key, 16);
     return frm + 16;
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 struct mbuf *
 ieee80211_get_eapol_key(int flags, int type, unsigned int pktlen)
@@ -316,7 +316,7 @@ ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
 
   return ieee80211_send_eapol_key(ic, m, ni, NULL);
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 /*
  * Send 4-Way Handshake Message 2 to the authenticator.

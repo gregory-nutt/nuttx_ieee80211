@@ -42,7 +42,7 @@
 
 #ifdef CONFIG_NET_ETHERNET
 #include <netinet/in.h>
-#include <netinet/if_ether.h>
+#include <nuttx/net/uip/uip.h>
 #endif
 
 #include <nuttx/net/ieee80211/ieee80211_var.h>
@@ -500,7 +500,7 @@ ieee80211_tkip_deauth(void *arg, struct ieee80211_node *ni)
         ieee80211_node_leave(ic, ni);
     }
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 /*
  * This function can be called by the software TKIP crypto code or by the

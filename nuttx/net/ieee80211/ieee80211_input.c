@@ -57,7 +57,7 @@
 
 #ifdef CONFIG_NET_ETHERNET
 #include <netinet/in.h>
-#include <netinet/if_ether.h>
+#include <nuttx/net/uip/uip.h>
 #endif
 
 #include <wdog.h>
@@ -904,7 +904,7 @@ ieee80211_align_mbuf(struct mbuf *m)
     m_freem(m);
     return n0;
 }
-#endif    /* __STRICT_ALIGNMENT */
+#endif /* __STRICT_ALIGNMENT */
 
 void
 ieee80211_decap(struct ieee80211com *ic, struct mbuf *m,
@@ -1033,7 +1033,7 @@ ieee80211_amsdu_decap(struct ieee80211com *ic, struct mbuf *m,
         m_adj(m, pad);
     }
 }
-#endif    /* !CONFIG_IEEE80211_HT */
+#endif /* !CONFIG_IEEE80211_HT */
 
 /*
  * Parse an EDCA Parameter Set element (see 7.3.2.27).
@@ -2591,7 +2591,7 @@ ieee80211_recv_delba(struct ieee80211com *ic, struct mbuf *m,
         wd_cancel(ba->ba_to);
     }
 }
-#endif    /* !CONFIG_IEEE80211_HT */
+#endif /* !CONFIG_IEEE80211_HT */
 
 /*-
  * SA Query Request frame format:
@@ -2911,4 +2911,4 @@ ieee80211_bar_tid(struct ieee80211com *ic, struct ieee80211_node *ni,
     if (SEQ_LT(ba->ba_winstart, ssn))
         ieee80211_ba_move_window(ic, ni, tid, ssn);
 }
-#endif    /* !CONFIG_IEEE80211_HT */
+#endif /* !CONFIG_IEEE80211_HT */

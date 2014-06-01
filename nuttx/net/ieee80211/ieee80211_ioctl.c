@@ -48,7 +48,7 @@
 
 #ifdef CONFIG_NET_ETHERNET
 #  include <netinet/in.h>
-#  include <netinet/if_ether.h>
+#  include <nuttx/net/uip/uip.h>
 #endif
 
 #include <nuttx/tree.h>

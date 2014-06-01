@@ -52,7 +52,7 @@
 
 #ifdef CONFIG_NET_ETHERNET
 #include <netinet/in.h>
-#include <netinet/if_ether.h>
+#include <nuttx/net/uip/uip.h>
 #endif
 
 #include <wdog.h>
@@ -441,7 +441,7 @@ ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
 
     /* initiate key exchange (4-Way Handshake) with STA */
     return ieee80211_send_4way_msg1(ic, ni);
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 }
 
 #ifdef CONFIG_IEEE80211_AP
@@ -578,7 +578,7 @@ ieee80211_sa_query_request(struct ieee80211com *ic, struct ieee80211_node *ni)
         IEEE80211_ACTION_SA_QUERY_REQ, 0);
     wd_start(ni->ni_sa_query_to, MSEC2TICK(10), ieee80211_sa_query_timeout, ni);
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 #ifdef CONFIG_IEEE80211_HT
 void
@@ -693,7 +693,7 @@ ieee80211_delba_request(struct ieee80211com *ic, struct ieee80211_node *ni,
         }
     }
 }
-#endif    /* !CONFIG_IEEE80211_HT */
+#endif /* !CONFIG_IEEE80211_HT */
 
 void
 ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,

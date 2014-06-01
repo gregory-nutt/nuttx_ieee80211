@@ -41,7 +41,7 @@
 
 #ifdef CONFIG_NET_ETHERNET
 #include <netinet/in.h>
-#include <netinet/if_ether.h>
+#include <nuttx/net/uip/uip.h>
 #include <netinet/in_systm.h>
 #endif
 
@@ -335,7 +335,7 @@ ieee80211_recv_4way_msg2(struct ieee80211com *ic,
 
   (void)ieee80211_send_4way_msg3(ic, ni);
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 /*
  * Process Message 3 of the 4-Way Handshake (sent by Authenticator).
@@ -730,7 +730,7 @@ ieee80211_recv_4way_msg2or4(struct ieee80211com *ic,
     else
         ieee80211_recv_4way_msg4(ic, key, ni);
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 /*
  * Process Message 1 of the RSN Group Key Handshake (sent by Authenticator).
@@ -1065,4 +1065,4 @@ void ieee80211_recv_eapol_key_req(struct ieee80211com *ic,
          */
     }
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */

@@ -37,7 +37,7 @@
 
 #ifdef CONFIG_NET_ETHERNET
 #include <netinet/in.h>
-#include <netinet/if_ether.h>
+#include <nuttx/net/uip/uip.h>
 #endif
 
 #include <queue.h>
@@ -542,7 +542,7 @@ void ieee80211_eapol_key_encrypt(struct ieee80211com *ic,
         break;
     }
 }
-#endif    /* CONFIG_IEEE80211_AP */
+#endif /* CONFIG_IEEE80211_AP */
 
 /* Decrypt the Key Data field of an EAPOL-Key frame using the specified Key
  * Encryption Key (KEK).  The encryption algorithm can be either ARC4 or
