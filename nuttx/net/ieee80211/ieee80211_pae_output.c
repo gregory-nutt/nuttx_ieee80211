@@ -29,6 +29,7 @@
 
 #include <sys/socket.h>
 
+#include <string.h>
 #include <errno.h>
 #include <wdog.h>
 #include <debug.h>

@@ -38,6 +38,7 @@
 
 #include <sys/socket.h>
 
+#include <string.h>
 #include <wdog.h>
 #include <errno.h>
 #include <debug.h>
@@ -186,7 +187,7 @@ fallback:
 
  bad:
     if (m)
-        m_freem(m);
+        ieee80211_iofree(m);
     return (error);
 }
 
@@ -661,7 +662,7 @@ struct ieee80211_iobuf *ieee80211_encap(struct ifnet *ifp, struct ieee80211_iobu
     return m;
 bad:
     if (m != NULL)
-        m_freem(m);
+        ieee80211_iofree(m);
     if (ni != NULL)
         ieee80211_release_node(ic, ni);
     *pni = NULL;

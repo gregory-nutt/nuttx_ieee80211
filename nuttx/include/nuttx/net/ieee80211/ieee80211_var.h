@@ -403,6 +403,47 @@ extern dq_queue_t ieee80211com_head;
 #define IEEE80211_F_DONEGO      0x00000004    /* calc negotiated rate */
 #define IEEE80211_F_DODEL       0x00000008    /* delete ignore rate */
 
+/****************************************************************************
+ * Global Data
+ ****************************************************************************/
+
+extern sq_queue_t g_ieee80211_freelist;
+
+/****************************************************************************
+ * Inline Functions
+ ****************************************************************************/
+
+static __inline void ieee80211_ifpurge(sq_queue_t *q)
+{
+  /* If the free list is empty, then just move the entry queue to the the
+   * free list.  Otherwise, append the list to the end of the freelist.
+   */
+
+  if (g_ieee80211_freelist.tail)
+    {
+      g_ieee80211_freelist.tail->flink = q->head;
+    }
+  else
+    {
+      g_ieee80211_freelist.head = q->head;
+    }
+
+  /* In either case, the tail of the queue is the tail of queue becomes the
+   * tail of the free list.
+   */
+
+  g_ieee80211_freelist.tail = q->tail;
+}
+
+static __inline void ieee80211_iofree(struct ieee80211_iobuf *m)
+{
+  sq_addlast(&m->m_link, &g_ieee80211_freelist);
+}
+
+/****************************************************************************
+ * Public Function Protytypes
+ ****************************************************************************/
+
 /* Driver callbacks for media status and change requests. */
 #warning REVISIT: These don't make sense with NuttX.
 
@@ -413,31 +454,31 @@ typedef void (*ifm_stat_cb_t)(struct ifnet *, struct ifmediareq *);
 
 #warning REVISIT: The design seems to attach and detach Ethernet devices.  NuttX does not work this way
 #warning REVISIT:  Perhaps ieee80211_ifattach should become an general one-time initialization function
-void    ieee80211_ifattach(struct ifnet *);
-void    ieee80211_ifdetach(struct ifnet *);
+void ieee80211_ifattach(struct ifnet *);
+void ieee80211_ifdetach(struct ifnet *);
 
 #warning REVISIT: I think that these media interfaces should go away??? They are not used internally.
-void    ieee80211_media_init(struct ifnet *, ifm_change_cb_t, ifm_stat_cb_t);
-int    ieee80211_media_change(struct ifnet *);
-void    ieee80211_media_status(struct ifnet *, struct ifmediareq *);
-int    ieee80211_ioctl(struct ifnet *, unsigned long, void *);
-int    ieee80211_get_rate(struct ieee80211com *);
-void    ieee80211_watchdog(struct ifnet *);
-int    ieee80211_fix_rate(struct ieee80211com *, struct ieee80211_node *, int);
-int    ieee80211_rate2media(struct ieee80211com *, int,
+void ieee80211_media_init(struct ifnet *, ifm_change_cb_t, ifm_stat_cb_t);
+int ieee80211_media_change(struct ifnet *);
+void ieee80211_media_status(struct ifnet *, struct ifmediareq *);
+int ieee80211_ioctl(struct ifnet *, unsigned long, void *);
+int ieee80211_get_rate(struct ieee80211com *);
+void ieee80211_watchdog(struct ifnet *);
+int ieee80211_fix_rate(struct ieee80211com *, struct ieee80211_node *, int);
+int ieee80211_rate2media(struct ieee80211com *, int,
         enum ieee80211_phymode);
-int    ieee80211_media2rate(int);
+int ieee80211_media2rate(int);
 uint8_t ieee80211_rate2plcp(uint8_t, enum ieee80211_phymode);
 uint8_t ieee80211_plcp2rate(uint8_t, enum ieee80211_phymode);
-unsigned int    ieee80211_mhz2ieee(unsigned int, unsigned int);
-unsigned int    ieee80211_chan2ieee(struct ieee80211com *,
+unsigned int ieee80211_mhz2ieee(unsigned int, unsigned int);
+unsigned int ieee80211_chan2ieee(struct ieee80211com *,
         const struct ieee80211_channel *);
-unsigned int    ieee80211_ieee2mhz(unsigned int, unsigned int);
-int    ieee80211_setmode(struct ieee80211com *, enum ieee80211_phymode);
+unsigned int ieee80211_ieee2mhz(unsigned int, unsigned int);
+int ieee80211_setmode(struct ieee80211com *, enum ieee80211_phymode);
 enum ieee80211_phymode ieee80211_next_mode(struct ifnet *);
 enum ieee80211_phymode ieee80211_chan2mode(struct ieee80211com *,
         const struct ieee80211_channel *);
 
-extern    int ieee80211_cache_size;
+extern int ieee80211_cache_size;
 
 #endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_VAR_H */

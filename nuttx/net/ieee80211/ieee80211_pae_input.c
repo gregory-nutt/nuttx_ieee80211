@@ -29,6 +29,7 @@
 
 #include <sys/socket.h>
 
+#include <string.h>
 #include <wdog.h>
 #include <errno.h>
 #include <debug.h>
@@ -177,7 +178,7 @@ void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf *
     }
  done:
     if (m != NULL)
-        m_freem(m);
+        ieee80211_iofree(m);
 }
 
 /*

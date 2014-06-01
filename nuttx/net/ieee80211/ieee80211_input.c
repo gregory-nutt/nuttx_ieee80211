@@ -39,6 +39,7 @@
 #include <sys/socket.h>
 
 #include <stdlib.h>
+#include <string.h>
 #include <wdog.h>
 #include <assert.h>
 #include <errno.h>
@@ -517,7 +518,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_n
 #endif
 
         (*ic->ic_recv_mgmt)(ic, m, ni, rxi, subtype);
-        m_freem(m);
+        ieee80211_iofree(m);
         return;
 
     case IEEE80211_FC0_TYPE_CTL:
@@ -548,7 +549,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_n
     ifp->if_ierrors++;
  out:
     if (m != NULL) {
-        m_freem(m);
+        ieee80211_iofree(m);
     }
 }
 
@@ -578,7 +579,7 @@ struct ieee80211_iobuf *ieee80211_defrag(struct ieee80211com *ic, struct ieee802
             ic->ic_defrag_cur = 0;
         df = &ic->ic_defrag[ic->ic_defrag_cur];
         if (df->df_m != NULL)
-            m_freem(df->df_m);    /* discard old entry */
+            ieee80211_iofree(df->df_m);    /* discard old entry */
         df->df_seq = seq;
         df->df_frag = 0;
         df->df_m = m;
@@ -606,7 +607,7 @@ struct ieee80211_iobuf *ieee80211_defrag(struct ieee80211com *ic, struct ieee802
     if (i == IEEE80211_DEFRAG_SIZE) {
         /* no matching entry found, discard fragment */
         ic->ic_if.if_ierrors++;
-        m_freem(m);
+        ieee80211_iofree(m);
         return NULL;
     }
 
@@ -636,7 +637,7 @@ ieee80211_defrag_timeout(void *arg)
     int s = splnet();
 
     /* discard all received fragments */
-    m_freem(df->df_m);
+    ieee80211_iofree(df->df_m);
     df->df_m = NULL;
 
     splx(s);
@@ -663,7 +664,7 @@ void ieee80211_input_ba(struct ifnet *ifp, struct ieee80211_iobuf *m,
 
     if (SEQ_LT(sn, ba->ba_winstart)) {    /* SN < WinStartB */
         ifp->if_ierrors++;
-        m_freem(m);    /* discard the MPDU */
+        ieee80211_iofree(m);    /* discard the MPDU */
         return;
     }
     if (SEQ_LT(ba->ba_winend, sn)) {    /* WinEndB < SN */
@@ -691,7 +692,7 @@ void ieee80211_input_ba(struct ifnet *ifp, struct ieee80211_iobuf *m,
     /* store the received MPDU in the buffer */
     if (ba->ba_buf[idx].m != NULL) {
         ifp->if_ierrors++;
-        m_freem(m);
+        ieee80211_iofree(m);
         return;
     }
     ba->ba_buf[idx].m = m;
@@ -769,7 +770,7 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf *m,
     {
       ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(eh->ether_dhost));
       ic->ic_stats.is_rx_unauth++;
-      m_freem(m);
+      ieee80211_iofree(m);
       return;
     }
 
@@ -872,20 +873,20 @@ struct ieee80211_iobuf *ieee80211_align_iobuf(struct ieee80211_iobuf *m)
         if (n0 == NULL) {
             MGETHDR(n, M_DONTWAIT, MT_DATA);
             if (n == NULL) {
-                m_freem(m);
+                ieee80211_iofree(m);
                 return NULL;
             }
             if (m_dup_pkthdr(n, m, M_DONTWAIT)) {
                 m_free(n);
-                m_freem(m);
+                ieee80211_iofree(m);
                 return (NULL);
             }
             n->m_len = MHLEN;
         } else {
             MGET(n, M_DONTWAIT, MT_DATA);
             if (n == NULL) {
-                m_freem(m);
-                m_freem(n0);
+                ieee80211_iofree(m);
+                ieee80211_iofree(n0);
                 return NULL;
             }
             n->m_len = MLEN;
@@ -908,7 +909,7 @@ struct ieee80211_iobuf *ieee80211_align_iobuf(struct ieee80211_iobuf *m)
         *np = n;
         np = &(struct ieee80211_iobuf *)n->m_link.flink;
     }
-    m_freem(m);
+    ieee80211_iofree(m);
     return n0;
 }
 #endif /* __STRICT_ALIGNMENT */
@@ -1000,7 +1001,7 @@ void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf *m,
             ndbg("ERROR: A-MSDU subframe too short (%d)\n", len);
             /* stop processing A-MSDU subframes */
             ic->ic_stats.is_rx_decap++;
-            m_freem(m);
+            ieee80211_iofree(m);
             break;
         }
         llc = (struct llc *)&eh[1];
@@ -1026,7 +1027,7 @@ void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf *m,
         if (n == NULL) {
             /* stop processing A-MSDU subframes */
             ic->ic_stats.is_rx_decap++;
-            m_freem(m);
+            ieee80211_iofree(m);
             break;
         }
         ieee80211_deliver_data(ic, m, ni);
@@ -2565,7 +2566,7 @@ void ieee80211_recv_delba(struct ieee80211com *ic, struct ieee80211_iobuf *m,
             /* free all MSDUs stored in reordering buffer */
             for (i = 0; i < IEEE80211_BA_MAX_WINSZ; i++)
                 if (ba->ba_buf[i].m != NULL)
-                    m_freem(ba->ba_buf[i].m);
+                    ieee80211_iofree(ba->ba_buf[i].m);
             /* free reordering buffer */
             free(ba->ba_buf, M_DEVBUF);
             ba->ba_buf = NULL;

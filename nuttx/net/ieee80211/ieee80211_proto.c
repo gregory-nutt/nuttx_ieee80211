@@ -39,6 +39,7 @@
 
 #include <sys/socket.h>
 
+#include <string.h>
 #include <wdog.h>
 #include <errno.h>
 #include <debug.h>
@@ -56,33 +57,35 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-#include <dev/rndvar.h>
+const char * const ieee80211_mgt_subtype_name[] =
+{
+  "assoc_req", "assoc_resp", "reassoc_req",  "reassoc_resp",
+  "probe_req", "probe_resp", "reserved#6",   "reserved#7",
+  "beacon",    "atim",       "disassoc",     "auth",
+  "deauth",    "action",     "action_noack", "reserved#15"
+};
 
-const char * const ieee80211_mgt_subtype_name[] = {
-    "assoc_req",    "assoc_resp",    "reassoc_req",    "reassoc_resp",
-    "probe_req",    "probe_resp",    "reserved#6",    "reserved#7",
-    "beacon",    "atim",        "disassoc",    "auth",
-    "deauth",    "action",    "action_noack",    "reserved#15"
+const char * const ieee80211_state_name[IEEE80211_S_MAX] =
+{
+  "INIT",       /* IEEE80211_S_INIT */
+  "SCAN",       /* IEEE80211_S_SCAN */
+  "AUTH",       /* IEEE80211_S_AUTH */
+  "ASSOC",      /* IEEE80211_S_ASSOC */
+  "RUN"         /* IEEE80211_S_RUN */
 };
-const char * const ieee80211_state_name[IEEE80211_S_MAX] = {
-    "INIT",        /* IEEE80211_S_INIT */
-    "SCAN",        /* IEEE80211_S_SCAN */
-    "AUTH",        /* IEEE80211_S_AUTH */
-    "ASSOC",    /* IEEE80211_S_ASSOC */
-    "RUN"        /* IEEE80211_S_RUN */
-};
-const char * const ieee80211_phymode_name[] = {
-    "auto",        /* IEEE80211_MODE_AUTO */
-    "11a",        /* IEEE80211_MODE_11A */
-    "11b",        /* IEEE80211_MODE_11B */
-    "11g",        /* IEEE80211_MODE_11G */
-    "turbo",    /* IEEE80211_MODE_TURBO */
+
+const char * const ieee80211_phymode_name[] =
+{
+  "auto",       /* IEEE80211_MODE_AUTO */
+  "11a",        /* IEEE80211_MODE_11A */
+  "11b",        /* IEEE80211_MODE_11B */
+  "11g",        /* IEEE80211_MODE_11G */
+  "turbo",      /* IEEE80211_MODE_TURBO */
 };
 
 int ieee80211_newstate(struct ieee80211com *, enum ieee80211_state, int);
 
-void
-ieee80211_proto_attach(struct ifnet *ifp)
+void ieee80211_proto_attach(struct ifnet *ifp)
 {
     struct ieee80211com *ic = (void *)ifp;
 
@@ -680,7 +683,7 @@ ieee80211_delba_request(struct ieee80211com *ic, struct ieee80211_node *ni,
             /* free all MSDUs stored in reordering buffer */
             for (i = 0; i < IEEE80211_BA_MAX_WINSZ; i++)
                 if (ba->ba_buf[i].m != NULL)
-                    m_freem(ba->ba_buf[i].m);
+                    ieee80211_iofree(ba->ba_buf[i].m);
             /* free reordering buffer */
             free(ba->ba_buf, M_DEVBUF);
             ba->ba_buf = NULL;

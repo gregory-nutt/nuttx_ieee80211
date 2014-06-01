@@ -288,9 +288,6 @@ RB_HEAD(ieee80211_tree, ieee80211_node);
  * Global Data
  ****************************************************************************/
 
-extern struct ieee80211com;
-extern sq_queue_t g_ieee80211_freelist;
-
 #ifdef MALLOC_DECLARE
 MALLOC_DECLARE(M_80211_NODE);
 #endif
@@ -298,28 +295,6 @@ MALLOC_DECLARE(M_80211_NODE);
 /****************************************************************************
  * Inline Functions
  ****************************************************************************/
-
-static __inline void ieee80211_ifpurge(sq_queue_t *q)
-{
-  /* If the free list is empty, then just move the entry queue to the the
-   * free list.  Otherwise, append the list to the end of the freelist.
-   */
-
-  if (g_ieee80211_freelist.tail)
-    {
-      g_ieee80211_freelist.tail->flink = q->head;
-    }
-  else
-    {
-      g_ieee80211_freelist.head = q->head;
-    }
-
-  /* In either case, the tail of the queue is the tail of queue becomes the
-   * tail of the free list.
-   */
-
-  g_ieee80211_freelist.tail = q->tail;
-}
 
 static __inline void ieee80211_node_incref(struct ieee80211_node *ni)
 {

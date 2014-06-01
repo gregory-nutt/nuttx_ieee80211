@@ -30,6 +30,7 @@
 #include <sys/socket.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <net/if.h>
 
@@ -148,7 +149,7 @@ struct ieee80211_iobuf *ieee80211_bip_encap(struct ieee80211com *ic, struct ieee
     return m0;
  nospace:
     ic->ic_stats.is_tx_nombuf++;
-    m_freem(m0);
+    ieee80211_iofree(m0);
     return NULL;
 }
 
@@ -177,7 +178,7 @@ struct ieee80211_iobuf *ieee80211_bip_decap(struct ieee80211com *ic, struct ieee
     if (ipn <= k->k_mgmt_rsc) {
         /* replayed frame, discard */
         ic->ic_stats.is_cmac_replays++;
-        m_freem(m0);
+        ieee80211_iofree(m0);
         return NULL;
     }
 
@@ -204,7 +205,7 @@ struct ieee80211_iobuf *ieee80211_bip_decap(struct ieee80211com *ic, struct ieee
     /* check that MIC matches the one in MMIE */
     if (timingsafe_bcmp(mic, mic0, 8) != 0) {
         ic->ic_stats.is_cmac_icv_errs++;
-        m_freem(m0);
+        ieee80211_iofree(m0);
         return NULL;
     }
 

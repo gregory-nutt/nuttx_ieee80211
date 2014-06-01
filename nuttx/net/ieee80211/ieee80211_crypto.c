@@ -28,6 +28,7 @@
 #include <sys/socket.h>
 
 #include <stdlib.h>
+#include <string.h>
 #include <queue.h>
 #include <errno.h>
 
@@ -41,21 +42,11 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-#include <dev/rndvar.h>
-#include <crypto/arc4.h>
-#include <crypto/md5.h>
-#include <crypto/sha1.h>
-#include <crypto/sha2.h>
-#include <crypto/hmac.h>
-#include <crypto/rijndael.h>
-#include <crypto/cmac.h>
-#include <crypto/key_wrap.h>
-
-void    ieee80211_prf(const uint8_t *, size_t, const uint8_t *, size_t,
+void ieee80211_prf(const uint8_t *, size_t, const uint8_t *, size_t,
         const uint8_t *, size_t, uint8_t *, size_t);
-void    ieee80211_kdf(const uint8_t *, size_t, const uint8_t *, size_t,
+void ieee80211_kdf(const uint8_t *, size_t, const uint8_t *, size_t,
         const uint8_t *, size_t, uint8_t *, size_t);
-void    ieee80211_derive_pmkid(enum ieee80211_akm, const uint8_t *,
+void ieee80211_derive_pmkid(enum ieee80211_akm, const uint8_t *,
         const uint8_t *, const uint8_t *, uint8_t *);
 
 void ieee80211_crypto_attach(struct ifnet *ifp)
@@ -212,7 +203,7 @@ struct ieee80211_iobuf *ieee80211_encrypt(struct ieee80211com *ic, struct ieee80
         break;
     default:
         /* should not get there */
-        m_freem(m0);
+        ieee80211_iofree(m0);
         m0 = NULL;
     }
     return m0;
@@ -241,7 +232,7 @@ struct ieee80211_iobuf *ieee80211_decrypt(struct ieee80211com *ic, struct ieee80
         hdrlen = ieee80211_get_hdrlen(wh);
         /* check that IV field is present */
         if (m0->m_len < hdrlen + 4) {
-            m_freem(m0);
+            ieee80211_iofree(m0);
             return NULL;
         }
         ivp = (uint8_t *)wh + hdrlen;
@@ -250,19 +241,19 @@ struct ieee80211_iobuf *ieee80211_decrypt(struct ieee80211com *ic, struct ieee80
     } else {
         /* retrieve integrity group key id from MMIE */
         if (m0->m_len < sizeof(*wh) + IEEE80211_MMIE_LEN) {
-            m_freem(m0);
+            ieee80211_iofree(m0);
             return NULL;
         }
         /* it is assumed management frames are contiguous */
         mmie = (uint8_t *)wh + m0->m_len - IEEE80211_MMIE_LEN;
         /* check that MMIE is valid */
         if (mmie[0] != IEEE80211_ELEMID_MMIE || mmie[1] != 16) {
-            m_freem(m0);
+            ieee80211_iofree(m0);
             return NULL;
         }
         kid = LE_READ_2(&mmie[2]);
         if (kid != 4 && kid != 5) {
-            m_freem(m0);
+            ieee80211_iofree(m0);
             return NULL;
         }
         k = &ic->ic_nw_keys[kid];
@@ -283,7 +274,7 @@ struct ieee80211_iobuf *ieee80211_decrypt(struct ieee80211com *ic, struct ieee80
         break;
     default:
         /* key not defined */
-        m_freem(m0);
+        ieee80211_iofree(m0);
         m0 = NULL;
     }
     return m0;

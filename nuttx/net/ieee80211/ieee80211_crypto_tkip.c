@@ -30,6 +30,7 @@
 #include <sys/socket.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <net/if.h>
 
@@ -320,13 +321,13 @@ struct ieee80211_iobuf *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct i
 
     n0->m_pktlen += IEEE80211_TKIP_TAILLEN;
 
-    m_freem(m0);
+    ieee80211_iofree(m0);
     return n0;
  nospace:
     ic->ic_stats.is_tx_nombuf++;
-    m_freem(m0);
+    ieee80211_iofree(m0);
     if (n0 != NULL)
-        m_freem(n0);
+        ieee80211_iofree(n0);
     return NULL;
 }
 
@@ -349,14 +350,14 @@ struct ieee80211_iobuf *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct i
     hdrlen = ieee80211_get_hdrlen(wh);
 
     if (m0->m_pktlen < hdrlen + IEEE80211_TKIP_OVHD) {
-        m_freem(m0);
+        ieee80211_iofree(m0);
         return NULL;
     }
 
     ivp = (uint8_t *)wh + hdrlen;
     /* check that ExtIV bit is set */
     if (!(ivp[3] & IEEE80211_WEP_EXTIV)) {
-        m_freem(m0);
+        ieee80211_iofree(m0);
         return NULL;
     }
 
@@ -375,7 +376,7 @@ struct ieee80211_iobuf *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct i
     if (tsc <= *prsc) {
         /* replayed frame, discard */
         ic->ic_stats.is_tkip_replays++;
-        m_freem(m0);
+        ieee80211_iofree(m0);
         return NULL;
     }
 
@@ -475,8 +476,8 @@ struct ieee80211_iobuf *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct i
     crc0 = *(uint32_t *)(buf + IEEE80211_TKIP_MICLEN);
     if (crc != letoh32(crc0)) {
         ic->ic_stats.is_tkip_icv_errs++;
-        m_freem(m0);
-        m_freem(n0);
+        ieee80211_iofree(m0);
+        ieee80211_iofree(n0);
         return NULL;
     }
 
@@ -484,8 +485,8 @@ struct ieee80211_iobuf *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct i
     ieee80211_tkip_mic(n0, hdrlen, ctx->rxmic, mic);
     /* check that it matches the MIC in received frame */
     if (timingsafe_bcmp(mic0, mic, IEEE80211_TKIP_MICLEN) != 0) {
-        m_freem(m0);
-        m_freem(n0);
+        ieee80211_iofree(m0);
+        ieee80211_iofree(n0);
         ic->ic_stats.is_rx_locmicfail++;
         ieee80211_michael_mic_failure(ic, tsc);
         return NULL;
@@ -496,13 +497,13 @@ struct ieee80211_iobuf *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct i
     /* mark cached TTAK as valid */
     ctx->rxttak_ok = 1;
 
-    m_freem(m0);
+    ieee80211_iofree(m0);
     return n0;
  nospace:
     ic->ic_stats.is_rx_nombuf++;
-    m_freem(m0);
+    ieee80211_iofree(m0);
     if (n0 != NULL)
-        m_freem(n0);
+        ieee80211_iofree(n0);
     return NULL;
 }
 

@@ -39,6 +39,7 @@
 #include <sys/socket.h>
 
 #include <stdlib.h>
+#include <string.h>
 #include <wdog.h>
 #include <assert.h>
 #include <errno.h>
@@ -47,12 +48,12 @@
 #include <net/if.h>
 
 #ifdef CONFIG_NET_ETHERNET
-#include <netinet/in.h>
-#include <nuttx/net/uip/uip.h>
+#  include <netinet/in.h>
+#  include <nuttx/net/uip/uip.h>
 #endif
 
 #ifdef CONFIG_IEEE80211_BRIDGEPORT
-#include <net/if_bridge.h>
+#  include <net/if_bridge.h>
 #endif
 
 #include <nuttx/tree.h>
@@ -1466,7 +1467,7 @@ ieee80211_node_leave_ht(struct ieee80211com *ic, struct ieee80211_node *ni)
         if (ba->ba_buf != NULL) {
             for (i = 0; i < IEEE80211_BA_MAX_WINSZ; i++)
                 if (ba->ba_buf[i].m != NULL)
-                    m_freem(ba->ba_buf[i].m);
+                    ieee80211_iofree(ba->ba_buf[i].m);
             free(ba->ba_buf, M_DEVBUF);
             ba->ba_buf = NULL;
         }

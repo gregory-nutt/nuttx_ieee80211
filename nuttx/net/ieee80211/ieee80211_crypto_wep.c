@@ -24,11 +24,12 @@
  * Included Files
  ****************************************************************************/
 
-#include <nutts/config.h>
+#include <nuttx/config.h>
 
 #include <sys/socket.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <net/if.h>
 
@@ -198,13 +199,13 @@ struct ieee80211_iobuf *ieee80211_wep_encrypt(struct ieee80211com *ic, struct ie
     n->m_len += IEEE80211_WEP_CRCLEN;
     n0->m_pktlen += IEEE80211_WEP_CRCLEN;
 
-    m_freem(m0);
+    ieee80211_iofree(m0);
     return n0;
  nospace:
     ic->ic_stats.is_tx_nombuf++;
-    m_freem(m0);
+    ieee80211_iofree(m0);
     if (n0 != NULL)
-        m_freem(n0);
+        ieee80211_iofree(n0);
     return NULL;
 }
 
@@ -223,7 +224,7 @@ struct ieee80211_iobuf *ieee80211_wep_decrypt(struct ieee80211com *ic, struct ie
     hdrlen = ieee80211_get_hdrlen(wh);
 
     if (m0->m_pktlen < hdrlen + IEEE80211_WEP_TOTLEN) {
-        m_freem(m0);
+        ieee80211_iofree(m0);
         return NULL;
     }
 
@@ -313,17 +314,17 @@ struct ieee80211_iobuf *ieee80211_wep_decrypt(struct ieee80211com *ic, struct ie
     crc = ~crc;
     if (crc != letoh32(crc0)) {
         ic->ic_stats.is_rx_decryptcrc++;
-        m_freem(m0);
-        m_freem(n0);
+        ieee80211_iofree(m0);
+        ieee80211_iofree(n0);
         return NULL;
     }
 
-    m_freem(m0);
+    ieee80211_iofree(m0);
     return n0;
  nospace:
     ic->ic_stats.is_rx_nombuf++;
-    m_freem(m0);
+    ieee80211_iofree(m0);
     if (n0 != NULL)
-        m_freem(n0);
+        ieee80211_iofree(n0);
     return NULL;
 }

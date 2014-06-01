@@ -37,6 +37,8 @@
 
 #include <net/if.h>
 
+#include <string.h>
+
 #ifdef CONFIG_NET_ETHERNET
 #  include <netinet/in.h>
 #  include <nuttx/net/uip/uip.h>
