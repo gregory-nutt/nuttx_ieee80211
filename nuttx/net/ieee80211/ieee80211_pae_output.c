@@ -214,7 +214,7 @@ uint8_t *
 ieee80211_add_gtk_kde(uint8_t *frm, struct ieee80211_node *ni,
     const struct ieee80211_key *k)
 {
-    KASSERT(k->k_flags & IEEE80211_KEY_GROUP);
+    DEBUGASSERT(k->k_flags & IEEE80211_KEY_GROUP);
 
     *frm++ = IEEE80211_ELEMID_VENDOR;
     *frm++ = 6 + k->k_len;
@@ -253,7 +253,7 @@ ieee80211_add_pmkid_kde(uint8_t *frm, const uint8_t *pmkid)
 uint8_t *
 ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
 {
-    KASSERT(k->k_flags & IEEE80211_KEY_IGTK);
+    DEBUGASSERT(k->k_flags & IEEE80211_KEY_IGTK);
 
     *frm++ = IEEE80211_ELEMID_VENDOR;
     *frm++ = 4 + 24;

@@ -1757,7 +1757,7 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
     struct ieee80211_frame *wh;
     struct ieee80211_iobuf *m;
 
-    KASSERT(ic->ic_opmode == IEEE80211_M_HOSTAP);
+    DEBUGASSERT(ic->ic_opmode == IEEE80211_M_HOSTAP);
 
     for (;;)
       {

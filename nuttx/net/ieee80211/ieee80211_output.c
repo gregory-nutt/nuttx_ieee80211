@@ -1039,7 +1039,7 @@ ieee80211_add_xrates(uint8_t *frm, const struct ieee80211_rateset *rs)
 {
     int nrates;
 
-    KASSERT(rs->rs_nrates > IEEE80211_RATE_SIZE);
+    DEBUGASSERT(rs->rs_nrates > IEEE80211_RATE_SIZE);
 
     *frm++ = IEEE80211_ELEMID_XRATES;
     nrates = rs->rs_nrates - IEEE80211_RATE_SIZE;
@@ -1872,7 +1872,7 @@ ieee80211_pwrsave(struct ieee80211com *ic, struct ieee80211_iobuf *m,
 {
   const struct ieee80211_frame *wh;
 
-  KASSERT(ic->ic_opmode == IEEE80211_M_HOSTAP);
+  DEBUGASSERT(ic->ic_opmode == IEEE80211_M_HOSTAP);
   if (!(ic->ic_caps & IEEE80211_C_APPMGT))
       return 0;
 

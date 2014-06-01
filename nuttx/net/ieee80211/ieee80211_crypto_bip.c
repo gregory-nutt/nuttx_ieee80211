@@ -99,7 +99,7 @@ struct ieee80211_iobuf *ieee80211_bip_encap(struct ieee80211com *ic, struct ieee
     struct ieee80211_iobuf *m;
 
     wh = mtod(m0, struct ieee80211_frame *);
-    KASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
+    DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
         IEEE80211_FC0_TYPE_MGT);
     /* clear Protected bit from group management frames */
     wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
@@ -169,7 +169,7 @@ struct ieee80211_iobuf *ieee80211_bip_decap(struct ieee80211com *ic, struct ieee
     uint64_t ipn;
 
     wh = mtod(m0, struct ieee80211_frame *);
-    KASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
+    DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
         IEEE80211_FC0_TYPE_MGT);
 
     /* It is assumed that management frames are contiguous and that
@@ -177,7 +177,7 @@ struct ieee80211_iobuf *ieee80211_bip_decap(struct ieee80211com *ic, struct ieee
      * a header and a MMIE (checked in ieee80211_decrypt()).
      */
 
-    KASSERT(m0->m_len >= sizeof(*wh) + IEEE80211_MMIE_LEN);
+    DEBUGASSERT(m0->m_len >= sizeof(*wh) + IEEE80211_MMIE_LEN);
     mmie = mtod(m0, uint8_t *) + m0->m_len - IEEE80211_MMIE_LEN;
 
     ipn = LE_READ_6(&mmie[4]);

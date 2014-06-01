@@ -151,7 +151,7 @@ ieee80211_get_hdrlen(const struct ieee80211_frame *wh)
     unsigned int size = sizeof(*wh);
 
     /* NB: does not work with control frames */
-    KASSERT(ieee80211_has_seq(wh));
+    DEBUGASSERT(ieee80211_has_seq(wh));
 
     if (ieee80211_has_addr4(wh))
         size += IEEE80211_ADDR_LEN;    /* i_addr4 */
@@ -217,7 +217,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_n
     uint8_t dir, type, subtype, tid;
     int hdrlen, hasqos;
 
-    KASSERT(ni != NULL);
+    DEBUGASSERT(ni != NULL);
 
     /* in monitor mode, send everything directly to bpf */
     if (ic->ic_opmode == IEEE80211_M_MONITOR)
