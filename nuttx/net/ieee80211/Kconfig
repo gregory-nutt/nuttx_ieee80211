@@ -9,3 +9,11 @@ config NET_IEEE80211
 	---help---
 		Enable support to WiFi (IEEE 802.11) stack for NuttX.
 		This IEEE80211 stack is derivated from OpenBSD kernel.
+
+if NET_IEEE80211
+
+config IEEE80211_AP
+	bool "Enable access point support"
+	default n
+
+endif

@@ -314,7 +314,7 @@ ieee80211_fix_rate(struct ieee80211com *ic, struct ieee80211_node *ni,
                  * Note that this is important for 11b stations
                  * when they want to associate with an 11g AP.
                  */
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
                 if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
                     (nrs->rs_rates[i] & IEEE80211_RATE_BASIC))
                     error++;
@@ -364,7 +364,7 @@ ieee80211_reset_erp(struct ieee80211com *ic)
      */
     ieee80211_set_shortslottime(ic,
         ic->ic_curmode == IEEE80211_MODE_11A
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         ||
         (ic->ic_curmode == IEEE80211_MODE_11G &&
          ic->ic_opmode == IEEE80211_M_HOSTAP &&
@@ -402,7 +402,7 @@ ieee80211_set_shortslottime(struct ieee80211com *ic, int on)
 int
 ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
 {
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     struct ieee80211_node *ni;
     struct ieee80211_pmk *pmk;
 #endif
@@ -412,12 +412,12 @@ ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
         !(ic->ic_flags & IEEE80211_F_RSNON))
         return ENETDOWN;
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_STA)
 #endif
         return 0;    /* supplicant only, do nothing */
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     /* find the STA with which we must start the key exchange */
     if ((ni = ieee80211_find_node(ic, macaddr)) == NULL) {
         ndbg("ERROR: no node found for %s\n", ether_sprintf(macaddr));
@@ -445,10 +445,10 @@ ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
 
     /* initiate key exchange (4-Way Handshake) with STA */
     return ieee80211_send_4way_msg1(ic, ni);
-#endif    /* IEEE80211_STA_ONLY */
+#endif    /* CONFIG_IEEE80211_AP */
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*
  * Initiate a group key handshake with a node.
  */
@@ -582,7 +582,7 @@ ieee80211_sa_query_request(struct ieee80211com *ic, struct ieee80211_node *ni)
         IEEE80211_ACTION_SA_QUERY_REQ, 0);
     wd_start(ni->ni_sa_query_to, MSEC2TICK(10), ieee80211_sa_query_timeout, ni);
 }
-#endif    /* IEEE80211_STA_ONLY */
+#endif    /* CONFIG_IEEE80211_AP */
 
 #ifndef IEEE80211_NO_HT
 void
@@ -706,7 +706,7 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
 {
     struct ifnet *ifp = &ic->ic_if;
     switch (ic->ic_opmode) {
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case IEEE80211_M_IBSS:
         if (ic->ic_state != IEEE80211_S_RUN ||
             seq != IEEE80211_AUTH_OPEN_REQUEST) {
@@ -755,7 +755,7 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
 
       ieee80211_node_newstate(ni, IEEE80211_STA_AUTH);
       break;
-#endif /* IEEE80211_STA_ONLY */
+#endif /* CONFIG_IEEE80211_AP */
 
     case IEEE80211_M_STA:
         if (ic->ic_state != IEEE80211_S_AUTH ||
@@ -804,7 +804,7 @@ ieee80211_newstate(struct ieee80211com *ic, enum ieee80211_state nstate,
     struct ieee80211_node *ni;
     enum ieee80211_state ostate;
     unsigned int rate;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     int s;
 #endif
 
@@ -833,7 +833,7 @@ ieee80211_newstate(struct ieee80211com *ic, enum ieee80211_state nstate,
                     IEEE80211_FC0_SUBTYPE_DISASSOC,
                     IEEE80211_REASON_ASSOC_LEAVE);
                 break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
             case IEEE80211_M_HOSTAP:
                 s = splnet();
                 RB_FOREACH(ni, ieee80211_tree, &ic->ic_tree) {
@@ -859,7 +859,7 @@ ieee80211_newstate(struct ieee80211com *ic, enum ieee80211_state nstate,
                     IEEE80211_FC0_SUBTYPE_DEAUTH,
                     IEEE80211_REASON_AUTH_LEAVE);
                 break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
             case IEEE80211_M_HOSTAP:
                 s = splnet();
                 RB_FOREACH(ni, ieee80211_tree, &ic->ic_tree) {
@@ -877,7 +877,7 @@ ieee80211_newstate(struct ieee80211com *ic, enum ieee80211_state nstate,
         case IEEE80211_S_AUTH:
         case IEEE80211_S_SCAN:
 justcleanup:
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
             if (ic->ic_opmode == IEEE80211_M_HOSTAP)
                 wd_cancel(ic->ic_rsn_timeout);
 #endif
@@ -899,7 +899,7 @@ justcleanup:
         ni->ni_rstamp = 0;
         switch (ostate) {
         case IEEE80211_S_INIT:
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
             if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
                 ic->ic_des_chan != IEEE80211_CHAN_ANYC) {
                 /*
@@ -1044,7 +1044,7 @@ ieee80211_set_link_state(struct ieee80211com *ic, int nstate)
     struct ifnet *ifp = &ic->ic_if;
 
     switch (ic->ic_opmode) {
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case IEEE80211_M_IBSS:
     case IEEE80211_M_HOSTAP:
         nstate = LINK_STATE_UNKNOWN;

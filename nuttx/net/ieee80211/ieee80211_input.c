@@ -98,13 +98,13 @@ int    ieee80211_parse_rsn_body(struct ieee80211com *, const uint8_t *,
 int    ieee80211_save_ie(const uint8_t *, uint8_t **);
 void    ieee80211_recv_probe_resp(struct ieee80211com *, struct mbuf *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 void    ieee80211_recv_probe_req(struct ieee80211com *, struct mbuf *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
 #endif
 void    ieee80211_recv_auth(struct ieee80211com *, struct mbuf *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 void    ieee80211_recv_assoc_req(struct ieee80211com *, struct mbuf *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 #endif
@@ -124,13 +124,13 @@ void    ieee80211_recv_delba(struct ieee80211com *, struct mbuf *,
 #endif
 void    ieee80211_recv_sa_query_req(struct ieee80211com *, struct mbuf *,
         struct ieee80211_node *);
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 void    ieee80211_recv_sa_query_resp(struct ieee80211com *, struct mbuf *,
         struct ieee80211_node *);
 #endif
 void    ieee80211_recv_action(struct ieee80211com *, struct mbuf *,
         struct ieee80211_node *);
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 void    ieee80211_recv_pspoll(struct ieee80211com *, struct mbuf *,
         struct ieee80211_node *);
 #endif
@@ -287,7 +287,7 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
         ni->ni_inact = 0;
     }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
         (ic->ic_caps & IEEE80211_C_APPMGT) &&
         ni->ni_state == IEEE80211_STA_ASSOC) {
@@ -347,7 +347,7 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
                 goto out;
             }
             break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         case IEEE80211_M_IBSS:
         case IEEE80211_M_AHDEMO:
             if (dir != IEEE80211_FC1_DIR_NODS) {
@@ -420,7 +420,7 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
                 goto err;
             }
             break;
-#endif /* IEEE80211_STA_ONLY */
+#endif /* CONFIG_IEEE80211_AP */
         default:
             /* can't get there */
             goto out;
@@ -492,7 +492,7 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
             ic->ic_stats.is_rx_wrongdir++;
             goto err;
         }
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         if (ic->ic_opmode == IEEE80211_M_AHDEMO) {
             ic->ic_stats.is_rx_ahdemo_mgt++;
             goto out;
@@ -561,7 +561,7 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
         ic->ic_stats.is_rx_ctl++;
         subtype = wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK;
         switch (subtype) {
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         case IEEE80211_FC0_SUBTYPE_PS_POLL:
             ieee80211_recv_pspoll(ic, m, ni);
             break;
@@ -823,7 +823,7 @@ ieee80211_deliver_data(struct ieee80211com *ic, struct mbuf *m,
      * bridge EAPOL frames as suggested in C.1.1 of IEEE Std 802.1X.
      */
     m1 = NULL;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
         !(ic->ic_flags & IEEE80211_F_NOBRIDGE) &&
         eh->ether_type != htons(ETHERTYPE_PAE)) {
@@ -1378,7 +1378,7 @@ ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
      */
 #ifdef DIAGNOSTIC
     if (ic->ic_opmode != IEEE80211_M_STA &&
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         ic->ic_opmode != IEEE80211_M_IBSS &&
         ic->ic_opmode != IEEE80211_M_HOSTAP &&
 #endif
@@ -1580,7 +1580,7 @@ ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
     }
 
     if (ic->ic_state == IEEE80211_S_SCAN &&
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         ic->ic_opmode != IEEE80211_M_HOSTAP &&
 #endif
         (ic->ic_flags & IEEE80211_F_RSNON)) {
@@ -1642,7 +1642,7 @@ ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
      * above so we don't do so much work).
      */
     if (
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         ic->ic_opmode == IEEE80211_M_IBSS ||
 #endif
         (is_new && isprobe)) {
@@ -1656,7 +1656,7 @@ ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
     }
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /* Probe request frame format:
  * [tlv] SSID
  * [tlv] Supported rates
@@ -1754,7 +1754,7 @@ ieee80211_recv_probe_req(struct ieee80211com *ic, struct mbuf *m,
     }
     IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_PROBE_RESP, 0);
 }
-#endif /* IEEE80211_STA_ONLY */
+#endif /* CONFIG_IEEE80211_AP */
 
 /*-
  * Authentication frame format:
@@ -1789,7 +1789,7 @@ ieee80211_recv_auth(struct ieee80211com *ic, struct mbuf *m,
         ndbg("ERROR: unsupported auth algorithm %d from %s\n",
             algo, ether_sprintf((uint8_t *)wh->i_addr2));
         ic->ic_stats.is_rx_auth_unsupported++;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         if (ic->ic_opmode == IEEE80211_M_HOSTAP)
           {
             /* XXX hack to workaround calling convention */
@@ -1804,7 +1804,7 @@ ieee80211_recv_auth(struct ieee80211com *ic, struct mbuf *m,
     ieee80211_auth_open(ic, wh, ni, rxi, seq, status);
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*-
  * (Re)Association request frame format:
  * [2]   Capability information
@@ -2117,7 +2117,7 @@ ieee80211_recv_assoc_req(struct ieee80211com *ic, struct mbuf *m,
     } else
         ieee80211_node_join(ic, ni, resp);
 }
-#endif /* IEEE80211_STA_ONLY */
+#endif /* CONFIG_IEEE80211_AP */
 
 /*-
  * (Re)Association response frame format:
@@ -2303,7 +2303,7 @@ ieee80211_recv_deauth(struct ieee80211com *ic, struct mbuf *m,
         ieee80211_new_state(ic, IEEE80211_S_AUTH,
             IEEE80211_FC0_SUBTYPE_DEAUTH);
         break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case IEEE80211_M_HOSTAP:
         if (ni != ic->ic_bss)
           {
@@ -2346,7 +2346,7 @@ void ieee80211_recv_disassoc(struct ieee80211com *ic, struct mbuf *m,
         ieee80211_new_state(ic, IEEE80211_S_ASSOC,
             IEEE80211_FC0_SUBTYPE_DISASSOC);
         break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case IEEE80211_M_HOSTAP:
         if (ni != ic->ic_bss)
           {
@@ -2668,7 +2668,7 @@ ieee80211_recv_sa_query_req(struct ieee80211com *ic, struct mbuf *m,
         IEEE80211_ACTION_SA_QUERY_RESP, 0);
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*-
  * SA Query Response frame format:
  * [1] Category
@@ -2746,7 +2746,7 @@ ieee80211_recv_action(struct ieee80211com *ic, struct mbuf *m,
         case IEEE80211_ACTION_SA_QUERY_REQ:
             ieee80211_recv_sa_query_req(ic, m, ni);
             break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         case IEEE80211_ACTION_SA_QUERY_RESP:
             ieee80211_recv_sa_query_resp(ic, m, ni);
             break;
@@ -2770,7 +2770,7 @@ ieee80211_recv_mgmt(struct ieee80211com *ic, struct mbuf *m,
     case IEEE80211_FC0_SUBTYPE_PROBE_RESP:
         ieee80211_recv_probe_resp(ic, m, ni, rxi, 1);
         break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case IEEE80211_FC0_SUBTYPE_PROBE_REQ:
         ieee80211_recv_probe_req(ic, m, ni, rxi);
         break;
@@ -2778,7 +2778,7 @@ ieee80211_recv_mgmt(struct ieee80211com *ic, struct mbuf *m,
     case IEEE80211_FC0_SUBTYPE_AUTH:
         ieee80211_recv_auth(ic, m, ni, rxi);
         break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case IEEE80211_FC0_SUBTYPE_ASSOC_REQ:
         ieee80211_recv_assoc_req(ic, m, ni, rxi, 0);
         break;
@@ -2809,7 +2809,7 @@ ieee80211_recv_mgmt(struct ieee80211com *ic, struct mbuf *m,
     }
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /* Process an incoming PS-Poll control frame (see 11.2) */
 
 void ieee80211_recv_pspoll(struct ieee80211com *ic, struct mbuf *m,
@@ -2861,7 +2861,7 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct mbuf *m,
     IF_ENQUEUE(&ic->ic_pwrsaveq, m);
     (*ifp->if_start)(ifp);
 }
-#endif /* IEEE80211_STA_ONLY */
+#endif /* CONFIG_IEEE80211_AP */
 
 #ifndef IEEE80211_NO_HT
 /*

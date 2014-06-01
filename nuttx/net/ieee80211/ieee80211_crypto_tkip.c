@@ -85,7 +85,7 @@ ieee80211_tkip_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
      * Use bits 128-191 as the Michael key for AA->SPA and bits
      * 192-255 as the Michael key for SPA->AA.
      */
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_HOSTAP) {
         ctx->txmic = &k->k_key[16];
         ctx->rxmic = &k->k_key[24];
@@ -481,7 +481,7 @@ ieee80211_tkip_decrypt(struct ieee80211com *ic, struct mbuf *m0,
     return NULL;
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*
  * This function is called in HostAP mode to deauthenticate all STAs using
  * TKIP as their pairwise or group cipher (as part of TKIP countermeasures).
@@ -500,7 +500,7 @@ ieee80211_tkip_deauth(void *arg, struct ieee80211_node *ni)
         ieee80211_node_leave(ic, ni);
     }
 }
-#endif    /* IEEE80211_STA_ONLY */
+#endif    /* CONFIG_IEEE80211_AP */
 
 /*
  * This function can be called by the software TKIP crypto code or by the
@@ -535,7 +535,7 @@ ieee80211_michael_mic_failure(struct ieee80211com *ic, uint64_t tsc)
     }
 
     switch (ic->ic_opmode) {
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case IEEE80211_M_HOSTAP:
         /* refuse new TKIP associations for the next 60 seconds */
         ic->ic_flags |= IEEE80211_F_COUNTERM;

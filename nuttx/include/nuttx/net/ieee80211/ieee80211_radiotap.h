@@ -194,8 +194,8 @@ enum ieee80211_radiotap_type {
     IEEE80211_RADIOTAP_EXT = 31
 };
 
-#ifndef _KERNEL
 /* For IEEE80211_RADIOTAP_CHANNEL */
+
 #define IEEE80211_CHAN_TURBO    0x0010    /* Turbo channel */
 #define IEEE80211_CHAN_CCK    0x0020    /* CCK channel */
 #define IEEE80211_CHAN_OFDM    0x0040    /* OFDM channel */
@@ -205,7 +205,6 @@ enum ieee80211_radiotap_type {
 #define IEEE80211_CHAN_DYN    0x0400    /* Dynamic CCK-OFDM channel */
 #define IEEE80211_CHAN_GFSK    0x0800    /* GFSK channel (FHSS PHY) */
 #define IEEE80211_CHAN_XR    0x1000    /* Extended range OFDM channel */
-#endif    /* !_KERNEL */
 
 /* For IEEE80211_RADIOTAP_FLAGS */
 #define    IEEE80211_RADIOTAP_F_CFP    0x01    /* sent/received

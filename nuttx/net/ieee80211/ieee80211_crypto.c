@@ -484,7 +484,7 @@ int ieee80211_eapol_key_check_mic(struct ieee80211_eapol_key *key,
     return timingsafe_bcmp(key->mic, mic, EAPOL_KEY_MIC_LEN) != 0;
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*
  * Encrypt the Key Data field of an EAPOL-Key frame using the specified Key
  * Encryption Key (KEK).  The encryption algorithm can be either ARC4 or
@@ -542,7 +542,7 @@ void ieee80211_eapol_key_encrypt(struct ieee80211com *ic,
         break;
     }
 }
-#endif    /* IEEE80211_STA_ONLY */
+#endif    /* CONFIG_IEEE80211_AP */
 
 /* Decrypt the Key Data field of an EAPOL-Key frame using the specified Key
  * Encryption Key (KEK).  The encryption algorithm can be either ARC4 or
@@ -621,7 +621,7 @@ struct ieee80211_pmk *ieee80211_pmksa_add(struct ieee80211com *ic, enum ieee8021
     }
     memcpy(pmk->pmk_key, key, IEEE80211_PMK_LEN);
     pmk->pmk_lifetime = lifetime;    /* XXX not used yet */
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_HOSTAP) {
         ieee80211_derive_pmkid(pmk->pmk_akm, pmk->pmk_key,
             ic->ic_myaddr, macaddr, pmk->pmk_pmkid);

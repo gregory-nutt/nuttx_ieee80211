@@ -81,7 +81,7 @@ uint8_t *ieee80211_add_rsn_body(uint8_t *, struct ieee80211com *,
 struct    mbuf *ieee80211_getmgmt(int, int, unsigned int);
 struct    mbuf *ieee80211_get_probe_req(struct ieee80211com *,
         struct ieee80211_node *);
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 struct    mbuf *ieee80211_get_probe_resp(struct ieee80211com *,
         struct ieee80211_node *);
 #endif
@@ -91,7 +91,7 @@ struct    mbuf *ieee80211_get_deauth(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
 struct    mbuf *ieee80211_get_assoc_req(struct ieee80211com *,
         struct ieee80211_node *, int);
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 struct    mbuf *ieee80211_get_assoc_resp(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
 #endif
@@ -252,7 +252,7 @@ ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
   /* avoid to print too many frames */
 
   if (
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
       ic->ic_opmode == IEEE80211_M_IBSS ||
 #endif
       (type & IEEE80211_FC0_SUBTYPE_MASK) != IEEE80211_FC0_SUBTYPE_PROBE_RESP)
@@ -266,7 +266,7 @@ ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
     }
 #endif
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
         ieee80211_pwrsave(ic, m, ni) != 0)
         return 0;
@@ -337,7 +337,7 @@ static const struct ieee80211_edca_ac_params
 };
 #endif
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 static const struct ieee80211_edca_ac_params
     ieee80211_qap_edca_table[IEEE80211_MODE_MAX][EDCA_NUM_AC] = {
     [IEEE80211_MODE_11B] = {
@@ -365,7 +365,7 @@ static const struct ieee80211_edca_ac_params
         [EDCA_AC_VO] = { 2,  2, 1,  47 }
     }
 };
-#endif    /* IEEE80211_STA_ONLY */
+#endif    /* CONFIG_IEEE80211_AP */
 
 /*
  * Return the EDCA Access Category to be used for transmitting a frame with
@@ -389,7 +389,7 @@ ieee80211_up_to_ac(struct ieee80211com *ic, int up)
 
     ac = (up <= 7) ? up_to_ac[up] : EDCA_AC_BE;
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_HOSTAP)
         return ac;
 #endif
@@ -625,7 +625,7 @@ ieee80211_encap(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node **pni)
         IEEE80211_ADDR_COPY(wh->i_addr2, eh.ether_shost);
         IEEE80211_ADDR_COPY(wh->i_addr3, eh.ether_dhost);
         break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case IEEE80211_M_IBSS:
     case IEEE80211_M_AHDEMO:
         wh->i_fc[1] = IEEE80211_FC1_DIR_NODS;
@@ -650,7 +650,7 @@ ieee80211_encap(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node **pni)
          (ni->ni_flags & IEEE80211_NODE_TXPROT)))
         wh->i_fc[1] |= IEEE80211_FC1_PROTECTED;
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
         ieee80211_pwrsave(ic, m, ni) != 0) {
         *pni = NULL;
@@ -677,7 +677,7 @@ ieee80211_add_capinfo(uint8_t *frm, struct ieee80211com *ic,
 {
     uint16_t capinfo;
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_IBSS)
         capinfo = IEEE80211_CAPINFO_IBSS;
     else if (ic->ic_opmode == IEEE80211_M_HOSTAP)
@@ -685,7 +685,7 @@ ieee80211_add_capinfo(uint8_t *frm, struct ieee80211com *ic,
     else
 #endif
         capinfo = 0;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
         (ic->ic_flags & (IEEE80211_F_WEPON | IEEE80211_F_RSNON)))
         capinfo |= IEEE80211_CAPINFO_PRIVACY;
@@ -727,7 +727,7 @@ ieee80211_add_rates(uint8_t *frm, const struct ieee80211_rateset *rs)
     return frm + nrates;
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*
  * Add a DS Parameter Set element to a frame (see 7.3.2.4).
  */
@@ -852,7 +852,7 @@ ieee80211_add_erp(uint8_t *frm, struct ieee80211com *ic)
     *frm++ = erp;
     return frm;
 }
-#endif    /* IEEE80211_STA_ONLY */
+#endif    /* CONFIG_IEEE80211_AP */
 
 /*
  * Add a QoS Capability element to a frame (see 7.3.2.35).
@@ -1051,7 +1051,7 @@ ieee80211_add_htcaps(uint8_t *frm, struct ieee80211com *ic)
     return frm;
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*
  * Add an HT Operation element to a frame (see 7.3.2.58).
  */
@@ -1066,10 +1066,10 @@ ieee80211_add_htop(uint8_t *frm, struct ieee80211com *ic)
     memset(frm, 0, 16); frm += 16;
     return frm;
 }
-#endif    /* !IEEE80211_STA_ONLY */
+#endif    /* !CONFIG_IEEE80211_AP */
 #endif    /* !IEEE80211_NO_HT */
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*
  * Add a Timeout Interval element to a frame (see 7.3.2.49).
  */
@@ -1145,7 +1145,7 @@ ieee80211_get_probe_req(struct ieee80211com *ic, struct ieee80211_node *ni)
     return m;
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*-
  * Probe response frame format:
  * [8]   Timestamp
@@ -1221,7 +1221,7 @@ ieee80211_get_probe_resp(struct ieee80211com *ic, struct ieee80211_node *ni)
 
     return m;
 }
-#endif    /* IEEE80211_STA_ONLY */
+#endif    /* CONFIG_IEEE80211_AP */
 
 /*-
  * Authentication frame format:
@@ -1348,7 +1348,7 @@ ieee80211_get_assoc_req(struct ieee80211com *ic, struct ieee80211_node *ni,
     return m;
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*-
  * (Re)Association response frame format:
  * [2]   Capability information
@@ -1409,7 +1409,7 @@ ieee80211_get_assoc_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
 
     return m;
 }
-#endif    /* IEEE80211_STA_ONLY */
+#endif    /* CONFIG_IEEE80211_AP */
 
 /*-
  * Disassociation frame format:
@@ -1598,7 +1598,7 @@ ieee80211_get_action(struct ieee80211com *ic, struct ieee80211_node *ni,
 #endif
     case IEEE80211_CATEG_SA_QUERY:
         switch (action) {
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         case IEEE80211_ACTION_SA_QUERY_REQ:
 #endif
         case IEEE80211_ACTION_SA_QUERY_RESP:
@@ -1641,7 +1641,7 @@ ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
 
         timer = IEEE80211_TRANS_WAIT;
         break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case IEEE80211_FC0_SUBTYPE_PROBE_RESP:
         if ((m = ieee80211_get_probe_resp(ic, ni)) == NULL)
             senderr(ENOMEM, is_tx_nombuf);
@@ -1672,7 +1672,7 @@ ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
 
         timer = IEEE80211_TRANS_WAIT;
         break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case IEEE80211_FC0_SUBTYPE_ASSOC_RESP:
     case IEEE80211_FC0_SUBTYPE_REASSOC_RESP:
         if ((m = ieee80211_get_assoc_resp(ic, ni, arg1)) == NULL)
@@ -1765,7 +1765,7 @@ ieee80211_get_cts_to_self(struct ieee80211com *ic, uint16_t dur)
     return m;
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*-
  * Beacon frame format:
  * [8]   Timestamp
@@ -1915,4 +1915,4 @@ ieee80211_pwrsave(struct ieee80211com *ic, struct mbuf *m,
     }
     return 1;
 }
-#endif    /* IEEE80211_STA_ONLY */
+#endif    /* CONFIG_IEEE80211_AP */

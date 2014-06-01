@@ -57,7 +57,7 @@
 
 int        ieee80211_send_eapol_key(struct ieee80211com *, struct mbuf *,
             struct ieee80211_node *, const struct ieee80211_ptk *);
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 uint8_t    *ieee80211_add_gtk_kde(uint8_t *, struct ieee80211_node *,
             const struct ieee80211_key *);
 uint8_t    *ieee80211_add_pmkid_kde(uint8_t *, const uint8_t *);
@@ -111,7 +111,7 @@ ieee80211_send_eapol_key(struct ieee80211com *ic, struct mbuf *m,
     BE_WRITE_2(key->paylen, len - sizeof(*key));
     BE_WRITE_2(key->len, len - 4);
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (info & EAPOL_KEY_ENCRYPTED) {
         if (ni->ni_rsnprotos == IEEE80211_PROTO_WPA) {
             /* clear "Encrypted" bit for WPA */
@@ -132,7 +132,7 @@ ieee80211_send_eapol_key(struct ieee80211com *ic, struct mbuf *m,
 
     len = m->m_pkthdr.len;
     s = splnet();
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     /* start a 100ms timeout if an answer is expected from supplicant */
     if (info & EAPOL_KEY_KEYACK)
         wd_start(ni->ni_eapol_to, MSEC2TICK(100), ieee80211_eapol_timeout, ni);
@@ -148,7 +148,7 @@ ieee80211_send_eapol_key(struct ieee80211com *ic, struct mbuf *m,
     return error;
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*
  * Handle EAPOL-Key timeouts (no answer from supplicant).
  */
@@ -240,7 +240,7 @@ ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
     memcpy(frm, k->k_key, 16);
     return frm + 16;
 }
-#endif    /* IEEE80211_STA_ONLY */
+#endif    /* CONFIG_IEEE80211_AP */
 
 struct mbuf *
 ieee80211_get_eapol_key(int flags, int type, unsigned int pktlen)
@@ -265,7 +265,7 @@ ieee80211_get_eapol_key(int flags, int type, unsigned int pktlen)
     return m;
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*
  * Send 4-Way Handshake Message 1 to the supplicant.
  */
@@ -316,7 +316,7 @@ ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
 
   return ieee80211_send_eapol_key(ic, m, ni, NULL);
 }
-#endif    /* IEEE80211_STA_ONLY */
+#endif    /* CONFIG_IEEE80211_AP */
 
 /*
  * Send 4-Way Handshake Message 2 to the authenticator.
@@ -367,7 +367,7 @@ ieee80211_send_4way_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
   return ieee80211_send_eapol_key(ic, m, ni, tptk);
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /*
  * Send 4-Way Handshake Message 3 to the supplicant.
  */
@@ -440,7 +440,7 @@ ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
 
   return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }
-#endif /* IEEE80211_STA_ONLY */
+#endif /* CONFIG_IEEE80211_AP */
 
 /* Send 4-Way Handshake Message 4 to the authenticator */
 
@@ -482,7 +482,7 @@ int ieee80211_send_4way_msg4(struct ieee80211com *ic, struct ieee80211_node *ni)
   return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
 /* Send Group Key Handshake Message 1 to the supplicant */
 
 int ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
@@ -559,7 +559,7 @@ int ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni
 
   return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
 }
-#endif /* IEEE80211_STA_ONLY */
+#endif /* CONFIG_IEEE80211_AP */
 
 /* Send Group Key Handshake Message 2 to the authenticator */
 

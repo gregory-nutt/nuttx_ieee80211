@@ -243,7 +243,6 @@ struct ieee80211_frame_cfend {        /* NB: also CF-End+CF-Ack */
     /* FCS */
 } packed_struct;
 
-#ifdef _KERNEL
 static __inline int
 ieee80211_has_seq(const struct ieee80211_frame *wh)
 {
@@ -287,11 +286,9 @@ ieee80211_get_qos(const struct ieee80211_frame *wh)
 
     return letoh16(*(const uint16_t *)frm);
 }
-#endif    /* _KERNEL */
 
-/*
- * Capability Information field (see 7.3.1.4).
- */
+/* Capability Information field (see 7.3.1.4) */
+
 #define    IEEE80211_CAPINFO_ESS            0x0001
 #define    IEEE80211_CAPINFO_IBSS            0x0002
 #define    IEEE80211_CAPINFO_CF_POLLABLE        0x0004

@@ -455,7 +455,7 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
             ic->ic_flags |= IEEE80211_F_DESBSSID;
             IEEE80211_ADDR_COPY(ic->ic_des_bssid, bssid->i_bssid);
         }
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         if (ic->ic_opmode == IEEE80211_M_HOSTAP)
             break;
 #endif
@@ -477,7 +477,7 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         switch (ic->ic_state) {
         case IEEE80211_S_INIT:
         case IEEE80211_S_SCAN:
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
             if (ic->ic_opmode == IEEE80211_M_HOSTAP)
                 IEEE80211_ADDR_COPY(bssid->i_bssid,
                     ic->ic_myaddr);
@@ -586,7 +586,7 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
             ifp->if_mtu = ifr->ifr_mtu;
         break;
     case SIOCS80211SCAN:
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         if (ic->ic_opmode == IEEE80211_M_HOSTAP)
             break;
 #endif
@@ -616,7 +616,7 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         ieee80211_node2req(ic, ni, nr);
         break;
     case SIOCS80211NODE:
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         if (ic->ic_opmode == IEEE80211_M_HOSTAP) {
             error = -EINVAL;
             break;
@@ -635,7 +635,7 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         if (nr->nr_flags & IEEE80211_NODEREQ_COPY)
             ieee80211_req2node(ic, nr, ni);
         break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case SIOCS80211DELNODE:
         nr = (struct ieee80211_nodereq *)data;
         ni = ieee80211_find_node(ic, nr->nr_macaddr);
@@ -681,7 +681,7 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         break;
     case SIOCG80211FLAGS:
         flags = ic->ic_flags;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         if (ic->ic_opmode != IEEE80211_M_HOSTAP)
 #endif
             flags &= ~IEEE80211_F_HOSTAPMASK;
@@ -690,7 +690,7 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
     case SIOCS80211FLAGS:
         flags = (uint32_t)ifr->ifr_flags << IEEE80211_F_USERSHIFT;
         if (
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
             ic->ic_opmode != IEEE80211_M_HOSTAP &&
 #endif
             (flags & IEEE80211_F_HOSTAPMASK)) {

@@ -274,7 +274,7 @@ void ieee80211_media_init(struct ifnet *ifp, ifm_change_cb_t media_change, ifm_s
             continue;
         mopt = mopts[mode];
         ADD(ic, IFM_AUTO, mopt);    /* e.g. 11a auto */
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         if (ic->ic_caps & IEEE80211_C_IBSS)
             ADD(ic, IFM_AUTO, mopt | IFM_IEEE80211_IBSS);
         if (ic->ic_caps & IEEE80211_C_HOSTAP)
@@ -294,7 +294,7 @@ void ieee80211_media_init(struct ifnet *ifp, ifm_change_cb_t media_change, ifm_s
             if (mword == 0)
                 continue;
             ADD(ic, mword, mopt);
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
             if (ic->ic_caps & IEEE80211_C_IBSS)
                 ADD(ic, mword, mopt | IFM_IEEE80211_IBSS);
             if (ic->ic_caps & IEEE80211_C_HOSTAP)
@@ -329,7 +329,7 @@ void ieee80211_media_init(struct ifnet *ifp, ifm_change_cb_t media_change, ifm_s
             continue;
         mword = IFM_SUBTYPE(mword);    /* remove media options */
         ADD(ic, mword, 0);
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         if (ic->ic_caps & IEEE80211_C_IBSS)
             ADD(ic, mword, IFM_IEEE80211_IBSS);
         if (ic->ic_caps & IEEE80211_C_HOSTAP)
@@ -447,7 +447,7 @@ int ieee80211_media_change(struct ifnet *ifp)
     /*
      * Deduce new operating mode but don't install it just yet.
      */
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     if (ime->ifm_media & IFM_IEEE80211_ADHOC)
         newopmode = IEEE80211_M_AHDEMO;
     else if (ime->ifm_media & IFM_IEEE80211_HOSTAP)
@@ -461,7 +461,7 @@ int ieee80211_media_change(struct ifnet *ifp)
     else
         newopmode = IEEE80211_M_STA;
 
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     /*
      * Autoselect doesn't make sense when operating as an AP.
      * If no phy mode has been selected, pick one and lock it
@@ -501,7 +501,7 @@ int ieee80211_media_change(struct ifnet *ifp)
      */
     if (ic->ic_opmode != newopmode) {
         ic->ic_opmode = newopmode;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
         switch (newopmode) {
         case IEEE80211_M_AHDEMO:
         case IEEE80211_M_HOSTAP:
@@ -549,7 +549,7 @@ void ieee80211_media_status(struct ifnet *ifp, struct ifmediareq *imr)
         imr->ifm_active |= ieee80211_rate2media(ic,
             ni->ni_rates.rs_rates[ni->ni_txrate], ic->ic_curmode);
         break;
-#ifndef IEEE80211_STA_ONLY
+#ifdef CONFIG_IEEE80211_AP
     case IEEE80211_M_IBSS:
         imr->ifm_active |= IFM_IEEE80211_IBSS;
         break;
