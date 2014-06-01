@@ -34,37 +34,27 @@
  * Included Files
  ****************************************************************************/
 
-#include "bpfilter.h"
-
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/endian.h>
-#include <sys/errno.h>
-#include <sys/proc.h>
-#include <sys/sysctl.h>
+
+#include <string.h>
+#include <queue.h>
+#include <errno.h>
+#include <debug.h>
 
 #include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
 
 #ifdef CONFIG_NET_ETHERNET
-#include <netinet/in.h>
-#include <nuttx/net/uip/uip.h>
+#  include <netinet/in.h>
+#  include <nuttx/net/uip/uip.h>
 #endif
-
-#include <queue.h>
-#include <debug.h>
 
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
 int ieee80211_cache_size = IEEE80211_CACHE_SIZE;
 
-struct ieee80211com_head ieee80211com_head;
+dq_queue_t ieee80211com_head;
 
 void ieee80211_setbasicrates(struct ieee80211com *);
 int ieee80211_findrate(struct ieee80211com *, enum ieee80211_phymode, int);
@@ -140,7 +130,7 @@ void ieee80211_ifattach(struct ifnet *ifp)
     ic->ic_bmisstimeout = 7*ic->ic_lintval;    /* default 7 beacons */
     ic->ic_dtim_period = 1;    /* all TIMs are DTIMs */
 
-    dq_addfirst(&ieee80211com_head, ic);
+    dq_addfirst((sq_entry_t *)ic, &ieee80211com_head);
     ieee80211_node_attach(ifp);
     ieee80211_proto_attach(ifp);
 

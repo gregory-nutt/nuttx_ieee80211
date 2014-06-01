@@ -34,7 +34,6 @@
  * Included Files
  ****************************************************************************/
 
-#include "bpfilter.h"
 #include "bridge.h"
 
 #include <sys/param.h>
@@ -1763,7 +1762,7 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
 
     for (;;)
       {
-        m = (struct ieee80211_iobuf *)sq_remfirst(&ni->ni_savedq, m);
+        m = (struct ieee80211_iobuf *)sq_remfirst(&ni->ni_savedq);
         if (m == NULL)
           {
             break;
@@ -1777,7 +1776,7 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
             wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
           }
 
-        sq_addlast(&ic->ic_pwrsaveq, (sq_entry_t *)m);
+        sq_addlast((sq_entry_t *)m, &ic->ic_pwrsaveq);
         ieee80211_ifstart();
     }
     /* XXX assumes everything has been sent */

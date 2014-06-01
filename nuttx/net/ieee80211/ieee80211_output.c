@@ -289,7 +289,7 @@ ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
         ieee80211_pwrsave(ic, m, ni) != 0)
         return 0;
 #endif
-    sq_addlast(&ic->ic_mgtq, (sq_entry_t *)m);
+    sq_addlast((sq_entry_t *)m, &ic->ic_mgtq);
     ifp->if_timer = 1;
     ieee80211_ifstart();
     return 0;
@@ -1908,7 +1908,7 @@ ieee80211_pwrsave(struct ieee80211com *ic, struct ieee80211_iobuf *m,
 
   /* NB: ni == ic->ic_bss for broadcast/multicast */
 
-  sq_addlast(&ni->ni_savedq, (sq_entry_t)m);
+  sq_addlast((sq_entry_t)m, &ni->ni_savedq);
 
   /* Similar to ieee80211_mgmt_output, store the node in a
    * special pkthdr field.

@@ -34,29 +34,16 @@
  * Included Files
  ****************************************************************************/
 
-#include "bpfilter.h"
-
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
 #include <sys/socket.h>
-#include <sys/sockio.h>
-#include <sys/endian.h>
-#include <sys/errno.h>
-#include <sys/proc.h>
-#include <sys/sysctl.h>
-#include <sys/workq.h>
+
+#include <stdlib.h>
+#include <errno.h>
 
 #include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
-#include <net/if_llc.h>
 
 #ifdef CONFIG_NET_ETHERNET
-#include <netinet/in.h>
-#include <nuttx/net/uip/uip.h>
+#  include <netinet/in.h>
+#  include <nuttx/net/uip/uip.h>
 #endif
 
 #include <wdog.h>
@@ -309,7 +296,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_n
             while (!sq_empty(&ni->ni_savedq)) {
                 struct ieee80211_iobuf *m;
                 m = (struct ieee80211_iobuf *m)sq_remfirst(&ni->ni_savedq);
-                sq_addlast(&ic->ic_pwrsaveq, (sq_entry_t)m);
+                sq_addlast((sq_entry_t *)m, &ic->ic_pwrsaveq);
                 ieee80211_ifstart();
             }
         }
@@ -2833,7 +2820,7 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct ieee80211_iobuf *m,
         wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
       }
 
-    sq_addlast(&ic->ic_pwrsaveq, (sq_entry_t*)m);
+    sq_addlast((sq_entry_t*)m, &ic->ic_pwrsaveq);
     ieee80211_ifstart();
 }
 #endif /* CONFIG_IEEE80211_AP */

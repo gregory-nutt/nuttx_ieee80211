@@ -616,7 +616,7 @@ struct ieee80211_pmk *ieee80211_pmksa_add(struct ieee80211com *ic, enum ieee8021
             return NULL;
         pmk->pmk_akm = akm;
         IEEE80211_ADDR_COPY(pmk->pmk_macaddr, macaddr);
-        sq_addlast(&ic->ic_pmksa, pmk);
+        sq_addlast((sq_entry_t *pmk), &ic->ic_pmksa);
     }
     memcpy(pmk->pmk_key, key, IEEE80211_PMK_LEN);
     pmk->pmk_lifetime = lifetime;    /* XXX not used yet */
