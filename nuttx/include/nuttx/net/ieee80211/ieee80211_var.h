@@ -396,6 +396,7 @@ typedef int (*ifm_change_cb_t)(struct ifnet *);
 typedef void (*ifm_stat_cb_t)(struct ifnet *, struct ifmediareq *);
 
 #warning REVISIT: The design seems to attach and detach Ethernet devices.  NuttX does not work this way
+#warning REVISIT:  Perhaps ieee80211_ifattach should become an general one-time initialization function
 void    ieee80211_ifattach(struct ifnet *);
 void    ieee80211_ifdetach(struct ifnet *);
 

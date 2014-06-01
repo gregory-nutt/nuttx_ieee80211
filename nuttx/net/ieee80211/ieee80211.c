@@ -71,7 +71,7 @@ void ieee80211_setbasicrates(struct ieee80211com *);
 int ieee80211_findrate(struct ieee80211com *, enum ieee80211_phymode, int);
 
 #warning REVISIT:  There is no concept of attaching devices in NuttX.
-#warning REVISIT:  Perhaps this should become an general one-time initialization function in the future
+#warning REVISIT:  Perhaps this should become an general one-time initialization function
 void ieee80211_ifattach(struct ifnet *ifp)
 {
     struct ieee80211com *ic = (void *)ifp;
