@@ -74,7 +74,7 @@
  ****************************************************************************/
 
 void ieee80211_amrr_node_init(const struct ieee80211_amrr *amrr,
-                                     struct ieee80211_amrr_node *amn)
+                              struct ieee80211_amrr_node *amn)
 {
   amn->amn_success = 0;
   amn->amn_recovery = 0;

@@ -39,6 +39,8 @@
 #include <nuttx/config.h>
 
 #include <wdog.h>
+#include <queue.h>
+
 #include <nuttx/tree.h>
 
 /****************************************************************************
@@ -93,8 +95,6 @@ enum ieee80211_node_psstate
   IEEE80211_PS_AWAKE,
   IEEE80211_PS_DOZE
 };
-
-#define IEEE80211_PS_MAX_QUEUE    50    /* maximum saved packets */
 
 /* Authenticator state machine: 4-Way Handshake (see 8.5.6.1.1) */
 
@@ -213,7 +213,7 @@ struct ieee80211_node
   /* power saving mode */
 
   uint8_t         ni_pwrsave;
-  struct ifqueue  ni_savedq;           /* packets queued for pspoll */
+  sq_queue_t      ni_savedq;           /* packets queued for pspoll */
 
   /* RSN */
 
@@ -285,8 +285,29 @@ struct ieee80211_node
 RB_HEAD(ieee80211_tree, ieee80211_node);
 
 /****************************************************************************
+ * Global Data
+ ****************************************************************************/
+
+extern struct ieee80211com;
+extern sq_queue_t g_ieee80211_freeq;
+
+#ifdef MALLOC_DECLARE
+MALLOC_DECLARE(M_80211_NODE);
+#endif
+
+/****************************************************************************
  * Inline Functions
  ****************************************************************************/
+
+static __inline void ieee80211_ifpurge(sq_queue_t *q)
+{
+  sq_entry_t *m;
+
+  while ((m == sq_remfirst) != NULL)
+    {
+      sq_addlast(&g_ieee80211_freeq, m);
+    }
+}
 
 static __inline void ieee80211_node_incref(struct ieee80211_node *ni)
 {
@@ -319,12 +340,6 @@ static __inline void ieee80211_unref_node(struct ieee80211_node **ni)
   ieee80211_node_decref(*ni);
   *ni = NULL;            /* guard against use */
 }
-
-struct ieee80211com;
-
-#ifdef MALLOC_DECLARE
-MALLOC_DECLARE(M_80211_NODE);
-#endif
 
 void ieee80211_node_attach(struct ifnet *);
 void ieee80211_node_lateattach(struct ifnet *);

@@ -306,10 +306,10 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
             (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
 
             /* dequeue buffered unicast frames */
-            while (!IF_IS_EMPTY(&ni->ni_savedq)) {
+            while (!sq_empty(&ni->ni_savedq)) {
                 struct mbuf *m;
-                IF_DEQUEUE(&ni->ni_savedq, m);
-                IF_ENQUEUE(&ic->ic_pwrsaveq, m);
+                m = (struct mbuf *m)sq_remfirst(&ni->ni_savedq);
+                sq_addlast(&ic->ic_pwrsaveq, (sq_entry_t)m);
                 (*ifp->if_start)(ifp);
             }
         }
@@ -2808,17 +2808,27 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct mbuf *m,
     }
 
     /* take the first queued frame and put it out.. */
-    IF_DEQUEUE(&ni->ni_savedq, m);
+
+    m = (struct mbuf *)sq_remfirst(&ni->ni_savedq);
     if (m == NULL)
+      {
         return;
-    if (IF_IS_EMPTY(&ni->ni_savedq)) {
+      }
+
+    if (sq_empty(&ni->ni_savedq))
+      {
         /* last queued frame, turn off the TIM bit */
+
         (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
-    } else {
+      }
+    else
+      {
         /* more queued frames, set the more data bit */
+
         wh = mtod(m, struct ieee80211_frame *);
         wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
-    }
+      }
+
     IF_ENQUEUE(&ic->ic_pwrsaveq, m);
     (*ifp->if_start)(ifp);
 }

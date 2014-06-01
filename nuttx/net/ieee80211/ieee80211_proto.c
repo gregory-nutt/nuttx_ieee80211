@@ -115,8 +115,8 @@ void ieee80211_proto_detach(struct ifnet *ifp)
 {
     struct ieee80211com *ic = (void *)ifp;
 
-    IF_PURGE(&ic->ic_mgtq);
-    IF_PURGE(&ic->ic_pwrsaveq);
+    ieee80211_ifpurge(&ic->ic_mgtq);
+    ieee80211_ifpurge(&ic->ic_pwrsaveq);
 }
 
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
@@ -878,8 +878,8 @@ justcleanup:
                 wd_cancel(ic->ic_rsn_timeout);
 #endif
             ic->ic_mgt_timer = 0;
-            IF_PURGE(&ic->ic_mgtq);
-            IF_PURGE(&ic->ic_pwrsaveq);
+            ieee80211_ifpurge(&ic->ic_mgtq);
+            ieee80211_ifpurge(&ic->ic_pwrsaveq);
             ieee80211_free_allnodes(ic);
             break;
         }

@@ -1872,47 +1872,49 @@ int
 ieee80211_pwrsave(struct ieee80211com *ic, struct mbuf *m,
     struct ieee80211_node *ni)
 {
-    const struct ieee80211_frame *wh;
+  const struct ieee80211_frame *wh;
 
-    KASSERT(ic->ic_opmode == IEEE80211_M_HOSTAP);
-    if (!(ic->ic_caps & IEEE80211_C_APPMGT))
-        return 0;
+  KASSERT(ic->ic_opmode == IEEE80211_M_HOSTAP);
+  if (!(ic->ic_caps & IEEE80211_C_APPMGT))
+      return 0;
 
-    wh = mtod(m, struct ieee80211_frame *);
-    if (IEEE80211_IS_MULTICAST(wh->i_addr1)) {
-        /*
-         * Buffer group addressed MSDUs with the Order bit clear
-         * if any associated STAs are in PS mode.
-         */
-        if ((wh->i_fc[1] & IEEE80211_FC1_ORDER) ||
-            ic->ic_pssta == 0)
-            return 0;
-        ic->ic_tim_mcast_pending = 1;
-    } else {
-        /*
-         * Buffer MSDUs, A-MSDUs or management frames destined for
-         * PS STAs.
-         */
-        if (ni->ni_pwrsave == IEEE80211_PS_AWAKE ||
-            (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
-            IEEE80211_FC0_TYPE_CTL)
-            return 0;
-        if (IF_IS_EMPTY(&ni->ni_savedq))
-            (*ic->ic_set_tim)(ic, ni->ni_associd, 1);
-    }
-    /* NB: ni == ic->ic_bss for broadcast/multicast */
-    if (IF_QFULL(&ni->ni_savedq)) {
-        /* XXX should we drop the oldest instead? */
-        IF_DROP(&ni->ni_savedq);
-        m_freem(m);
-    } else {
-        IF_ENQUEUE(&ni->ni_savedq, m);
-        /*
-         * Similar to ieee80211_mgmt_output, store the node in a
-         * special pkthdr field.
-         */
-        m->m_pkthdr.ph_cookie = ni;
-    }
-    return 1;
+  wh = mtod(m, struct ieee80211_frame *);
+  if (IEEE80211_IS_MULTICAST(wh->i_addr1)) {
+      /*
+       * Buffer group addressed MSDUs with the Order bit clear
+       * if any associated STAs are in PS mode.
+       */
+      if ((wh->i_fc[1] & IEEE80211_FC1_ORDER) ||
+          ic->ic_pssta == 0)
+          return 0;
+      ic->ic_tim_mcast_pending = 1;
+  } else {
+      /*
+       * Buffer MSDUs, A-MSDUs or management frames destined for
+       * PS STAs.
+       */
+      if (ni->ni_pwrsave == IEEE80211_PS_AWAKE ||
+          (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
+          IEEE80211_FC0_TYPE_CTL)
+        {
+          return 0;
+        }
+
+      if (sq_empty(&ni->ni_savedq))
+        {
+          (*ic->ic_set_tim)(ic, ni->ni_associd, 1);
+        }
+  }
+
+  /* NB: ni == ic->ic_bss for broadcast/multicast */
+
+  sq_addlast(&ni->ni_savedq, (sq_entry_t)m);
+
+  /* Similar to ieee80211_mgmt_output, store the node in a
+   * special pkthdr field.
+   */
+
+  m->m_pkthdr.ph_cookie = ni;
+  return 1;
 }
 #endif /* CONFIG_IEEE80211_AP */
