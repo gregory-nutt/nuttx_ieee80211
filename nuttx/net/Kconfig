@@ -370,7 +370,7 @@ config NET_MULTICAST
 	---help---
 		Outgoing multi-cast address support
 
-# Select Transport
+# Select Transport (should be a choice)
 
 config NET_ETHERNET
 	bool

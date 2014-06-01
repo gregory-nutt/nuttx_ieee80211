@@ -61,6 +61,7 @@
 #endif
 
 #include <wdog.h>
+#include <assert.h>
 #include <debug.h>
 
 #include <nuttx/net/ieee80211/ieee80211_var.h>
@@ -1326,8 +1327,7 @@ ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
     uint8_t chan, bchan, erp;
     int is_new;
 
-    /*
-     * We process beacon/probe response frames for:
+    /* We process beacon/probe response frames for:
      *    o station mode: to collect state
      *      updates such as 802.11g slot time and for passive
      *      scanning of APs
@@ -1338,17 +1338,16 @@ ieee80211_recv_probe_resp(struct ieee80211com *ic, struct mbuf *m,
      * does not process incoming frames) and adhoc-demo (which
      * does not use management frames at all).
      */
-#ifdef DIAGNOSTIC
-    if (ic->ic_opmode != IEEE80211_M_STA &&
+
+    DEBUGASSERT((ic->ic_opmode == IEEE80211_M_STA ||
 #ifdef CONFIG_IEEE80211_AP
-        ic->ic_opmode != IEEE80211_M_IBSS &&
-        ic->ic_opmode != IEEE80211_M_HOSTAP &&
+                 ic->ic_opmode == IEEE80211_M_IBSS ||
+                 ic->ic_opmode == IEEE80211_M_HOSTAP ||
 #endif
-        ic->ic_state != IEEE80211_S_SCAN) {
-        panic("%s: impossible operating mode", __func__);
-    }
-#endif
-    /* make sure all mandatory fixed fields are present */
+                 ic->ic_state == IEEE80211_S_SCAN);
+
+    /* Make sure all mandatory fixed fields are present */
+
     if (m->m_len < sizeof(*wh) + 12) {
         ndbg("ERROR: frame too short\n");
         return;

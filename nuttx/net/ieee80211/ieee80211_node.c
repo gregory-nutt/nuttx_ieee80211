@@ -64,6 +64,7 @@
 #endif
 
 #include <wdog.h>
+#include <assert.h>
 #include <debug.h>
 
 #include <nuttx/tree.h>
@@ -1532,57 +1533,60 @@ ieee80211_node_leave_rsn(struct ieee80211com *ic, struct ieee80211_node *ni)
 void
 ieee80211_node_leave_11g(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
-    if (!(ni->ni_capinfo & IEEE80211_CAPINFO_SHORT_SLOTTIME)) {
-#ifdef DIAGNOSTIC
-        if (ic->ic_longslotsta == 0) {
-            panic("bogus long slot station count %d",
-                ic->ic_longslotsta);
+  if (!(ni->ni_capinfo & IEEE80211_CAPINFO_SHORT_SLOTTIME))
+    {
+      DEBUGASSERT((ic->ic_longslotsta != 0);
+
+      /* leaving STA did not support short slot time */
+
+      if (--ic->ic_longslotsta == 0)
+        {
+          /* All associated STAs now support short slot time, so
+           * enable this feature and give the driver a chance to
+           * reconfigure the hardware. Notice that IBSS always
+           * use a long slot time.
+           */
+
+          if ((ic->ic_caps & IEEE80211_C_SHSLOT) &&
+              ic->ic_opmode != IEEE80211_M_IBSS)
+            {
+              ieee80211_set_shortslottime(ic, 1);
+            }
         }
-#endif
-        /* leaving STA did not support short slot time */
-        if (--ic->ic_longslotsta == 0) {
-            /*
-             * All associated STAs now support short slot time, so
-             * enable this feature and give the driver a chance to
-             * reconfigure the hardware. Notice that IBSS always
-             * use a long slot time.
-             */
-            if ((ic->ic_caps & IEEE80211_C_SHSLOT) &&
-                ic->ic_opmode != IEEE80211_M_IBSS)
-                ieee80211_set_shortslottime(ic, 1);
-        }
-        nvdbg("[%s] long slot time station leaves, count %d\n",
+
+      nvdbg("[%s] long slot time station leaves, count %d\n",
             ether_sprintf(ni->ni_macaddr), ic->ic_longslotsta);
     }
 
-    if (!(ni->ni_flags & IEEE80211_NODE_ERP)) {
-#ifdef DIAGNOSTIC
-        if (ic->ic_nonerpsta == 0) {
-            panic("bogus non-ERP station count %d",
-                ic->ic_nonerpsta);
+  if (!(ni->ni_flags & IEEE80211_NODE_ERP))
+    {
+      DEBUGASSERT(ic->ic_nonerpsta != 0);
+
+      /* leaving STA was non-ERP */
+
+      if (--ic->ic_nonerpsta == 0)
+        {
+          /* All associated STAs are now ERP capable, disable use
+           * of protection and re-enable short preamble support.
+           */
+
+          ic->ic_flags &= ~IEEE80211_F_USEPROT;
+          if (ic->ic_caps & IEEE80211_C_SHPREAMBLE)
+            {
+              ic->ic_flags |= IEEE80211_F_SHPREAMBLE;
+            }
         }
-#endif
-        /* leaving STA was non-ERP */
-        if (--ic->ic_nonerpsta == 0) {
-            /*
-             * All associated STAs are now ERP capable, disable use
-             * of protection and re-enable short preamble support.
-             */
-            ic->ic_flags &= ~IEEE80211_F_USEPROT;
-            if (ic->ic_caps & IEEE80211_C_SHPREAMBLE)
-                ic->ic_flags |= IEEE80211_F_SHPREAMBLE;
-        }
-        nvdbg("[%s] non-ERP station leaves, count %d\n",
+
+      nvdbg("[%s] non-ERP station leaves, count %d\n",
             ether_sprintf(ni->ni_macaddr), ic->ic_nonerpsta);
     }
 }
 
-/*
- * Handle bookkeeping for station deauthentication/disassociation
+/* Handle bookkeeping for station deauthentication/disassociation
  * when operating as an ap.
  */
-void
-ieee80211_node_leave(struct ieee80211com *ic, struct ieee80211_node *ni)
+
+void ieee80211_node_leave(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     if (ic->ic_opmode != IEEE80211_M_HOSTAP)
         panic("not in ap mode, mode %u", ic->ic_opmode);
