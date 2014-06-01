@@ -56,6 +56,10 @@
 #define IEEE80211_TXPOWER_MAX    100    /* max power */
 #define IEEE80211_TXPOWER_MIN    -50    /* kill radio (if possible) */
 
+#ifndef howmany
+#  define howmany(x, y)   (((x)+((y)-1))/(y))
+#endif
+
 enum ieee80211_phytype
 {
   IEEE80211_T_DS,            /* direct sequence spread spectrum */
@@ -196,6 +200,7 @@ struct ieee80211_defrag
 struct ieee80211com
 {
   dq_entry_t      ic_list;    /* chain of all ieee80211com */
+#warning REVISIT: ic_if represents the device interface and needs to go away
   struct ifnet ic_if;
   void            (*ic_recv_mgmt)(struct ieee80211com *,
                   struct mbuf *, struct ieee80211_node *,
@@ -245,6 +250,7 @@ struct ieee80211com
   uint32_t       *ic_aid_bitmap;
   uint16_t        ic_max_aid;
   enum ieee80211_protmode ic_protmode;    /* 802.11g protection mode */
+#warning REVISIT:  Do we need to manage media for NuttX?
   struct ifmedia  ic_media;    /* interface media config */
   void           *ic_rawbpf;    /* packet filter structure */
   struct ieee80211_node    *ic_bss;    /* information for this node */
@@ -381,8 +387,19 @@ extern dq_queue_t ieee80211com_head;
 #define IEEE80211_F_DONEGO      0x00000004    /* calc negotiated rate */
 #define IEEE80211_F_DODEL       0x00000008    /* delete ignore rate */
 
+/* Driver callbacks for media status and change requests. */
+#warning REVISIT: These don't make sense with NuttX.
+
+struct ifnet;
+struct ifmediareq;
+typedef int (*ifm_change_cb_t)(struct ifnet *);
+typedef void (*ifm_stat_cb_t)(struct ifnet *, struct ifmediareq *);
+
+#warning REVISIT: The design seems to attach and detach Ethernet devices.  NuttX does not work this way
 void    ieee80211_ifattach(struct ifnet *);
 void    ieee80211_ifdetach(struct ifnet *);
+
+#warning REVISIT: I think that these media interfaces should go away??? They are not used internally.
 void    ieee80211_media_init(struct ifnet *, ifm_change_cb_t, ifm_stat_cb_t);
 int    ieee80211_media_change(struct ifnet *);
 void    ieee80211_media_status(struct ifnet *, struct ifmediareq *);

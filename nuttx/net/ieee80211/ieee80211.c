@@ -70,25 +70,26 @@ struct ieee80211com_head ieee80211com_head;
 void ieee80211_setbasicrates(struct ieee80211com *);
 int ieee80211_findrate(struct ieee80211com *, enum ieee80211_phymode, int);
 
+#warning REVISIT:  There is no concept of attaching devices in NuttX.
+#warning REVISIT:  Perhaps this should become an general one-time initialization function in the future
 void ieee80211_ifattach(struct ifnet *ifp)
 {
     struct ieee80211com *ic = (void *)ifp;
     struct ieee80211_channel *c;
     int i;
 
-    memcpy(((struct arpcom *)ifp)->ac_enaddr, ic->ic_myaddr,
-        ETHER_ADDR_LEN);
+    memcpy(((struct arpcom *)ifp)->ac_enaddr, ic->ic_myaddr, ETHER_ADDR_LEN);
     ether_ifattach(ifp);
 
     ifp->if_output = ieee80211_output;
 
     ieee80211_crypto_attach(ifp);
 
-    /*
-     * Fill in 802.11 available channel set, mark
+    /* Fill in 802.11 available channel set, mark
      * all available channels as active, and pick
      * a default channel if not already specified.
      */
+
     memset(ic->ic_chan_avail, 0, sizeof(ic->ic_chan_avail));
     ic->ic_modecaps |= 1<<IEEE80211_MODE_AUTO;
     for (i = 0; i <= IEEE80211_CHAN_MAX; i++) {
