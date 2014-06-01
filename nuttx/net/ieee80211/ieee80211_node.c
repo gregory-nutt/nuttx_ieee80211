@@ -63,7 +63,7 @@
 #include <netinet/if_ether.h>
 #endif
 
-#if NBRIDGE > 0
+#ifdef CONFIG_IEEE80211_BRIDGEPORT
 #include <net/if_bridge.h>
 #endif
 
@@ -1467,7 +1467,7 @@ ieee80211_node_join(struct ieee80211com *ic, struct ieee80211_node *ni,
         ieee80211_node_join_ht(ic, ni);
 #endif
 
-#if NBRIDGE > 0
+#ifdef CONFIG_IEEE80211_BRIDGEPORT
     /*
      * If the parent interface is a bridgeport, learn
      * the node's address dynamically on this interface.
@@ -1628,7 +1628,7 @@ ieee80211_node_leave(struct ieee80211com *ic, struct ieee80211_node *ni)
     ni->ni_associd = 0;
     ieee80211_node_newstate(ni, IEEE80211_STA_COLLECT);
 
-#if NBRIDGE > 0
+#ifdef CONFIG_IEEE80211_BRIDGEPORT
     /*
      * If the parent interface is a bridgeport, delete
      * any dynamically learned address for this node.

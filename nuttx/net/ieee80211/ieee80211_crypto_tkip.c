@@ -742,7 +742,7 @@ Phase2(byte *RC4KEY, const byte *TK, const u16b *P1K, u16b IV16)
     RC4KEY[2] = Lo8(IV16);
     RC4KEY[3] = Lo8((PPK[5] ^ TK16(0)) >> 1);
 
-#if BYTE_ORDER == BIG_ENDIAN
+#ifdef CONFIG_ENDIAN_BIG
     /* Copy 96 bits of PPK[0..5] to RC4KEY[4..15] (little-endian) */
     for (i = 0; i < 6; i++)
         PPK[i] = swap16(PPK[i]);

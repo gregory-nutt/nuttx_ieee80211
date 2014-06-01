@@ -20,4 +20,8 @@ config IEEE80211_HT
 	bool "Enable 802.11n High-Throughput (HT)"
 	default n
 
+config IEEE80211_BRIDGEPORT
+	bool "Parent interface is a bridge port"
+	default n
+
 endif
