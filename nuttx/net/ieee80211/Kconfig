@@ -24,4 +24,12 @@ config IEEE80211_BRIDGEPORT
 	bool "Parent interface is a bridge port"
 	default n
 
+config IEEE80211_NBUFFERS
+	int "Number of pre-allocated packet buffers"
+	default 16
+
+config IEEE80211_BUFSIZE
+	int "Size of one buffer"
+	default 576
+
 endif

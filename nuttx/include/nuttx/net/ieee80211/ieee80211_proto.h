@@ -90,6 +90,7 @@ struct mbuf *ieee80211_beacon_alloc(struct ieee80211com *,
         struct ieee80211_node *);
 extern int ieee80211_save_ie(const uint8_t *, uint8_t **);
 void ieee80211_eapol_timeout(void *);
+
 int ieee80211_send_4way_msg1(struct ieee80211com *,
         struct ieee80211_node *);
 int ieee80211_send_4way_msg2(struct ieee80211com *,
@@ -105,7 +106,8 @@ int ieee80211_send_group_msg2(struct ieee80211com *,
         struct ieee80211_node *, const struct ieee80211_key *);
 int ieee80211_send_eapol_key_req(struct ieee80211com *,
         struct ieee80211_node *, uint16_t, uint64_t);
-int ieee80211_pwrsave(struct ieee80211com *, struct mbuf *,
+
+        int ieee80211_pwrsave(struct ieee80211com *, struct mbuf *,
         struct ieee80211_node *);
 #define    ieee80211_new_state(_ic, _nstate, _arg) \
     (((_ic)->ic_newstate)((_ic), (_nstate), (_arg)))
@@ -167,5 +169,15 @@ int ieee80211_addba_request(struct ieee80211com *,
 void ieee80211_delba_request(struct ieee80211com *,
         struct ieee80211_node *, uint16_t, uint8_t, uint8_t);
 #endif
+
+/* Start polling for queued packets if the device is ready and polling has
+ * not already been started.
+ */
+
+void ieee80211_ifstart(void);
+
+/* Enqueue the packet to be sent by the Ethernet driver */
+
+int ieee80211_ifsend(struct mbuf *m);
 
 #endif /* _NET80211_IEEE80211_PROTO_H_ */

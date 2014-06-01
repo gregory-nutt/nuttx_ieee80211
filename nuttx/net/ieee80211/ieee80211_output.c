@@ -73,115 +73,132 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-int    ieee80211_classify(struct ieee80211com *, struct mbuf *);
-int    ieee80211_mgmt_output(struct ifnet *, struct ieee80211_node *,
+int ieee80211_classify(struct ieee80211com *, struct mbuf *);
+int ieee80211_mgmt_output(struct ifnet *, struct ieee80211_node *,
         struct mbuf *, int);
 uint8_t *ieee80211_add_rsn_body(uint8_t *, struct ieee80211com *,
         const struct ieee80211_node *, int);
-struct    mbuf *ieee80211_getmgmt(int, int, unsigned int);
-struct    mbuf *ieee80211_get_probe_req(struct ieee80211com *,
+struct mbuf *ieee80211_getmgmt(int, int, unsigned int);
+struct mbuf *ieee80211_get_probe_req(struct ieee80211com *,
         struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_AP
-struct    mbuf *ieee80211_get_probe_resp(struct ieee80211com *,
+struct mbuf *ieee80211_get_probe_resp(struct ieee80211com *,
         struct ieee80211_node *);
 #endif
-struct    mbuf *ieee80211_get_auth(struct ieee80211com *,
+struct mbuf *ieee80211_get_auth(struct ieee80211com *,
         struct ieee80211_node *, uint16_t, uint16_t);
-struct    mbuf *ieee80211_get_deauth(struct ieee80211com *,
+struct mbuf *ieee80211_get_deauth(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
-struct    mbuf *ieee80211_get_assoc_req(struct ieee80211com *,
+struct mbuf *ieee80211_get_assoc_req(struct ieee80211com *,
         struct ieee80211_node *, int);
 #ifdef CONFIG_IEEE80211_AP
-struct    mbuf *ieee80211_get_assoc_resp(struct ieee80211com *,
+struct mbuf *ieee80211_get_assoc_resp(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
 #endif
-struct    mbuf *ieee80211_get_disassoc(struct ieee80211com *,
+struct mbuf *ieee80211_get_disassoc(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
 #ifdef CONFIG_IEEE80211_HT
-struct    mbuf *ieee80211_get_addba_req(struct ieee80211com *,
+struct mbuf *ieee80211_get_addba_req(struct ieee80211com *,
         struct ieee80211_node *, uint8_t);
-struct    mbuf *ieee80211_get_addba_resp(struct ieee80211com *,
+struct mbuf *ieee80211_get_addba_resp(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint8_t, uint16_t);
-struct    mbuf *ieee80211_get_delba(struct ieee80211com *,
+struct mbuf *ieee80211_get_delba(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint8_t, uint16_t);
 #endif
-struct    mbuf *ieee80211_get_sa_query(struct ieee80211com *,
+struct mbuf *ieee80211_get_sa_query(struct ieee80211com *,
         struct ieee80211_node *, uint8_t);
-struct    mbuf *ieee80211_get_action(struct ieee80211com *,
+struct mbuf *ieee80211_get_action(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint8_t, int);
 
-/*
- * IEEE 802.11 output routine. Normally this will directly call the
+/* IEEE 802.11 output routine. Normally this will directly call the
  * Ethernet output routine because 802.11 encapsulation is called
  * later by the driver. This function can be used to send raw frames
  * if the mbuf has been tagged with a 802.11 data link type.
  */
-int
-ieee80211_output(struct ifnet *ifp, struct mbuf *m, struct sockaddr *dst,
-    struct rtentry *rt)
+
+int ieee80211_output(struct ifnet *ifp, struct mbuf *m, struct sockaddr *dst, struct rtentry *rt)
 {
-    struct ieee80211_frame *wh;
-    struct m_tag *mtag;
-    int s, len, error = 0;
-    u_short mflags;
+  struct ieee80211_frame *wh;
+  struct m_tag *mtag;
+  unsigned short mflags;
+  int s;
+  int len;
+  int error = 0;
 
-    /* Interface has to be up and running */
-    if ((ifp->if_flags & (IFF_UP | IFF_RUNNING)) !=
-        (IFF_UP | IFF_RUNNING)) {
-        error = ENETDOWN;
-        goto bad;
+  /* Interface has to be up and running */
+
+  if ((ifp->if_flags & (IFF_UP | IFF_RUNNING)) != (IFF_UP | IFF_RUNNING))
+    {
+      error = ENETDOWN;
+      goto bad;
     }
 
-    /* Try to get the DLT from a mbuf tag */
-    if ((mtag = m_tag_find(m, PACKET_TAG_DLT, NULL)) != NULL) {
-        struct ieee80211com *ic = (void *)ifp;
-        unsigned int dlt = *(unsigned int *)(mtag + 1);
+  /* Try to get the DLT from a mbuf tag */
 
-        /* Fallback to ethernet for non-802.11 linktypes */
-        if (!(dlt == DLT_IEEE802_11 || dlt == DLT_IEEE802_11_RADIO))
-            goto fallback;
+  if ((mtag = m_tag_find(m, PACKET_TAG_DLT, NULL)) != NULL)
+    {
+      struct ieee80211com *ic = (void *)ifp;
+      unsigned int dlt = *(unsigned int *)(mtag + 1);
 
-        if (m->m_pkthdr.len < sizeof(struct ieee80211_frame_min))
-            return (EINVAL);
-        wh = mtod(m, struct ieee80211_frame *);
-        if ((wh->i_fc[0] & IEEE80211_FC0_VERSION_MASK) !=
-            IEEE80211_FC0_VERSION_0)
-            return (EINVAL);
-        if (!(ic->ic_caps & IEEE80211_C_RAWCTL) &&
-            (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
-            IEEE80211_FC0_TYPE_CTL)
-            return (EINVAL);
+      /* Fallback to ethernet for non-802.11 linktypes */
+#warning Probably need to remove this
+      if (!(dlt == DLT_IEEE802_11 || dlt == DLT_IEEE802_11_RADIO))
+        {
+          goto fallback;
+        }
 
-        /*
-         * Queue message on interface without adding any
-         * further headers, and start output if interface not
-         * yet active.
-         */
-        mflags = m->m_flags;
-        len = m->m_pkthdr.len;
-        s = splnet();
-        IFQ_ENQUEUE(&ifp->if_snd, m, NULL, error);
-        if (error)
-          {
-            /* mbuf is already freed */
+      if (m->m_pkthdr.len < sizeof(struct ieee80211_frame_min))
+        {
+          return -EINVAL;
+        }
 
-            splx(s);
-            ndbg("ERROR: %s: failed to queue raw tx frame\n", ifp->if_xname);
-            return (error);
-          }
+      wh = mtod(m, struct ieee80211_frame *);
+      if ((wh->i_fc[0] & IEEE80211_FC0_VERSION_MASK) != IEEE80211_FC0_VERSION_0)
+        {
+          return -EINVAL;
+        }
 
-        ifp->if_obytes += len;
-        if (mflags & M_MCAST)
-            ifp->if_omcasts++;
-        if ((ifp->if_flags & IFF_OACTIVE) == 0)
-            (*ifp->if_start)(ifp);
-        splx(s);
+      if (!(ic->ic_caps & IEEE80211_C_RAWCTL) &&
+           (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_CTL)
+        {
+          return -EINVAL;
+        }
 
-        return (error);
+      /* Queue message on interface without adding any
+       * further headers, and start output if interface not
+       * yet active.
+       */
+
+      mflags = m->m_flags;
+      len = m->m_pkthdr.len;
+      s = splnet();
+      error = ieee80211_ifsend(m);
+      if (error)
+        {
+          /* mbuf is already freed */
+
+          splx(s);
+          ndbg("ERROR: %s: failed to queue raw tx frame\n", ifp->if_xname);
+          return error;
+        }
+
+      ifp->if_obytes += len;
+      if (mflags & M_MCAST)
+        {
+          ifp->if_omcasts++;
+        }
+
+      if ((ifp->if_flags & IFF_OACTIVE) == 0)
+        {
+          ieee80211_ifstart();
+        }
+
+      splx(s);
+      return error;
     }
 
- fallback:
-    return (ether_output(ifp, m, dst, rt));
+fallback:
+  return (ether_output(ifp, m, dst, rt));
 
  bad:
     if (m)
@@ -271,9 +288,9 @@ ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
         ieee80211_pwrsave(ic, m, ni) != 0)
         return 0;
 #endif
-    IF_ENQUEUE(&ic->ic_mgtq, m);
+    sq_addlast(&ic->ic_mgtq, (sq_entry_t *)m);
     ifp->if_timer = 1;
-    (*ifp->if_start)(ifp);
+    ieee80211_ifstart();
     return 0;
 }
 

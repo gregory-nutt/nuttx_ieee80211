@@ -66,86 +66,112 @@ uint8_t    *ieee80211_add_igtk_kde(uint8_t *,
 #endif
 struct mbuf     *ieee80211_get_eapol_key(int, int, unsigned int);
 
-/*
- * Send an EAPOL-Key frame to node `ni'.  If MIC or encryption is required,
+/* Send an EAPOL-Key frame to node `ni'.  If MIC or encryption is required,
  * the PTK must be passed (otherwise it can be set to NULL.)
  */
-int
-ieee80211_send_eapol_key(struct ieee80211com *ic, struct mbuf *m,
+
+int ieee80211_send_eapol_key(struct ieee80211com *ic, struct mbuf *m,
     struct ieee80211_node *ni, const struct ieee80211_ptk *ptk)
 {
-    struct ifnet *ifp = &ic->ic_if;
-    struct ether_header *eh;
-    struct ieee80211_eapol_key *key;
-    uint16_t info;
-    int s, len, error;
+  struct ifnet *ifp = &ic->ic_if;
+  struct ether_header *eh;
+  struct ieee80211_eapol_key *key;
+  uint16_t info;
+  int s, len, error;
 
-    M_PREPEND(m, sizeof(struct ether_header), M_DONTWAIT);
-    if (m == NULL)
-        return ENOMEM;
-    /* no need to m_pullup here (ok by construction) */
-    eh = mtod(m, struct ether_header *);
-    eh->ether_type = htons(ETHERTYPE_PAE);
-    IEEE80211_ADDR_COPY(eh->ether_shost, ic->ic_myaddr);
-    IEEE80211_ADDR_COPY(eh->ether_dhost, ni->ni_macaddr);
+  M_PREPEND(m, sizeof(struct ether_header), M_DONTWAIT);
+  if (m == NULL)
+    {
+      return ENOMEM;
+    }
 
-    key = (struct ieee80211_eapol_key *)&eh[1];
-    key->version = EAPOL_VERSION;
-    key->type = EAPOL_KEY;
-    key->desc = (ni->ni_rsnprotos == IEEE80211_PROTO_RSN) ?
-        EAPOL_KEY_DESC_IEEE80211 : EAPOL_KEY_DESC_WPA;
+  /* No need to m_pullup here (ok by construction) */
 
-    info = BE_READ_2(key->info);
-    /* use V3 descriptor if KDF is SHA256-based */
-    if (ieee80211_is_sha256_akm(ni->ni_rsnakms))
-        info |= EAPOL_KEY_DESC_V3;
-    /* use V2 descriptor if pairwise or group cipher is CCMP */
-    else if (ni->ni_rsncipher == IEEE80211_CIPHER_CCMP ||
-        ni->ni_rsngroupcipher == IEEE80211_CIPHER_CCMP)
-        info |= EAPOL_KEY_DESC_V2;
-    else
-        info |= EAPOL_KEY_DESC_V1;
-    BE_WRITE_2(key->info, info);
+  eh = mtod(m, struct ether_header *);
+  eh->ether_type = htons(ETHERTYPE_PAE);
+  IEEE80211_ADDR_COPY(eh->ether_shost, ic->ic_myaddr);
+  IEEE80211_ADDR_COPY(eh->ether_dhost, ni->ni_macaddr);
 
-    len = m->m_len - sizeof(struct ether_header);
-    BE_WRITE_2(key->paylen, len - sizeof(*key));
-    BE_WRITE_2(key->len, len - 4);
+  key = (struct ieee80211_eapol_key *)&eh[1];
+  key->version = EAPOL_VERSION;
+  key->type = EAPOL_KEY;
+  key->desc = (ni->ni_rsnprotos == IEEE80211_PROTO_RSN) ? EAPOL_KEY_DESC_IEEE80211 : EAPOL_KEY_DESC_WPA;
+
+  info = BE_READ_2(key->info);
+
+  /* Use V3 descriptor if KDF is SHA256-based */
+
+  if (ieee80211_is_sha256_akm(ni->ni_rsnakms))
+    {
+      info |= EAPOL_KEY_DESC_V3;
+    }
+
+  /* Use V2 descriptor if pairwise or group cipher is CCMP */
+
+  else if (ni->ni_rsncipher == IEEE80211_CIPHER_CCMP ||
+      ni->ni_rsngroupcipher == IEEE80211_CIPHER_CCMP)
+    {
+      info |= EAPOL_KEY_DESC_V2;
+    }
+  else
+    {
+      info |= EAPOL_KEY_DESC_V1;
+    }
+
+  BE_WRITE_2(key->info, info);
+
+  len = m->m_len - sizeof(struct ether_header);
+  BE_WRITE_2(key->paylen, len - sizeof(*key));
+  BE_WRITE_2(key->len, len - 4);
 
 #ifdef CONFIG_IEEE80211_AP
-    if (info & EAPOL_KEY_ENCRYPTED) {
-        if (ni->ni_rsnprotos == IEEE80211_PROTO_WPA) {
-            /* clear "Encrypted" bit for WPA */
-            info &= ~EAPOL_KEY_ENCRYPTED;
-            BE_WRITE_2(key->info, info);
-        }
-        ieee80211_eapol_key_encrypt(ic, key, ptk->kek);
+  if (info & EAPOL_KEY_ENCRYPTED)
+    {
+      if (ni->ni_rsnprotos == IEEE80211_PROTO_WPA)
+        {
+          /* clear "Encrypted" bit for WPA */
 
-        if ((info & EAPOL_KEY_VERSION_MASK) != EAPOL_KEY_DESC_V1) {
-            /* AES Key Wrap adds 8 bytes + padding */
-            m->m_pkthdr.len = m->m_len =
-                sizeof(*eh) + 4 + BE_READ_2(key->len);
+          info &= ~EAPOL_KEY_ENCRYPTED;
+          BE_WRITE_2(key->info, info);
+        }
+
+      ieee80211_eapol_key_encrypt(ic, key, ptk->kek);
+
+      if ((info & EAPOL_KEY_VERSION_MASK) != EAPOL_KEY_DESC_V1)
+        {
+          /* AES Key Wrap adds 8 bytes + padding */
+
+          m->m_pkthdr.len = m->m_len = sizeof(*eh) + 4 + BE_READ_2(key->len);
         }
     }
 #endif
-    if (info & EAPOL_KEY_KEYMIC)
-        ieee80211_eapol_key_mic(key, ptk->kck);
 
-    len = m->m_pkthdr.len;
-    s = splnet();
-#ifdef CONFIG_IEEE80211_AP
-    /* start a 100ms timeout if an answer is expected from supplicant */
-    if (info & EAPOL_KEY_KEYACK)
-        wd_start(ni->ni_eapol_to, MSEC2TICK(100), ieee80211_eapol_timeout, ni);
-#endif
-    IFQ_ENQUEUE(&ifp->if_snd, m, NULL, error);
-    if (error == 0) {
-        ifp->if_obytes += len;
-        if ((ifp->if_flags & IFF_OACTIVE) == 0)
-            (*ifp->if_start)(ifp);
+  if (info & EAPOL_KEY_KEYMIC)
+    {
+      ieee80211_eapol_key_mic(key, ptk->kck);
     }
-    splx(s);
 
-    return error;
+  len = m->m_pkthdr.len;
+  s = splnet();
+
+#ifdef CONFIG_IEEE80211_AP
+  /* Start a 100ms timeout if an answer is expected from supplicant */
+
+  if (info & EAPOL_KEY_KEYACK)
+    {
+      wd_start(ni->ni_eapol_to, MSEC2TICK(100), ieee80211_eapol_timeout, ni);
+    }
+#endif
+
+  error = ieee80211_ifsend(m);
+  if (error == 0)
+    {
+      ifp->if_obytes += len;
+      ieee80211_ifstart();
+    }
+
+  splx(s);
+  return error;
 }
 
 #ifdef CONFIG_IEEE80211_AP

@@ -224,16 +224,13 @@ ieee80211_node_detach(struct ifnet *ifp)
     wd_cancel(ic->ic_rsn_timeout);
 }
 
-/*
- * AP scanning support.
- */
+/* AP scanning support */
 
-/*
- * Initialize the active channel set based on the set
+/* Initialize the active channel set based on the set
  * of available channels and the current PHY mode.
  */
-void
-ieee80211_reset_scan(struct ifnet *ifp)
+
+void ieee80211_reset_scan(struct ifnet *ifp)
 {
     struct ieee80211com *ic = (void *)ifp;
 
@@ -244,11 +241,9 @@ ieee80211_reset_scan(struct ifnet *ifp)
         ic->ic_bss->ni_chan = &ic->ic_channels[IEEE80211_CHAN_MAX];
 }
 
-/*
- * Begin an active scan.
- */
-void
-ieee80211_begin_scan(struct ifnet *ifp)
+/* Begin an active scan */
+
+void ieee80211_begin_scan(struct ifnet *ifp)
 {
     struct ieee80211com *ic = (void *)ifp;
 
@@ -274,16 +269,14 @@ ieee80211_begin_scan(struct ifnet *ifp)
     nvdbg("%s: begin %s scan\n",
           ifp->if_xname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
 
-    /*
-     * Flush any previously seen AP's. Note that the latter 
+    /* Flush any previously seen AP's. Note that the latter 
      * assumes we don't act as both an AP and a station,
      * otherwise we'll potentially flush state of stations
      * associated with us.
      */
     ieee80211_free_allnodes(ic);
 
-    /*
-     * Reset the current mode. Setting the current mode will also
+    /* Reset the current mode. Setting the current mode will also
      * reset scan state.
      */
     if (IFM_MODE(ic->ic_media.ifm_cur->ifm_media) == IFM_AUTO)
@@ -296,11 +289,9 @@ ieee80211_begin_scan(struct ifnet *ifp)
     ieee80211_next_scan(ifp);
 }
 
-/*
- * Switch to the next channel marked for scanning.
- */
-void
-ieee80211_next_scan(struct ifnet *ifp)
+/* Switch to the next channel marked for scanning */
+
+void ieee80211_next_scan(struct ifnet *ifp)
 {
     struct ieee80211com *ic = (void *)ifp;
     struct ieee80211_channel *chan;
@@ -588,8 +579,7 @@ void ieee80211_end_scan(struct ifnet *ifp)
             goto wakeup;
         }
 #endif
-        /*
-         * Scan the next mode if nothing has been found. This
+        /* Scan the next mode if nothing has been found. This
          * is necessary if the device supports different
          * incompatible modes in the same channel range, like
          * like 11b and "pure" 11G mode. This will loop
@@ -1786,8 +1776,8 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
             wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
           }
 
-        IF_ENQUEUE(&ic->ic_pwrsaveq, m);
-        (*ifp->if_start)(ifp);
+        sq_addlast(&ic->ic_pwrsaveq, (sq_entry_t *)m);
+        ieee80211_ifstart();
     }
     /* XXX assumes everything has been sent */
     ic->ic_tim_mcast_pending = 0;

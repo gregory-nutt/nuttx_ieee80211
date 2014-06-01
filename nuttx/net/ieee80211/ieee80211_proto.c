@@ -1026,7 +1026,7 @@ justcleanup:
                 ieee80211_set_link_state(ic, LINK_STATE_UP);
             }
             ic->ic_mgt_timer = 0;
-            (*ifp->if_start)(ifp);
+            ieee80211_ifstart();
             break;
         }
         break;

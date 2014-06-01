@@ -310,7 +310,7 @@ ieee80211_input(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node *ni,
                 struct mbuf *m;
                 m = (struct mbuf *m)sq_remfirst(&ni->ni_savedq);
                 sq_addlast(&ic->ic_pwrsaveq, (sq_entry_t)m);
-                (*ifp->if_start)(ifp);
+                ieee80211_ifstart();
             }
         }
     }
@@ -769,72 +769,94 @@ ieee80211_ba_move_window(struct ieee80211com *ic, struct ieee80211_node *ni,
 }
 #endif /* !CONFIG_IEEE80211_HT */
 
-void
-ieee80211_deliver_data(struct ieee80211com *ic, struct mbuf *m,
+void ieee80211_deliver_data(struct ieee80211com *ic, struct mbuf *m,
     struct ieee80211_node *ni)
 {
-    struct ifnet *ifp = &ic->ic_if;
-    struct ether_header *eh;
-    struct mbuf *m1;
+  struct ifnet *ifp = &ic->ic_if;
+  struct ether_header *eh;
+  struct mbuf *m1;
 
-    eh = mtod(m, struct ether_header *);
+  eh = mtod(m, struct ether_header *);
 
-    if ((ic->ic_flags & IEEE80211_F_RSNON) && !ni->ni_port_valid &&
-        eh->ether_type != htons(ETHERTYPE_PAE)) {
-        ndbg("ERROR: port not valid: %s\n",
-            ether_sprintf(eh->ether_dhost));
-        ic->ic_stats.is_rx_unauth++;
-        m_freem(m);
-        return;
+  if ((ic->ic_flags & IEEE80211_F_RSNON) && !ni->ni_port_valid &&
+        eh->ether_type != htons(ETHERTYPE_PAE))
+    {
+      ndbg("ERROR: port not valid: %s\n", ether_sprintf(eh->ether_dhost));
+      ic->ic_stats.is_rx_unauth++;
+      m_freem(m);
+      return;
     }
-    ifp->if_ipackets++;
 
-    /*
-     * Perform as a bridge within the AP.  Notice that we do not
-     * bridge EAPOL frames as suggested in C.1.1 of IEEE Std 802.1X.
-     */
-    m1 = NULL;
+  ifp->if_ipackets++;
+
+  /* Perform as a bridge within the AP.  Notice that we do not
+   * bridge EAPOL frames as suggested in C.1.1 of IEEE Std 802.1X.
+   */
+
+  m1 = NULL;
 #ifdef CONFIG_IEEE80211_AP
-    if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
-        !(ic->ic_flags & IEEE80211_F_NOBRIDGE) &&
-        eh->ether_type != htons(ETHERTYPE_PAE)) {
-        struct ieee80211_node *ni1;
-        int error, len;
+  if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
+      !(ic->ic_flags & IEEE80211_F_NOBRIDGE) &&
+      eh->ether_type != htons(ETHERTYPE_PAE))
+    {
+      struct ieee80211_node *ni1;
+      int len;
+      int error;
 
-        if (ETHER_IS_MULTICAST(eh->ether_dhost)) {
-            m1 = m_copym2(m, 0, M_COPYALL, M_DONTWAIT);
-            if (m1 == NULL)
-                ifp->if_oerrors++;
+      if (ETHER_IS_MULTICAST(eh->ether_dhost))
+        {
+          m1 = m_copym2(m, 0, M_COPYALL, M_DONTWAIT);
+          if (m1 == NULL)
+            {
+              ifp->if_oerrors++;
+            }
             else
-                m1->m_flags |= M_MCAST;
-        } else {
-            ni1 = ieee80211_find_node(ic, eh->ether_dhost);
-            if (ni1 != NULL &&
-                ni1->ni_state == IEEE80211_STA_ASSOC) {
-                m1 = m;
-                m = NULL;
+            {
+              m1->m_flags |= M_MCAST;
             }
         }
-        if (m1 != NULL) {
-            len = m1->m_pkthdr.len;
-            IFQ_ENQUEUE(&ifp->if_snd, m1, NULL, error);
-            if (error)
-                ifp->if_oerrors++;
-            else {
-                if (m != NULL)
-                    ifp->if_omcasts++;
-                ifp->if_obytes += len;
-                if_start(ifp);
+      else
+        {
+          ni1 = ieee80211_find_node(ic, eh->ether_dhost);
+          if (ni1 != NULL && ni1->ni_state == IEEE80211_STA_ASSOC)
+            {
+              m1 = m;
+              m = NULL;
+            }
+        }
+
+      if (m1 != NULL)
+        {
+          len = m1->m_pkthdr.len;
+          error = ieee80211_ifsend(m1);
+          if (error)
+            {
+              ifp->if_oerrors++;
+            }
+            else
+            {
+              if (m != NULL)
+                {
+                  ifp->if_omcasts++;
+                }
+
+              ifp->if_obytes += len;
+              ieee80211_ifstart();
             }
         }
     }
 #endif
-    if (m != NULL) {
+    if (m != NULL)
+      {
         if ((ic->ic_flags & IEEE80211_F_RSNON) &&
             eh->ether_type == htons(ETHERTYPE_PAE))
+          {
             ieee80211_eapol_key_input(ic, m, ni);
+          }
         else
+          {
             ether_input_mbuf(ifp, m);
+          }
     }
 }
 
@@ -2829,8 +2851,8 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct mbuf *m,
         wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
       }
 
-    IF_ENQUEUE(&ic->ic_pwrsaveq, m);
-    (*ifp->if_start)(ifp);
+    sq_addlast(&ic->ic_pwrsaveq, (sq_entry_t*)m);
+    ieee80211_ifstart();
 }
 #endif /* CONFIG_IEEE80211_AP */
 
