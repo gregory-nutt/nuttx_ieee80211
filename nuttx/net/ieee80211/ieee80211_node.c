@@ -90,12 +90,12 @@ struct ieee80211_node *ieee80211_alloc_node_helper(struct ieee80211com *);
 void ieee80211_node_cleanup(struct ieee80211com *, struct ieee80211_node *);
 void ieee80211_needs_auth(struct ieee80211com *, struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_AP
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
 void ieee80211_node_join_ht(struct ieee80211com *, struct ieee80211_node *);
 #endif
 void ieee80211_node_join_rsn(struct ieee80211com *, struct ieee80211_node *);
 void ieee80211_node_join_11g(struct ieee80211com *, struct ieee80211_node *);
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
 void ieee80211_node_leave_ht(struct ieee80211com *, struct ieee80211_node *);
 #endif
 void ieee80211_node_leave_rsn(struct ieee80211com *, struct ieee80211_node *);
@@ -1323,7 +1323,7 @@ ieee80211_needs_auth(struct ieee80211com *ic, struct ieee80211_node *ni)
      */
 }
 
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
 /*
  * Handle an HT STA joining an HT network.
  */
@@ -1332,7 +1332,7 @@ ieee80211_node_join_ht(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     /* TBD */
 }
-#endif    /* !IEEE80211_NO_HT */
+#endif    /* !CONFIG_IEEE80211_HT */
 
 /*
  * Handle a station joining an RSN network.
@@ -1462,7 +1462,7 @@ ieee80211_node_join(struct ieee80211com *ic, struct ieee80211_node *ni,
     } else
         ieee80211_node_join_rsn(ic, ni);
 
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
     if (ni->ni_flags & IEEE80211_NODE_HT)
         ieee80211_node_join_ht(ic, ni);
 #endif
@@ -1478,7 +1478,7 @@ ieee80211_node_join(struct ieee80211com *ic, struct ieee80211_node *ni,
 #endif
 }
 
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
 /*
  * Handle an HT STA leaving an HT network.
  */
@@ -1501,7 +1501,7 @@ ieee80211_node_leave_ht(struct ieee80211com *ic, struct ieee80211_node *ni)
         }
     }
 }
-#endif    /* !IEEE80211_NO_HT */
+#endif    /* !CONFIG_IEEE80211_HT */
 
 /*
  * Handle a station leaving an RSN network.
@@ -1616,7 +1616,7 @@ ieee80211_node_leave(struct ieee80211com *ic, struct ieee80211_node *ni)
     if (ic->ic_curmode == IEEE80211_MODE_11G)
         ieee80211_node_leave_11g(ic, ni);
 
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
     if (ni->ni_flags & IEEE80211_NODE_HT)
         ieee80211_node_leave_ht(ic, ni);
 #endif

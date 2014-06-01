@@ -156,7 +156,7 @@ void ieee80211_setkeysdone(struct ieee80211com *);
 void ieee80211_sa_query_timeout(void *);
 void ieee80211_sa_query_request(struct ieee80211com *,
         struct ieee80211_node *);
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
 void ieee80211_tx_ba_timeout(void *);
 void ieee80211_rx_ba_timeout(void *);
 int ieee80211_addba_request(struct ieee80211com *,

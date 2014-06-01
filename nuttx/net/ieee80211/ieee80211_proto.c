@@ -584,7 +584,7 @@ ieee80211_sa_query_request(struct ieee80211com *ic, struct ieee80211_node *ni)
 }
 #endif    /* CONFIG_IEEE80211_AP */
 
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
 void
 ieee80211_tx_ba_timeout(void *arg)
 {
@@ -697,7 +697,7 @@ ieee80211_delba_request(struct ieee80211com *ic, struct ieee80211_node *ni,
         }
     }
 }
-#endif    /* !IEEE80211_NO_HT */
+#endif    /* !CONFIG_IEEE80211_HT */
 
 void
 ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,

@@ -97,7 +97,7 @@ struct    mbuf *ieee80211_get_assoc_resp(struct ieee80211com *,
 #endif
 struct    mbuf *ieee80211_get_disassoc(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
 struct    mbuf *ieee80211_get_addba_req(struct ieee80211com *,
         struct ieee80211_node *, uint8_t);
 struct    mbuf *ieee80211_get_addba_resp(struct ieee80211com *,
@@ -604,7 +604,7 @@ ieee80211_encap(struct ifnet *ifp, struct mbuf *m, struct ieee80211_node **pni)
 
         if (ic->ic_tid_noack & (1 << tid))
             qos |= IEEE80211_QOS_ACK_POLICY_NOACK;
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
         else if (ni->ni_tx_ba[tid].ba_state == IEEE80211_BA_AGREED)
             qos |= IEEE80211_QOS_ACK_POLICY_BA;
 #endif
@@ -1033,7 +1033,7 @@ ieee80211_add_xrates(uint8_t *frm, const struct ieee80211_rateset *rs)
     return frm + nrates;
 }
 
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
 /*
  * Add an HT Capabilities element to a frame (see 7.3.2.57).
  */
@@ -1067,7 +1067,7 @@ ieee80211_add_htop(uint8_t *frm, struct ieee80211com *ic)
     return frm;
 }
 #endif    /* !CONFIG_IEEE80211_AP */
-#endif    /* !IEEE80211_NO_HT */
+#endif    /* !CONFIG_IEEE80211_HT */
 
 #ifdef CONFIG_IEEE80211_AP
 /*
@@ -1135,7 +1135,7 @@ ieee80211_get_probe_req(struct ieee80211com *ic, struct ieee80211_node *ni)
     frm = ieee80211_add_rates(frm, rs);
     if (rs->rs_nrates > IEEE80211_RATE_SIZE)
         frm = ieee80211_add_xrates(frm, rs);
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
     if (ni->ni_flags & IEEE80211_NODE_HT)
         frm = ieee80211_add_htcaps(frm, ic);
 #endif
@@ -1210,7 +1210,7 @@ ieee80211_get_probe_resp(struct ieee80211com *ic, struct ieee80211_node *ni)
     if ((ic->ic_flags & IEEE80211_F_RSNON) &&
         (ic->ic_bss->ni_rsnprotos & IEEE80211_PROTO_WPA))
         frm = ieee80211_add_wpa(frm, ic, ic->ic_bss);
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
     if (ic->ic_flags & IEEE80211_F_HTON) {
         frm = ieee80211_add_htcaps(frm, ic);
         frm = ieee80211_add_htop(frm, ic);
@@ -1338,7 +1338,7 @@ ieee80211_get_assoc_req(struct ieee80211com *ic, struct ieee80211_node *ni,
     if ((ic->ic_flags & IEEE80211_F_RSNON) &&
         (ni->ni_rsnprotos & IEEE80211_PROTO_WPA))
         frm = ieee80211_add_wpa(frm, ic, ni);
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
     if (ni->ni_flags & IEEE80211_NODE_HT)
         frm = ieee80211_add_htcaps(frm, ic);
 #endif
@@ -1398,7 +1398,7 @@ ieee80211_get_assoc_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
         /* Association Comeback Time */
         frm = ieee80211_add_tie(frm, 3, 1000 /* XXX */);
     }
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
     if (ni->ni_flags & IEEE80211_NODE_HT) {
         frm = ieee80211_add_htcaps(frm, ic);
         frm = ieee80211_add_htop(frm, ic);
@@ -1432,7 +1432,7 @@ ieee80211_get_disassoc(struct ieee80211com *ic, struct ieee80211_node *ni,
     return m;
 }
 
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
 /*-
  * ADDBA Request frame format:
  * [1] Category
@@ -1543,7 +1543,7 @@ ieee80211_get_delba(struct ieee80211com *ic, struct ieee80211_node *ni,
 
     return m;
 }
-#endif    /* !IEEE80211_NO_HT */
+#endif    /* !CONFIG_IEEE80211_HT */
 
 /*-
  * SA Query Request/Reponse frame format:
@@ -1579,7 +1579,7 @@ ieee80211_get_action(struct ieee80211com *ic, struct ieee80211_node *ni,
     struct mbuf *m = NULL;
 
     switch (categ) {
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
     case IEEE80211_CATEG_BA:
         switch (action) {
         case IEEE80211_ACTION_ADDBA_REQ:
@@ -1850,7 +1850,7 @@ ieee80211_beacon_alloc(struct ieee80211com *ic, struct ieee80211_node *ni)
     if ((ic->ic_flags & IEEE80211_F_RSNON) &&
         (ni->ni_rsnprotos & IEEE80211_PROTO_WPA))
         frm = ieee80211_add_wpa(frm, ic, ni);
-#ifndef IEEE80211_NO_HT
+#ifdef CONFIG_IEEE80211_HT
     if (ic->ic_flags & IEEE80211_F_HTON) {
         frm = ieee80211_add_htcaps(frm, ic);
         frm = ieee80211_add_htop(frm, ic);

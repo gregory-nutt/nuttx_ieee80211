@@ -13,7 +13,11 @@ config NET_IEEE80211
 if NET_IEEE80211
 
 config IEEE80211_AP
-	bool "Enable access point support"
+	bool "Enable access point (AP) support"
+	default n
+
+config IEEE80211_HT
+	bool "Enable 802.11n High-Throughput (HT)"
 	default n
 
 endif
