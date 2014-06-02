@@ -323,13 +323,16 @@ int ieee80211_ioctl(struct ieee80211com *ic, u_long cmd, void *data)
     struct ieee80211chanreq *chanreq;
     struct ieee80211_channel *chan;
     struct ieee80211_txpower *txpower;
-    static const uint8_t empty_macaddr[IEEE80211_ADDR_LEN] = {
+    static const uint8_t empty_macaddr[IEEE80211_ADDR_LEN] =
+    {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     struct ieee80211_nodereq *nr, nrbuf;
     struct ieee80211_nodereq_all *na;
     struct ieee80211_node *ni;
     uint32_t flags;
+    int ndx;
+    int bit;
 
     switch (cmd) {
     case SIOCSIFMEDIA:
@@ -489,17 +492,28 @@ int ieee80211_ioctl(struct ieee80211com *ic, u_long cmd, void *data)
             break;
         }
         break;
+
     case SIOCS80211CHANNEL:
         chanreq = (struct ieee80211chanreq *)data;
+
+        ndx = ((int)chanreq->i_channel >> 3);
+        bit = ((int)chanreq->i_channel & 7);
+
         if (chanreq->i_channel == IEEE80211_CHAN_ANY)
+          {
             ic->ic_des_chan = IEEE80211_CHAN_ANYC;
+          }
         else if (chanreq->i_channel > IEEE80211_CHAN_MAX ||
-            isclr(ic->ic_chan_active, chanreq->i_channel)) {
+                 (ic->ic_chan_active[ndx] & (1 << bit)) == 0)
+          {
             error = -EINVAL;
             break;
-        } else
-            ic->ic_ibss_chan = ic->ic_des_chan =
-                &ic->ic_channels[chanreq->i_channel];
+          }
+        else
+          {
+            ic->ic_ibss_chan = ic->ic_des_chan =  &ic->ic_channels[chanreq->i_channel];
+          }
+
         switch (ic->ic_state) {
         case IEEE80211_S_INIT:
         case IEEE80211_S_SCAN:

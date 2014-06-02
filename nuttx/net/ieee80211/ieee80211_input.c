@@ -1335,301 +1335,404 @@ int ieee80211_save_ie(const uint8_t *frm, uint8_t **ie)
 void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int isprobe)
 {
-    const struct ieee80211_frame *wh;
-    const uint8_t *frm, *efrm;
-    const uint8_t *tstamp, *ssid, *rates, *xrates, *edcaie, *wmmie;
-    const uint8_t *rsnie, *wpaie, *htcaps, *htop;
-    uint16_t capinfo, bintval;
-    uint8_t chan, bchan, erp;
-    int is_new;
+  const struct ieee80211_frame *wh;
+  const uint8_t *frm;
+  const uint8_t *efrm;
+  const uint8_t *tstamp;
+  const uint8_t *ssid;
+  const uint8_t *rates;
+  const uint8_t *xrates;
+  const uint8_t *edcaie;
+  const uint8_t *wmmie;
+  const uint8_t *rsnie;
+  const uint8_t *wpaie;
+  const uint8_t *htcaps;
+  const uint8_t *htop;
+  uint16_t capinfo;
+  uint16_t bintval;
+  uint8_t chan;
+  uint8_t bchan;
+  uint8_t erp;
+  int ndx;
+  int bit
+  int is_new;
 
-    /* We process beacon/probe response frames for:
-     *    o station mode: to collect state
-     *      updates such as 802.11g slot time and for passive
-     *      scanning of APs
-     *    o adhoc mode: to discover neighbors
-     *    o hostap mode: for passive scanning of neighbor APs
-     *    o when scanning
-     * In other words, in all modes other than monitor (which
-     * does not process incoming frames) and adhoc-demo (which
-     * does not use management frames at all).
-     */
+  /* We process beacon/probe response frames for:
+   *    o station mode: to collect state
+   *      updates such as 802.11g slot time and for passive
+   *      scanning of APs
+   *    o adhoc mode: to discover neighbors
+   *    o hostap mode: for passive scanning of neighbor APs
+   *    o when scanning
+   * In other words, in all modes other than monitor (which
+   * does not process incoming frames) and adhoc-demo (which
+   * does not use management frames at all).
+   */
 
-    DEBUGASSERT((ic->ic_opmode == IEEE80211_M_STA ||
+  DEBUGASSERT((ic->ic_opmode == IEEE80211_M_STA ||
 #ifdef CONFIG_IEEE80211_AP
-                 ic->ic_opmode == IEEE80211_M_IBSS ||
-                 ic->ic_opmode == IEEE80211_M_HOSTAP ||
+               ic->ic_opmode == IEEE80211_M_IBSS ||
+               ic->ic_opmode == IEEE80211_M_HOSTAP ||
 #endif
-                 ic->ic_state == IEEE80211_S_SCAN);
+               ic->ic_state == IEEE80211_S_SCAN);
 
-    /* Make sure all mandatory fixed fields are present */
+  /* Make sure all mandatory fixed fields are present */
 
-    if (m->m_len < sizeof(*wh) + 12) {
-        ndbg("ERROR: frame too short\n");
-        return;
+  if (m->m_len < sizeof(*wh) + 12)
+    {
+      ndbg("ERROR: frame too short\n");
+      return;
     }
-    wh = mtod(m, struct ieee80211_frame *);
-    frm = (const uint8_t *)&wh[1];
-    efrm = mtod(m, uint8_t *) + m->m_len;
 
-    tstamp  = frm; frm += 8;
-    bintval = LE_READ_2(frm); frm += 2;
-    capinfo = LE_READ_2(frm); frm += 2;
+  wh = mtod(m, struct ieee80211_frame *);
+  frm = (const uint8_t *)&wh[1];
+  efrm = mtod(m, uint8_t *) + m->m_len;
 
-    ssid = rates = xrates = edcaie = wmmie = rsnie = wpaie = NULL;
-    htcaps = htop = NULL;
-    bchan = ieee80211_chan2ieee(ic, ic->ic_bss->ni_chan);
-    chan = bchan;
-    erp = 0;
-    while (frm + 2 <= efrm) {
-        if (frm + 2 + frm[1] > efrm) {
-            ic->ic_stats.is_rx_elem_toosmall++;
-            break;
+  tstamp  = frm; frm += 8;
+  bintval = LE_READ_2(frm); frm += 2;
+  capinfo = LE_READ_2(frm); frm += 2;
+
+  ssid = rates = xrates = edcaie = wmmie = rsnie = wpaie = NULL;
+  htcaps = htop = NULL;
+  bchan = ieee80211_chan2ieee(ic, ic->ic_bss->ni_chan);
+  chan = bchan;
+  erp = 0;
+  while (frm + 2 <= efrm)
+    {
+      if (frm + 2 + frm[1] > efrm)
+        {
+          ic->ic_stats.is_rx_elem_toosmall++;
+          break;
         }
-        switch (frm[0]) {
+
+      switch (frm[0])
+        {
         case IEEE80211_ELEMID_SSID:
-            ssid = frm;
-            break;
+          ssid = frm;
+          break;
+
         case IEEE80211_ELEMID_RATES:
-            rates = frm;
-            break;
+          rates = frm;
+          break;
+
         case IEEE80211_ELEMID_DSPARMS:
-            if (frm[1] < 1) {
-                ic->ic_stats.is_rx_elem_toosmall++;
-                break;
-            }
-            chan = frm[2];
-            break;
+          if (frm[1] < 1)
+            {
+              ic->ic_stats.is_rx_elem_toosmall++;
+              break;
+              }
+
+          chan = frm[2];
+          break;
+
         case IEEE80211_ELEMID_XRATES:
-            xrates = frm;
-            break;
+          xrates = frm;
+          break;
+
         case IEEE80211_ELEMID_ERP:
-            if (frm[1] < 1) {
-                ic->ic_stats.is_rx_elem_toosmall++;
-                break;
+          if (frm[1] < 1)
+            {
+              ic->ic_stats.is_rx_elem_toosmall++;
+              break;
             }
-            erp = frm[2];
-            break;
+
+          erp = frm[2];
+          break;
+
         case IEEE80211_ELEMID_RSN:
-            rsnie = frm;
-            break;
+          rsnie = frm;
+          break;
+
         case IEEE80211_ELEMID_EDCAPARMS:
-            edcaie = frm;
-            break;
+          edcaie = frm;
+          break;
+
 #ifdef CONFIG_IEEE80211_HT
         case IEEE80211_ELEMID_HTCAPS:
-            htcaps = frm;
-            break;
+          htcaps = frm;
+          break;
+
         case IEEE80211_ELEMID_HTOP:
-            htop = frm;
-            break;
+          htop = frm;
+          break;
 #endif
+
         case IEEE80211_ELEMID_VENDOR:
-            if (frm[1] < 4) {
-                ic->ic_stats.is_rx_elem_toosmall++;
-                break;
+          if (frm[1] < 4)
+            {
+              ic->ic_stats.is_rx_elem_toosmall++;
+              break;
             }
-            if (memcmp(frm + 2, MICROSOFT_OUI, 3) == 0) {
-                if (frm[5] == 1)
-                    wpaie = frm;
-                else if (frm[1] >= 5 &&
-                    frm[5] == 2 && frm[6] == 1)
-                    wmmie = frm;
+
+          if (memcmp(frm + 2, MICROSOFT_OUI, 3) == 0)
+            {
+              if (frm[5] == 1)
+                {
+                  wpaie = frm;
+                }
+              else if (frm[1] >= 5 && frm[5] == 2 && frm[6] == 1)
+                {
+                  wmmie = frm;
+                }
             }
-            break;
+
+          break;
         }
-        frm += 2 + frm[1];
-    }
-    /* supported rates element is mandatory */
-    if (rates == NULL || rates[1] > IEEE80211_RATE_MAXSIZE) {
-        ndbg("ERROR: invalid supported rates element\n");
-        return;
-    }
-    /* SSID element is mandatory */
-    if (ssid == NULL || ssid[1] > IEEE80211_NWID_LEN) {
-        ndbg("ERROR: invalid SSID element\n");
-        return;
+
+      frm += 2 + frm[1];
     }
 
-    if (
+  /* Supported rates element is mandatory */
+
+  if (rates == NULL || rates[1] > IEEE80211_RATE_MAXSIZE)
+    {
+      ndbg("ERROR: invalid supported rates element\n");
+      return;
+    }
+
+  /* SSID element is mandatory */
+
+  if (ssid == NULL || ssid[1] > IEEE80211_NWID_LEN)
+    {
+      ndbg("ERROR: invalid SSID element\n");
+      return;
+    }
+
+  ndx = (chan >> 3);
+  bit = (chan & 7);
+
+  if (
 #if IEEE80211_CHAN_MAX < 255
-        chan > IEEE80211_CHAN_MAX ||
-#endif
-        isclr(ic->ic_chan_active, chan)) {
-        ndbg("ERROR: ignore %s with invalid channel %u\n",
-            isprobe ? "probe response" : "beacon", chan);
-        ic->ic_stats.is_rx_badchan++;
-        return;
+      chan > IEEE80211_CHAN_MAX ||
+#endifg
+      (ic->ic_chan_active[ndx] & (1 << bit)) == 0)
+    {
+      ndbg("ERROR: ignore %s with invalid channel %u\n",
+          isprobe ? "probe response" : "beacon", chan);
+
+      ic->ic_stats.is_rx_badchan++;
+      return;
     }
-    if ((ic->ic_state != IEEE80211_S_SCAN ||
-         !(ic->ic_caps & IEEE80211_C_SCANALL)) &&
-        chan != bchan) {
-        /*
-         * Frame was received on a channel different from the
-         * one indicated in the DS params element id;
-         * silently discard it.
-         *
-         * NB: this can happen due to signal leakage.
-         */
-        ndbg("ERROR: ignore %s on channel %u marked for channel %u\n",
-            isprobe ? "probe response" : "beacon", bchan, chan);
-        ic->ic_stats.is_rx_chanmismatch++;
-        return;
+
+  if ((ic->ic_state != IEEE80211_S_SCAN ||
+       !(ic->ic_caps & IEEE80211_C_SCANALL)) &&
+      chan != bchan)
+    {
+      /* Frame was received on a channel different from the
+       * one indicated in the DS params element id;
+       * silently discard it.
+       *
+       * NB: this can happen due to signal leakage.
+       */
+
+      ndbg("ERROR: ignore %s on channel %u marked for channel %u\n",
+          isprobe ? "probe response" : "beacon", bchan, chan);
+
+      ic->ic_stats.is_rx_chanmismatch++;
+      return;
     }
-    /*
-     * Use mac, channel and rssi so we collect only the
-     * best potential AP with the equal bssid while scanning.
-     * Collecting all potential APs may result in bloat of
-     * the node tree. This call will return NULL if the node
-     * for this APs does not exist or if the new node is the
-     * potential better one.
-     */
-    if ((ni = ieee80211_find_node_for_beacon(ic, wh->i_addr2,
-        &ic->ic_channels[chan], ssid, rxi->rxi_rssi)) != NULL)
-        return;
+
+  /* Use mac, channel and rssi so we collect only the
+   * best potential AP with the equal bssid while scanning.
+   * Collecting all potential APs may result in bloat of
+   * the node tree. This call will return NULL if the node
+   * for this APs does not exist or if the new node is the
+   * potential better one.
+   */
+
+  if ((ni = ieee80211_find_node_for_beacon(ic, wh->i_addr2,
+      &ic->ic_channels[chan], ssid, rxi->rxi_rssi)) != NULL)
+    {
+      return;
+    }
 
 #ifdef CONFIG_DEBUG_NET
-    if ((ni == NULL || ic->ic_state == IEEE80211_S_SCAN))
-      {
-        nvdbg("%s: %s%s on chan %u (bss chan %u) ",
-            __func__, (ni == NULL ? "new " : ""),
+  if ((ni == NULL || ic->ic_state == IEEE80211_S_SCAN))
+    {
+      nvdbg("%s%s on chan %u (bss chan %u) ",
+            (ni == NULL ? "new " : ""),
             isprobe ? "probe response" : "beacon",
             chan, bchan);
-        ieee80211_print_essid(ssid + 2, ssid[1]);
-        nvdbg(" from %s\n", ieee80211_addr2str((uint8_t *)wh->i_addr2));
-        nvdbg("%s: caps 0x%x bintval %u erp 0x%x\n",
-            __func__, capinfo, bintval, erp);
-      }
+
+      ieee80211_print_essid(ssid + 2, ssid[1]);
+
+      nvdbg(" from %s\n", ieee80211_addr2str((uint8_t *)wh->i_addr2));
+      nvdbg("caps 0x%x bintval %u erp 0x%x\n",
+            capinfo, bintval, erp);
+    }
 #endif
 
-    if ((ni = ieee80211_find_node(ic, wh->i_addr2)) == NULL) {
-        ni = ieee80211_alloc_node(ic, wh->i_addr2);
-        if (ni == NULL)
-            return;
-        is_new = 1;
-    } else
-        is_new = 0;
+  if ((ni = ieee80211_find_node(ic, wh->i_addr2)) == NULL)
+    {
+      ni = ieee80211_alloc_node(ic, wh->i_addr2);
+      if (ni == NULL)
+        {
+          return;
+        }
 
-    /*
-     * When operating in station mode, check for state updates
-     * while we're associated. We consider only 11g stuff right
-     * now.
-     */
-    if (ic->ic_opmode == IEEE80211_M_STA &&
-        ic->ic_state == IEEE80211_S_RUN &&
-        ni->ni_state == IEEE80211_STA_BSS) {
-        /*
-         * Check if protection mode has changed since last beacon.
-         */
-        if (ni->ni_erp != erp) {
-            nvdbg("[%s] erp change: was 0x%x, now 0x%x\n",
-                ieee80211_addr2str((uint8_t *)wh->i_addr2),
-                ni->ni_erp, erp);
-            if (ic->ic_curmode == IEEE80211_MODE_11G &&
-                (erp & IEEE80211_ERP_USE_PROTECTION))
-                ic->ic_flags |= IEEE80211_F_USEPROT;
-            else
-                ic->ic_flags &= ~IEEE80211_F_USEPROT;
-            ic->ic_bss->ni_erp = erp;
-        }
-        /*
-         * Check if AP short slot time setting has changed
-         * since last beacon and give the driver a chance to
-         * update the hardware.
-         */
-        if ((ni->ni_capinfo ^ capinfo) &
-            IEEE80211_CAPINFO_SHORT_SLOTTIME) {
-            ieee80211_set_shortslottime(ic,
-                ic->ic_curmode == IEEE80211_MODE_11A ||
-                (capinfo & IEEE80211_CAPINFO_SHORT_SLOTTIME));
-        }
+      is_new = 1;
     }
-    /*
-     * We do not try to update EDCA parameters if QoS was not negotiated
-     * with the AP at association time.
-     */
-    if (ni->ni_flags & IEEE80211_NODE_QOS) {
-        /* always prefer EDCA IE over Wi-Fi Alliance WMM IE */
-        if (edcaie != NULL)
-            ieee80211_parse_edca_params(ic, edcaie);
-        else if (wmmie != NULL)
-            ieee80211_parse_wmm_params(ic, wmmie);
+  else
+    {
+      is_new = 0;
     }
 
-    if (ic->ic_state == IEEE80211_S_SCAN &&
-#ifdef CONFIG_IEEE80211_AP
-        ic->ic_opmode != IEEE80211_M_HOSTAP &&
-#endif
-        (ic->ic_flags & IEEE80211_F_RSNON)) {
-        struct ieee80211_rsnparams rsn;
-        const uint8_t *saveie = NULL;
-        /*
-         * If the AP advertises both RSN and WPA IEs (WPA1+WPA2),
-         * we only store the parameters of the highest protocol
-         * version we support.
-         */
-        if (rsnie != NULL &&
-            (ic->ic_rsnprotos & IEEE80211_PROTO_RSN)) {
-            if (ieee80211_parse_rsn(ic, rsnie, &rsn) == 0) {
-                ni->ni_rsnprotos = IEEE80211_PROTO_RSN;
-                saveie = rsnie;
+  /* When operating in station mode, check for state updates while we're
+   * associated. We consider only 11g stuff right now.
+   */
+
+  if (ic->ic_opmode == IEEE80211_M_STA &&
+      ic->ic_state == IEEE80211_S_RUN &&
+      ni->ni_state == IEEE80211_STA_BSS)
+    {
+      /* Check if protection mode has changed since last beacon */
+
+      if (ni->ni_erp != erp)
+        {
+          nvdbg("[%s] erp change: was 0x%x, now 0x%x\n",
+              ieee80211_addr2str((uint8_t *)wh->i_addr2),
+              ni->ni_erp, erp);
+
+          if (ic->ic_curmode == IEEE80211_MODE_11G &&
+              (erp & IEEE80211_ERP_USE_PROTECTION))
+            {
+              ic->ic_flags |= IEEE80211_F_USEPROT;
             }
-        } else if (wpaie != NULL &&
-            (ic->ic_rsnprotos & IEEE80211_PROTO_WPA)) {
-            if (ieee80211_parse_wpa(ic, wpaie, &rsn) == 0) {
-                ni->ni_rsnprotos = IEEE80211_PROTO_WPA;
-                saveie = wpaie;
+          else
+            {
+              ic->ic_flags &= ~IEEE80211_F_USEPROT;
+            }
+
+          ic->ic_bss->ni_erp = erp;
+        }
+
+      /* Check if AP short slot time setting has changed since last beacon
+       * and give the driver a chance to update the hardware.
+       */
+
+      if ((ni->ni_capinfo ^ capinfo) & IEEE80211_CAPINFO_SHORT_SLOTTIME)
+        {
+          ieee80211_set_shortslottime(ic,
+              ic->ic_curmode == IEEE80211_MODE_11A ||
+              (capinfo & IEEE80211_CAPINFO_SHORT_SLOTTIME));
+        }
+    }
+
+  /* We do not try to update EDCA parameters if QoS was not negotiated
+   * with the AP at association time.
+   */
+
+  if (ni->ni_flags & IEEE80211_NODE_QOS)
+    {
+      /* Always prefer EDCA IE over Wi-Fi Alliance WMM IE */
+
+      if (edcaie != NULL)
+        {
+          ieee80211_parse_edca_params(ic, edcaie);
+        }
+      else if (wmmie != NULL)
+        {
+          ieee80211_parse_wmm_params(ic, wmmie);
+        }
+    }
+
+  if (ic->ic_state == IEEE80211_S_SCAN &&
+#ifdef CONFIG_IEEE80211_AP
+      ic->ic_opmode != IEEE80211_M_HOSTAP &&
+#endif
+      (ic->ic_flags & IEEE80211_F_RSNON))
+    {
+      struct ieee80211_rsnparams rsn;
+      const uint8_t *saveie = NULL;
+
+      /* If the AP advertises both RSN and WPA IEs (WPA1+WPA2),
+       * we only store the parameters of the highest protocol
+       * version we support.
+       */
+
+      if (rsnie != NULL && (ic->ic_rsnprotos & IEEE80211_PROTO_RSN))
+        {
+          if (ieee80211_parse_rsn(ic, rsnie, &rsn) == 0)
+            {
+              ni->ni_rsnprotos = IEEE80211_PROTO_RSN;
+              saveie = rsnie;
             }
         }
-        if (saveie != NULL &&
-            ieee80211_save_ie(saveie, &ni->ni_rsnie) == 0) {
-            ni->ni_rsnakms = rsn.rsn_akms;
-            ni->ni_rsnciphers = rsn.rsn_ciphers;
-            ni->ni_rsngroupcipher = rsn.rsn_groupcipher;
-            ni->ni_rsngroupmgmtcipher = rsn.rsn_groupmgmtcipher;
-            ni->ni_rsncaps = rsn.rsn_caps;
-        } else
-            ni->ni_rsnprotos = IEEE80211_PROTO_NONE;
-    } else if (ic->ic_state == IEEE80211_S_SCAN)
-        ni->ni_rsnprotos = IEEE80211_PROTO_NONE;
+      else if (wpaie != NULL && (ic->ic_rsnprotos & IEEE80211_PROTO_WPA))
+        {
+          if (ieee80211_parse_wpa(ic, wpaie, &rsn) == 0)
+            {
+              ni->ni_rsnprotos = IEEE80211_PROTO_WPA;
+              saveie = wpaie;
+            }
+        }
 
-    if (ssid[1] != 0 && ni->ni_esslen == 0) {
-        ni->ni_esslen = ssid[1];
-        memset(ni->ni_essid, 0, sizeof(ni->ni_essid));
-        /* we know that ssid[1] <= IEEE80211_NWID_LEN */
-        memcpy(ni->ni_essid, &ssid[2], ssid[1]);
+      if (saveie != NULL && ieee80211_save_ie(saveie, &ni->ni_rsnie) == 0)
+        {
+          ni->ni_rsnakms = rsn.rsn_akms;
+          ni->ni_rsnciphers = rsn.rsn_ciphers;
+          ni->ni_rsngroupcipher = rsn.rsn_groupcipher;
+          ni->ni_rsngroupmgmtcipher = rsn.rsn_groupmgmtcipher;
+          ni->ni_rsncaps = rsn.rsn_caps;
+        }
+      else
+        {
+          ni->ni_rsnprotos = IEEE80211_PROTO_NONE;
+        }
     }
-    IEEE80211_ADDR_COPY(ni->ni_bssid, wh->i_addr3);
-    ni->ni_rssi = rxi->rxi_rssi;
-    ni->ni_rstamp = rxi->rxi_tstamp;
-    memcpy(ni->ni_tstamp, tstamp, sizeof(ni->ni_tstamp));
-    ni->ni_intval = bintval;
-    ni->ni_capinfo = capinfo;
-    /* XXX validate channel # */
-    ni->ni_chan = &ic->ic_channels[chan];
-    ni->ni_erp = erp;
-    /* NB: must be after ni_chan is setup */
-    ieee80211_setup_rates(ic, ni, rates, xrates, IEEE80211_F_DOSORT);
+  else if (ic->ic_state == IEEE80211_S_SCAN)
+    {
+      ni->ni_rsnprotos = IEEE80211_PROTO_NONE;
+    }
 
-    /*
-     * When scanning we record results (nodes) with a zero
-     * refcnt.  Otherwise we want to hold the reference for
-     * ibss neighbors so the nodes don't get released prematurely.
-     * Anything else can be discarded (XXX and should be handled
-     * above so we don't do so much work).
-     */
-    if (
+  if (ssid[1] != 0 && ni->ni_esslen == 0)
+    {
+      ni->ni_esslen = ssid[1];
+      memset(ni->ni_essid, 0, sizeof(ni->ni_essid));
+
+      /* We know that ssid[1] <= IEEE80211_NWID_LEN */
+
+      memcpy(ni->ni_essid, &ssid[2], ssid[1]);
+    }
+
+  IEEE80211_ADDR_COPY(ni->ni_bssid, wh->i_addr3);
+  ni->ni_rssi = rxi->rxi_rssi;
+  ni->ni_rstamp = rxi->rxi_tstamp;
+  memcpy(ni->ni_tstamp, tstamp, sizeof(ni->ni_tstamp));
+  ni->ni_intval = bintval;
+  ni->ni_capinfo = capinfo;
+
+  /* XXX validate channel # */
+
+  ni->ni_chan = &ic->ic_channels[chan];
+  ni->ni_erp = erp;
+
+  /* NB: must be after ni_chan is setup */
+
+  ieee80211_setup_rates(ic, ni, rates, xrates, IEEE80211_F_DOSORT);
+
+  /* When scanning we record results (nodes) with a zero
+   * refcnt.  Otherwise we want to hold the reference for
+   * ibss neighbors so the nodes don't get released prematurely.
+   * Anything else can be discarded (XXX and should be handled
+   * above so we don't do so much work).
+   */
+
+  if (
 #ifdef CONFIG_IEEE80211_AP
-        ic->ic_opmode == IEEE80211_M_IBSS ||
+      ic->ic_opmode == IEEE80211_M_IBSS ||
 #endif
-        (is_new && isprobe)) {
-        /*
-         * Fake an association so the driver can setup it's
-         * private state.  The rate set has been setup above;
-         * there is no handshake as in ap/station operation.
-         */
-        if (ic->ic_newassoc)
-            (*ic->ic_newassoc)(ic, ni, 1);
+      (is_new && isprobe))
+    {
+      /* Fake an association so the driver can setup it's
+       * private state.  The rate set has been setup above;
+       * there is no handshake as in ap/station operation.
+       */
+
+      if (ic->ic_newassoc)
+        {
+          (*ic->ic_newassoc)(ic, ni, 1);
+        }
     }
 }
 

@@ -637,6 +637,7 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
     };
     const struct ieee80211_channel *c;
     unsigned int modeflags;
+    int ibss;
     int ndx;
     int bit;
     int i;
@@ -700,31 +701,39 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
      * not the right one.
      */
 
-    if (ic->ic_ibss_chan == NULL ||
-        isclr(ic->ic_chan_active, ieee80211_chan2ieee(ic, ic->ic_ibss_chan)))
+    ibss =  ieee80211_chan2ieee(ic, ic->ic_ibss_chan);
+    ndx  = (ibss >> 3);
+    bit  = (ibss & 7);
+
+    if (ic->ic_ibss_chan == NULL || (ic->ic_chan_active[ndx] & (1 << bit)) == 0)
       {
         for (i = 0; i <= IEEE80211_CHAN_MAX; i++)
           {
-            if (isset(ic->ic_chan_active, i))
+            ndx = (i >> 3);
+            bit = (i & 7);
+
+            if ((ic->ic_chan_active[ndx] & (1 << i)) != 0)
               {
                 ic->ic_ibss_chan = &ic->ic_channels[i];
                 break;
               }
           }
 
-        if ((ic->ic_ibss_chan == NULL) ||
-            isclr(ic->ic_chan_active, ieee80211_chan2ieee(ic, ic->ic_ibss_chan)))
+        ibss = ieee80211_chan2ieee(ic, ic->ic_ibss_chan);
+        ndx  = (ibss >> 3);
+        bit  = (ibss & 7);
+
+        if ((ic->ic_ibss_chan == NULL) || (ic->ic_chan_active[ndx] & (1 << bit)) == 0)
           {
-            ndbg("ERROR: Bad IBSS channel %u",
-                 ieee80211_chan2ieee(ic, ic->ic_ibss_chan));
+            ndbg("ERROR: Bad IBSS channel %u", ibss);
             PANIC();
           }
       }
 
-    /*
-     * Reset the scan state for the new mode. This avoids scanning
+    /* Reset the scan state for the new mode. This avoids scanning
      * of invalid channels, ie. 5GHz channels in 11b mode.
      */
+
     ieee80211_reset_scan(ic);
 
     ic->ic_curmode = mode;
@@ -919,7 +928,7 @@ uint8_t ieee80211_rate2plcp(uint8_t rate, enum ieee80211_phymode mode)
           return 110;
 
         /* IEEE Std 802.11g-2003 page 19, subclause 19.3.2.1 */
- 
+
         case 44:
           return 220;
       }

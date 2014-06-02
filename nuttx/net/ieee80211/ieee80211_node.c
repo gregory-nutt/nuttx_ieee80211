@@ -265,7 +265,7 @@ void ieee80211_begin_scan(truct ieee80211com *ic)
   nvdbg("%s: begin %s scan\n",
         ic->ic_ifname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
 
-  /* Flush any previously seen AP's. Note that the latter 
+  /* Flush any previously seen AP's. Note that the latter
    * assumes we don't act as both an AP and a station,
    * otherwise we'll potentially flush state of stations
    * associated with us.
@@ -290,8 +290,8 @@ void ieee80211_begin_scan(truct ieee80211com *ic)
 void ieee80211_next_scan(struct ieee80211com *ic)
 {
   struct ieee80211_channel *chan;
-  int tmp;
-  int byte;
+  int ibss;
+  int ndx;
   int bit;
 
   chan = ic->ic_bss->ni_chan;
@@ -302,7 +302,11 @@ void ieee80211_next_scan(struct ieee80211com *ic)
           chan = &ic->ic_channels[0];
         }
 
-      if (isset(ic->ic_chan_scan, ieee80211_chan2ieee(ic, chan)))
+      ibss = ieee80211_chan2ieee(ic, chan);
+      ndx  = (ibss >> 3);
+      bit  = (ibss & 7);
+
+      if ((ic->ic_chan_scan[ndx] & (1 << bit)) != 0)
         {
           /* Ignore channels marked passive-only during an active scan */
 
@@ -320,10 +324,10 @@ void ieee80211_next_scan(struct ieee80211com *ic)
         }
     }
 
-  tmp  = ieee80211_chan2ieee(ic, chan);
-  byte = (tmp >> 3);
-  bit  = (tmp & 7);
-  ic->ic_chan_scan[byte] &= ~(1 << bit);
+  ibss = ieee80211_chan2ieee(ic, chan);
+  ndx  = (ibss >> 3);
+  bit  = (ibss & 7);
+  ic->ic_chan_scan[ndx] &= ~(1 << bit);
 
   nvdbg("chan %d->%d\n",
       ieee80211_chan2ieee(ic, ic->ic_bss->ni_chan),
@@ -423,10 +427,20 @@ int ieee80211_match_bss(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
   uint8_t rate;
   int fail;
+  int ibss;
+  int ndx;
+  int bit
 
   fail = 0;
-  if (isclr(ic->ic_chan_active, ieee80211_chan2ieee(ic, ni->ni_chan)))
+  ibss = ieee80211_chan2ieee(ic, ni->ni_chan);
+  ndx  = (ibss >> 3);
+  bit  = (ibss & 7);
+
+  if ((ic->ic_chan_active[ndx] & (1 << bit)) == 0)
+    {
       fail |= 0x01;
+    }
+
   if (ic->ic_des_chan != IEEE80211_CHAN_ANYC &&
       ni->ni_chan != ic->ic_des_chan)
       fail |= 0x01;
@@ -537,6 +551,8 @@ int ieee80211_match_bss(struct ieee80211com *ic, struct ieee80211_node *ni)
 void ieee80211_end_scan(struct ieee80211com *ic)
 {
   struct ieee80211_node *ni, *nextbs, *selbs;
+  int ndx;
+  int bit;
 
   nvdbg("%s: end %s scan\n",
        ic->ic_ifname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
@@ -566,15 +582,20 @@ void ieee80211_end_scan(struct ieee80211com *ic)
       RB_FOREACH(ni, ieee80211_tree, &ic->ic_tree)
         {
           int chan = ieee80211_chan2ieee(ic, ni->ni_chan)
-          int ndx  = (chan >> 3);
-          int bit  = (chan & 7);
+
+          ndx  = (chan >> 3);
+          bit  = (chan & 7);
 
           occupied[ndx] |= (1 << bit);
         }
 
       for (i = 0; i < IEEE80211_CHAN_MAX; i++)
         {
-          if (isset(ic->ic_chan_active, i) && isclr(occupied, i))
+          ndx  = (chan >> 3);
+          bit  = (chan & 7);
+
+          if ((ic->ic_chan_active[ndx] & (1 << bit)) != 0 &&
+              (ic->occupied[ndx] & (1 << bit)) == 0)
             {
               break;
             }
@@ -585,7 +606,10 @@ void ieee80211_end_scan(struct ieee80211com *ic)
           fail = arc4random() & 3;    /* random 0-3 */
           for (i = 0; i < IEEE80211_CHAN_MAX; i++)
             {
-              if (isset(ic->ic_chan_active, i) && fail-- == 0)
+              ndx  = (i >> 3);
+              bit  = (i & 7);
+
+              if ((ic->ic_chan_active[ndx} & (1 << bit)) != 0 && fail-- == 0)
                 {
                   break;
                 }
