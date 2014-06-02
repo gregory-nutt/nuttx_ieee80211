@@ -88,30 +88,36 @@ struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct 
     struct ieee80211_wep_ctx *ctx = k->k_priv;
     uint8_t wepseed[16];
     const struct ieee80211_frame *wh;
-    struct ieee80211_iobuf_s *n0, *m, *n;
+    struct ieee80211_iobuf_s *next0, *iob, *next;
     uint8_t *ivp, *icvp;
     uint32_t iv, crc;
     int left, moff, noff, len, hdrlen;
 
-    MGET(n0, M_DONTWAIT, m0->m_type);
-    if (n0 == NULL)
+    next0 = ieee80211_ioalloc();
+    if (next0 == NULL)
+      {
         goto nospace;
-    if (m_dup_pkthdr(n0, m0, M_DONTWAIT))
+      }
+
+    if (m_dup_pkthdr(next0, m0, M_DONTWAIT))
+      {
         goto nospace;
-    n0->m_pktlen += IEEE80211_WEP_HDRLEN;
-    n0->m_len = MHLEN;
-    if (n0->m_pktlen >= MINCLSIZE - IEEE80211_WEP_CRCLEN) {
-        MCLGET(n0, M_DONTWAIT);
-        if (n0->m_flags & M_EXT)
-            n0->m_len = n0->m_ext.ext_size;
+      }
+
+    next0->m_pktlen += IEEE80211_WEP_HDRLEN;
+    next0->m_len = MHLEN;
+    if (next0->m_pktlen >= MINCLSIZE - IEEE80211_WEP_CRCLEN) {
+        MCLGET(next0, M_DONTWAIT);
+        if (next0->m_flags & M_EXT)
+            next0->m_len = next0->m_ext.ext_size;
     }
-    if (n0->m_len > n0->m_pktlen)
-        n0->m_len = n0->m_pktlen;
+    if (next0->m_len > next0->m_pktlen)
+        next0->m_len = next0->m_pktlen;
 
     /* copy 802.11 header */
     wh = mtod(m0, struct ieee80211_frame *);
     hdrlen = ieee80211_get_hdrlen(wh);
-    memcpy(mtod(n0, void *), wh, hdrlen);
+    memcpy(mtod(next0, void *), wh, hdrlen);
 
     /* select a new IV for every MPDU */
     iv = (ctx->iv != 0) ? ctx->iv : arc4random();
@@ -119,7 +125,7 @@ struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct 
     if (iv >= 0x03ff00 && (iv & 0xf8ff00) == 0x00ff00)
         iv += 0x000100;
     ctx->iv = iv + 1;
-    ivp = mtod(n0, uint8_t *) + hdrlen;
+    ivp = mtod(next0, uint8_t *) + hdrlen;
     ivp[0] = iv;
     ivp[1] = iv >> 8;
     ivp[2] = iv >> 16;
@@ -131,48 +137,59 @@ struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct 
     rc4_keysetup(&ctx->rc4, wepseed, IEEE80211_WEP_IVLEN + k->k_len);
 
     /* encrypt frame body and compute WEP ICV */
-    m = m0;
-    n = n0;
+    iob = m0;
+    next = next0;
     moff = hdrlen;
     noff = hdrlen + IEEE80211_WEP_HDRLEN;
     left = m0->m_pktlen - moff;
     crc = ~0;
     while (left > 0)
       {
-        if (moff == m->m_len)
+        if (moff == iob->m_len)
           {
-            /* Nothing left to copy from m */
+            /* Nothing left to copy from iob */
 
-            m = (struct ieee80211_iobuf_s *)m->m_link.flink;
+            iob = (struct ieee80211_iobuf_s *)iob->m_link.flink;
             moff = 0;
           }
 
-        if (noff == n->m_len)
+        if (noff == next->m_len)
           {
-            /* n is full and there's more data to copy */
+            struct ieee80211_iobuf_s *newbuf;
 
-            MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
-            if (n->m_link.flink == NULL)
+            /* next is full and there's more data to copy */
+
+            newbuf = ieee80211_ioalloc();
+            if newbuf == NULL)
               {
                 goto nospace;
               }
 
-            n = (struct ieee80211_iobuf_s *)n->m_link.flink;
-            n->m_len = MLEN;
-            if (left >= MINCLSIZE - IEEE80211_WEP_CRCLEN) {
-                MCLGET(n, M_DONTWAIT);
-                if (n->m_flags & M_EXT)
-                    n->m_len = n->m_ext.ext_size;
-            }
-            if (n->m_len > left)
-                n->m_len = left;
+            next->m_link.flink = (sq_entry_t *)newbuf;
+            next = newbuf;
+            next->m_len = 0;
+
+            if (left >= MINCLSIZE - IEEE80211_WEP_CRCLEN)
+              {
+                MCLGET(next, M_DONTWAIT);
+                if (next->m_flags & M_EXT)
+                  {
+                    next->m_len = next->m_ext.ext_size;
+                  }
+              }
+
+            if (next->m_len > left)
+              {
+                next->m_len = left;
+              }
+
             noff = 0;
         }
-        len = min(m->m_len - moff, n->m_len - noff);
+        len = min(iob->m_len - moff, next->m_len - noff);
 
-        crc = ether_crc32_le_update(crc, mtod(m, void *) + moff, len);
-        rc4_crypt(&ctx->rc4, mtod(m, void *) + moff,
-            mtod(n, void *) + noff, len);
+        crc = ether_crc32_le_update(crc, mtod(iob, void *) + moff, len);
+        rc4_crypt(&ctx->rc4, mtod(iob, void *) + moff,
+            mtod(next, void *) + noff, len);
 
         moff += len;
         noff += len;
@@ -181,36 +198,40 @@ struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct 
 
     /* reserve trailing space for WEP ICV */
 
-    if (M_TRAILINGSPACE(n) < IEEE80211_WEP_CRCLEN)
+    if (M_TRAILINGSPACE(next) < IEEE80211_WEP_CRCLEN)
       {
-        MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
-        if (n->m_link.flink == NULL)
+        struct ieee80211_iobuf_s *newbuf;
+
+        newbuf = ieee80211_ioalloc();
+        if (newbuf == NULL)
           {
             goto nospace;
           }
 
-        n = (struct ieee80211_iobuf_s *)n->m_link.flink;
-        n->m_len = 0;
-    }
+        next->m_link.flink = (sq_entry_t *)newbuf;
+        next = newbuf;
+        next->m_len = 0;
+      }
 
-    /* finalize WEP ICV */
-    icvp = mtod(n, void *) + n->m_len;
+    /* Finalize WEP ICV */
+
+    icvp = mtod(next, void *) + next->m_len;
     crc = ~crc;
     icvp[0] = crc;
     icvp[1] = crc >> 8;
     icvp[2] = crc >> 16;
     icvp[3] = crc >> 24;
     rc4_crypt(&ctx->rc4, icvp, icvp, IEEE80211_WEP_CRCLEN);
-    n->m_len += IEEE80211_WEP_CRCLEN;
-    n0->m_pktlen += IEEE80211_WEP_CRCLEN;
+    next->m_len += IEEE80211_WEP_CRCLEN;
+    next0->m_pktlen += IEEE80211_WEP_CRCLEN;
 
     ieee80211_iofree(m0);
-    return n0;
+    return next0;
  nospace:
     ic->ic_stats.is_tx_nombuf++;
     ieee80211_iofree(m0);
-    if (n0 != NULL)
-        ieee80211_iofree(n0);
+    if (next0 != NULL)
+        ieee80211_iofree(next0);
     return NULL;
 }
 
@@ -222,7 +243,7 @@ struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct 
     uint8_t wepseed[16];
     uint32_t crc, crc0;
     uint8_t *ivp;
-    struct ieee80211_iobuf_s *n0, *m, *n;
+    struct ieee80211_iobuf_s *next0, *iob, *next;
     int hdrlen, left, moff, noff, len;
 
     wh = mtod(m0, struct ieee80211_frame *);
@@ -239,73 +260,88 @@ struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct 
     memcpy(wepseed + IEEE80211_WEP_IVLEN, k->k_key, k->k_len);
     rc4_keysetup(&ctx->rc4, wepseed, IEEE80211_WEP_IVLEN + k->k_len);
 
-    MGET(n0, M_DONTWAIT, m0->m_type);
-    if (n0 == NULL)
+    next0 = ieee80211_ioalloc();
+    if (next0 == NULL)
+      {
         goto nospace;
-    if (m_dup_pkthdr(n0, m0, M_DONTWAIT))
-        goto nospace;
-    n0->m_pktlen -= IEEE80211_WEP_TOTLEN;
-    n0->m_len = MHLEN;
-    if (n0->m_pktlen >= MINCLSIZE) {
-        MCLGET(n0, M_DONTWAIT);
-        if (n0->m_flags & M_EXT)
-            n0->m_len = n0->m_ext.ext_size;
-    }
-    if (n0->m_len > n0->m_pktlen)
-        n0->m_len = n0->m_pktlen;
+      }
 
-    /* copy 802.11 header and clear protected bit */
-    memcpy(mtod(n0, void *), wh, hdrlen);
-    wh = mtod(n0, struct ieee80211_frame *);
+    if (m_dup_pkthdr(next0, m0, M_DONTWAIT))
+      {
+        goto nospace;
+      }
+
+    next0->m_pktlen -= IEEE80211_WEP_TOTLEN;
+    next0->m_len = MHLEN;
+    if (next0->m_pktlen >= MINCLSIZE) {
+        MCLGET(next0, M_DONTWAIT);
+        if (next0->m_flags & M_EXT)
+            next0->m_len = next0->m_ext.ext_size;
+    }
+    if (next0->m_len > next0->m_pktlen)
+        next0->m_len = next0->m_pktlen;
+
+    /* Copy 802.11 header and clear protected bit */
+
+    memcpy(mtod(next0, void *), wh, hdrlen);
+    wh = mtod(next0, struct ieee80211_frame *);
     wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 
-    /* decrypt frame body and compute WEP ICV */
-    m = m0;
-    n = n0;
+    /* Decrypt frame body and compute WEP ICV */
+
+    iob = m0;
+    next = next0;
     moff = hdrlen + IEEE80211_WEP_HDRLEN;
     noff = hdrlen;
-    left = n0->m_pktlen - noff;
+    left = next0->m_pktlen - noff;
     crc = ~0;
     while (left > 0)
       {
-        if (moff == m->m_len)
+        if (moff == iob->m_len)
           {
-            /* Nothing left to copy from m */
+            /* Nothing left to copy from iob */
 
-            m =(struct ieee80211_iobuf_s *) m->m_link.flink;
+            iob =(struct ieee80211_iobuf_s *) iob->m_link.flink;
             moff = 0;
           }
 
-        if (noff == n->m_len)
+        if (noff == next->m_len)
           {
-            /* n is full and there's more data to copy */
+            struct ieee80211_iobuf_s *newbuf;
 
-            MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
-            if (n->m_link.flink == NULL)
+            /* next is full and there's more data to copy */
+
+            newbuf = ieee80211_ioalloc();
+            if (newbuf == NULL)
               {
                 goto nospace;
               }
 
-            n = (struct ieee80211_iobuf_s *)n->m_link.flink;
-            n->m_len = MLEN;
+            next->m_link.flink = (sq_entry_t *)newbuf;
+            next = newbuf;
+            next->m_len = 0;
+
             if (left >= MINCLSIZE)
               {
-                MCLGET(n, M_DONTWAIT);
-                if (n->m_flags & M_EXT)
+                MCLGET(next, M_DONTWAIT);
+                if (next->m_flags & M_EXT)
                   {
-                    n->m_len = n->m_ext.ext_size;
+                    next->m_len = next->m_ext.ext_size;
                   }
               }
 
-            if (n->m_len > left)
-                n->m_len = left;
+            if (next->m_len > left)
+              {
+                next->m_len = left;
+              }
+
             noff = 0;
         }
-        len = min(m->m_len - moff, n->m_len - noff);
+        len = min(iob->m_len - moff, next->m_len - noff);
 
-        rc4_crypt(&ctx->rc4, mtod(m, void *) + moff,
-            mtod(n, void *) + noff, len);
-        crc = ether_crc32_le_update(crc, mtod(n, void *) + noff, len);
+        rc4_crypt(&ctx->rc4, mtod(iob, void *) + moff,
+            mtod(next, void *) + noff, len);
+        crc = ether_crc32_le_update(crc, mtod(next, void *) + noff, len);
 
         moff += len;
         noff += len;
@@ -313,23 +349,23 @@ struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct 
     }
 
     /* decrypt ICV and compare it with calculated ICV */
-    m_copydata(m, moff, IEEE80211_WEP_CRCLEN, (void *)&crc0);
+    m_copydata(iob, moff, IEEE80211_WEP_CRCLEN, (void *)&crc0);
     rc4_crypt(&ctx->rc4, (void *)&crc0, (void *)&crc0,
         IEEE80211_WEP_CRCLEN);
     crc = ~crc;
     if (crc != letoh32(crc0)) {
         ic->ic_stats.is_rx_decryptcrc++;
         ieee80211_iofree(m0);
-        ieee80211_iofree(n0);
+        ieee80211_iofree(next0);
         return NULL;
     }
 
     ieee80211_iofree(m0);
-    return n0;
+    return next0;
  nospace:
     ic->ic_stats.is_rx_nombuf++;
     ieee80211_iofree(m0);
-    if (n0 != NULL)
-        ieee80211_iofree(n0);
+    if (next0 != NULL)
+        ieee80211_iofree(next0);
     return NULL;
 }

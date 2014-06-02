@@ -146,7 +146,7 @@ ieee80211_node_attach(struct ieee80211com *ic)
     {
       /* XXX no way to recover */
 
-      nvdbg("%s: no memory for AID bitmap!\n", __func__);
+      nvdbg("No memory for AID bitmap!\n");
       ic->ic_max_aid = 0;
     }
 
@@ -155,7 +155,7 @@ ieee80211_node_attach(struct ieee80211com *ic)
       ic->ic_tim_bitmap = kmalloc(ic->ic_tim_len);
       if (ic->ic_tim_bitmap == NULL)
         {
-          nvdbg("%s: no memory for TIM bitmap!\n", __func__);
+          nvdbg("No memory for TIM bitmap!\n");
           ic->ic_tim_len = 0;
         }
       else
@@ -1141,7 +1141,7 @@ void ieee80211_free_node(struct ieee80211com *ic, struct ieee80211_node *ni)
 #ifdef CONFIG_IEEE80211_AP
   if (!sq_empty(&ni->ni_savedq))
     {
-      ieee80211_ifpurge(&ni->ni_savedq);
+      ieee80211_iopurge(&ni->ni_savedq);
       if (ic->ic_set_tim != NULL)
         {
           (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
@@ -1647,7 +1647,7 @@ void ieee80211_node_leave(struct ieee80211com *ic, struct ieee80211_node *ni)
 
   if (!sq_empty(&ni->ni_savedq))
     {
-      ieee80211_ifpurge(&ni->ni_savedq);
+      ieee80211_iopurge(&ni->ni_savedq);
       if (ic->ic_set_tim != NULL)
         {
           (*ic->ic_set_tim)(ic, ni->ni_associd, 0);

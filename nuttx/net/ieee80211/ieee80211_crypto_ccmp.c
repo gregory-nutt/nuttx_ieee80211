@@ -172,35 +172,41 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct
     const uint8_t *src;
     uint8_t *ivp, *mic, *dst;
     uint8_t a[16], b[16], s0[16], s[16];
-    struct ieee80211_iobuf_s *n0, *m, *n;
+    struct ieee80211_iobuf_s *next0, *iob, *next;
     int hdrlen, left, moff, noff, len;
     uint16_t ctr;
     int i, j;
 
-    MGET(n0, M_DONTWAIT, m0->m_type);
-    if (n0 == NULL)
+    next0 = ieee80211_ioalloc();
+    if (next0 == NULL)
+      {
         goto nospace;
-    if (m_dup_pkthdr(n0, m0, M_DONTWAIT))
+      }
+
+    if (m_dup_pkthdr(next0, m0, M_DONTWAIT))
+      {
         goto nospace;
-    n0->m_pktlen += IEEE80211_CCMP_HDRLEN;
-    n0->m_len = MHLEN;
-    if (n0->m_pktlen >= MINCLSIZE - IEEE80211_CCMP_MICLEN) {
-        MCLGET(n0, M_DONTWAIT);
-        if (n0->m_flags & M_EXT)
-            n0->m_len = n0->m_ext.ext_size;
+      }
+
+    next0->m_pktlen += IEEE80211_CCMP_HDRLEN;
+    next0->m_len = MHLEN;
+    if (next0->m_pktlen >= MINCLSIZE - IEEE80211_CCMP_MICLEN) {
+        MCLGET(next0, M_DONTWAIT);
+        if (next0->m_flags & M_EXT)
+            next0->m_len = next0->m_ext.ext_size;
     }
-    if (n0->m_len > n0->m_pktlen)
-        n0->m_len = n0->m_pktlen;
+    if (next0->m_len > next0->m_pktlen)
+        next0->m_len = next0->m_pktlen;
 
     /* copy 802.11 header */
     wh = mtod(m0, struct ieee80211_frame *);
     hdrlen = ieee80211_get_hdrlen(wh);
-    memcpy(mtod(n0, void *), wh, hdrlen);
+    memcpy(mtod(next0, void *), wh, hdrlen);
 
     k->k_tsc++;    /* increment the 48-bit PN */
 
     /* construct CCMP header */
-    ivp = mtod(n0, uint8_t *) + hdrlen;
+    ivp = mtod(next0, uint8_t *) + hdrlen;
     ivp[0] = k->k_tsc;        /* PN0 */
     ivp[1] = k->k_tsc >> 8;        /* PN1 */
     ivp[2] = 0;            /* Rsvd */
@@ -222,50 +228,56 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct
 
     /* encrypt frame body and compute MIC */
     j = 0;
-    m = m0;
-    n = n0;
+    iob = m0;
+    next = next0;
     moff = hdrlen;
     noff = hdrlen + IEEE80211_CCMP_HDRLEN;
     left = m0->m_pktlen - moff;
     while (left > 0) {
-        if (moff == m->m_len)
+        if (moff == iob->m_len)
           {
-            /* Nothing left to copy from m */
+            /* Nothing left to copy from iob */
 
-            m = (struct ieee80211_iobuf_s *)m->m_link.flink;
+            iob = (struct ieee80211_iobuf_s *)iob->m_link.flink;
             moff = 0;
           }
 
-        if (noff == n->m_len)
+        if (noff == next->m_len)
           {
-            /* n is full and there's more data to copy */
+            struct ieee80211_iobuf_s *newbuf;
 
-            MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
-            if (n->m_link.flink == NULL)
+            /* next is full and there's more data to copy */
+
+            newbuf = ieee80211_ioalloc();
+            if (newbuf == NULL)
               {
                 goto nospace;
               }
 
-            n = (struct ieee80211_iobuf_s *)n->m_link.flink;
-            n->m_len = MLEN;
+            next->m_link.flink = (sq_entry_t *)newbuf;
+            next = newbuf;
+            next->m_len = 0;
+
             if (left >= MINCLSIZE - IEEE80211_CCMP_MICLEN)
               {
-                MCLGET(n, M_DONTWAIT);
-                if (n->m_flags & M_EXT)
-                    n->m_len = n->m_ext.ext_size;
+                MCLGET(next, M_DONTWAIT);
+                if (next->m_flags & M_EXT)
+                  {
+                    next->m_len = next->m_ext.ext_size;
+                  }
               }
 
-            if (n->m_len > left)
+            if (next->m_len > left)
               {
-                n->m_len = left;
+                next->m_len = left;
               }
 
             noff = 0;
         }
-        len = min(m->m_len - moff, n->m_len - noff);
+        len = min(iob->m_len - moff, next->m_len - noff);
 
-        src = mtod(m, uint8_t *) + moff;
-        dst = mtod(n, uint8_t *) + noff;
+        src = mtod(iob, uint8_t *) + moff;
+        dst = mtod(next, uint8_t *) + noff;
         for (i = 0; i < len; i++) {
             /* update MIC with clear text */
             b[j] ^= src[i];
@@ -292,32 +304,35 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct
 
     /* Reserve trailing space for MIC */
 
-    if (M_TRAILINGSPACE(n) < IEEE80211_CCMP_MICLEN)
+    if (M_TRAILINGSPACE(next) < IEEE80211_CCMP_MICLEN)
       {
-        MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
-        if (n->m_link.flink == NULL)
+        struct ieee80211_iobuf_s *newbuf;
+
+        newbuf = ieee80211_ioalloc();
+        if (nebuf == NULL)
           {
             goto nospace;
           }
 
-        n = n->m_link.flink;
-        n->m_len = 0;
+        next->m_link.flink = (sq_entry_t *)newbuf;
+        next = newbuf;
+        next->m_len = 0;
       }
 
     /* finalize MIC, U := T XOR first-M-bytes( S_0 ) */
-    mic = mtod(n, uint8_t *) + n->m_len;
+    mic = mtod(next, uint8_t *) + next->m_len;
     for (i = 0; i < IEEE80211_CCMP_MICLEN; i++)
         mic[i] = b[i] ^ s0[i];
-    n->m_len += IEEE80211_CCMP_MICLEN;
-    n0->m_pktlen += IEEE80211_CCMP_MICLEN;
+    next->m_len += IEEE80211_CCMP_MICLEN;
+    next0->m_pktlen += IEEE80211_CCMP_MICLEN;
 
     ieee80211_iofree(m0);
-    return n0;
+    return next0;
  nospace:
     ic->ic_stats.is_tx_nombuf++;
     ieee80211_iofree(m0);
-    if (n0 != NULL)
-        ieee80211_iofree(n0);
+    if (next0 != NULL)
+        ieee80211_iofree(next0);
     return NULL;
 }
 
@@ -327,40 +342,60 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct
     struct ieee80211_ccmp_ctx *ctx = k->k_priv;
     struct ieee80211_frame *wh;
     uint64_t pn, *prsc;
-    const uint8_t *ivp, *src;
+    const uint8_t *ivp;
+    const uint8_t *src;
     uint8_t *dst;
     uint8_t mic0[IEEE80211_CCMP_MICLEN];
-    uint8_t a[16], b[16], s0[16], s[16];
-    struct ieee80211_iobuf_s *n0, *m, *n;
-    int hdrlen, left, moff, noff, len;
+    uint8_t a[16];
+    uint8_t b[16];
+    uint8_t s0[16];
+    uint8_t s[16];
+    struct ieee80211_iobuf_s *next0;
+    struct ieee80211_iobuf_s *iob;
+    struct ieee80211_iobuf_s *next;
+    int hdrlen;
+    int left;
+    int moff;
+    int noff;
+    int len;
     uint16_t ctr;
-    int i, j;
+    int i;
+    int j;
 
     wh = mtod(m0, struct ieee80211_frame *);
     hdrlen = ieee80211_get_hdrlen(wh);
     ivp = (uint8_t *)wh + hdrlen;
 
-    if (m0->m_pktlen < hdrlen + IEEE80211_CCMP_HDRLEN +
-        IEEE80211_CCMP_MICLEN) {
+    if (m0->m_pktlen < hdrlen + IEEE80211_CCMP_HDRLEN + IEEE80211_CCMP_MICLEN)
+      {
         ieee80211_iofree(m0);
         return NULL;
-    }
-    /* check that ExtIV bit is set */
-    if (!(ivp[3] & IEEE80211_WEP_EXTIV)) {
-        ieee80211_iofree(m0);
-        return NULL;
-    }
+      }
 
-    /* retrieve last seen packet number for this frame type/priority */
-    if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
-        IEEE80211_FC0_TYPE_DATA) {
-        uint8_t tid = ieee80211_has_qos(wh) ?
-            ieee80211_get_qos(wh) & IEEE80211_QOS_TID : 0;
+    /* Check that ExtIV bit is set */
+
+    if (!(ivp[3] & IEEE80211_WEP_EXTIV))
+      {
+        ieee80211_iofree(m0);
+        return NULL;
+      }
+
+    /* Retrieve last seen packet number for this frame type/priority */
+
+    if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_DATA)
+      {
+        uint8_t tid = ieee80211_has_qos(wh) ? ieee80211_get_qos(wh) & IEEE80211_QOS_TID : 0;
         prsc = &k->k_rsc[tid];
-    } else    /* 11w: management frames have their own counters */
-        prsc = &k->k_mgmt_rsc;
+      }
+    else
+      {
+        /* 11w: management frames have their own counters */
 
-    /* extract the 48-bit PN from the CCMP header */
+        prsc = &k->k_mgmt_rsc;
+      }
+
+    /* Extract the 48-bit PN from the CCMP header */
+
     pn = (uint64_t)ivp[0]       |
          (uint64_t)ivp[1] <<  8 |
          (uint64_t)ivp[4] << 16 |
@@ -374,28 +409,34 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct
         return NULL;
     }
 
-    MGET(n0, M_DONTWAIT, m0->m_type);
-    if (n0 == NULL)
+    next0 = ieee80211_ioalloc();
+    if (next0 == NULL)
+      {
         goto nospace;
-    if (m_dup_pkthdr(n0, m0, M_DONTWAIT))
+      }
+
+    if (m_dup_pkthdr(next0, m0, M_DONTWAIT))
+      {
         goto nospace;
-    n0->m_pktlen -= IEEE80211_CCMP_HDRLEN + IEEE80211_CCMP_MICLEN;
-    n0->m_len = MHLEN;
-    if (n0->m_pktlen >= MINCLSIZE) {
-        MCLGET(n0, M_DONTWAIT);
-        if (n0->m_flags & M_EXT)
-            n0->m_len = n0->m_ext.ext_size;
+      }
+
+    next0->m_pktlen -= IEEE80211_CCMP_HDRLEN + IEEE80211_CCMP_MICLEN;
+    next0->m_len = MHLEN;
+    if (next0->m_pktlen >= MINCLSIZE) {
+        MCLGET(next0, M_DONTWAIT);
+        if (next0->m_flags & M_EXT)
+            next0->m_len = next0->m_ext.ext_size;
     }
-    if (n0->m_len > n0->m_pktlen)
-        n0->m_len = n0->m_pktlen;
+    if (next0->m_len > next0->m_pktlen)
+        next0->m_len = next0->m_pktlen;
 
     /* construct initial B, A and S_0 blocks */
     ieee80211_ccmp_phase1(&ctx->rijndael, wh, pn,
-        n0->m_pktlen - hdrlen, b, a, s0);
+        next0->m_pktlen - hdrlen, b, a, s0);
 
     /* copy 802.11 header and clear protected bit */
-    memcpy(mtod(n0, void *), wh, hdrlen);
-    wh = mtod(n0, struct ieee80211_frame *);
+    memcpy(mtod(next0, void *), wh, hdrlen);
+    wh = mtod(next0, struct ieee80211_frame *);
     wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 
     /* construct S_1 */
@@ -406,46 +447,56 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct
 
     /* decrypt frame body and compute MIC */
     j = 0;
-    m = m0;
-    n = n0;
+    iob = m0;
+    next = next0;
     moff = hdrlen + IEEE80211_CCMP_HDRLEN;
     noff = hdrlen;
-    left = n0->m_pktlen - noff;
+    left = next0->m_pktlen - noff;
     while (left > 0)
       {
-        if (moff == m->m_len)
+        if (moff == iob->m_len)
           {
-            /* Nothing left to copy from m */
+            /* Nothing left to copy from iob */
 
-            m = (struct ieee80211_iobuf_s *)m->m_link.flink;
+            iob = (struct ieee80211_iobuf_s *)iob->m_link.flink;
             moff = 0;
           }
 
-        if (noff == n->m_len)
+        if (noff == next->m_len)
           {
-            /* n is full and there's more data to copy */
+            struct ieee80211_iobuf_s *newbuf;
 
-            MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
-            if (n->m_link.flink == NULL)
+            /* next is full and there's more data to copy */
+
+            newbuf = ieee80211_ioalloc();
+            if (newbuf == NULL)
               {
                 goto nospace;
               }
 
-            n = (struct ieee80211_iobuf_s *)n->m_link.flink;
-            n->m_len = MLEN;
-            if (left >= MINCLSIZE) {
-                MCLGET(n, M_DONTWAIT);
-                if (n->m_flags & M_EXT)
-                    n->m_len = n->m_ext.ext_size;
-            }
-            if (n->m_len > left)
-                n->m_len = left;
+            next->m_link.flink = (sq_entry_t *)newbuf;
+            next = newbuf
+            next->m_len = 0;
+            if (left >= MINCLSIZE)
+              {
+                MCLGET(next, M_DONTWAIT);
+                if (next->m_flags & M_EXT)
+                  {
+                    next->m_len = next->m_ext.ext_size;
+                  }
+              }
+
+            if (next->m_len > left)
+              {
+                next->m_len = left;
+              }
+
             noff = 0;
         }
-        len = min(m->m_len - moff, n->m_len - noff);
+        len = min(iob->m_len - moff, next->m_len - noff);
 
-        src = mtod(m, uint8_t *) + moff;
-        dst = mtod(n, uint8_t *) + noff;
+        src = mtod(iob, uint8_t *) + moff;
+        dst = mtod(next, uint8_t *) + noff;
         for (i = 0; i < len; i++) {
             /* decrypt message */
             dst[i] = src[i] ^ s[j];
@@ -475,11 +526,11 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct
         b[i] ^= s0[i];
 
     /* check that it matches the MIC in received frame */
-    m_copydata(m, moff, IEEE80211_CCMP_MICLEN, mic0);
+    m_copydata(iob, moff, IEEE80211_CCMP_MICLEN, mic0);
     if (timingsafe_bcmp(mic0, b, IEEE80211_CCMP_MICLEN) != 0) {
         ic->ic_stats.is_ccmp_dec_errs++;
         ieee80211_iofree(m0);
-        ieee80211_iofree(n0);
+        ieee80211_iofree(next0);
         return NULL;
     }
 
@@ -487,11 +538,11 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct
     *prsc = pn;
 
     ieee80211_iofree(m0);
-    return n0;
+    return next0;
  nospace:
     ic->ic_stats.is_rx_nombuf++;
     ieee80211_iofree(m0);
-    if (n0 != NULL)
-        ieee80211_iofree(n0);
+    if (next0 != NULL)
+        ieee80211_iofree(next0);
     return NULL;
 }

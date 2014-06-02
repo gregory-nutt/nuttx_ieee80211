@@ -37,6 +37,7 @@
 
 #include <net/if.h>
 
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 
@@ -639,8 +640,7 @@ int ieee80211_ioctl(struct ieee80211com *ic, u_long cmd, void *data)
 
         /* Let the userspace process wait for completion */
 
-        error = tsleep(&ic->ic_scan_lock, PCATCH, "80211scan",
-                       hz * IEEE80211_SCAN_TIMEOUT);
+        error = sleep(IEEE80211_SCAN_TIMEOUT);
       }
       break;
     case SIOCG80211NODE:
