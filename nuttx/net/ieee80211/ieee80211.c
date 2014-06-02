@@ -72,8 +72,6 @@ void ieee80211_ifattach(struct ifnet *ifp)
     memcpy(((struct arpcom *)ifp)->ac_enaddr, ic->ic_myaddr, ETHER_ADDR_LEN);
     ether_ifattach(ifp);
 
-    ifp->if_output = ieee80211_output;
-
     ieee80211_crypto_attach(ifp);
 
     /* Fill in 802.11 available channel set, mark
@@ -122,8 +120,6 @@ void ieee80211_ifattach(struct ifnet *ifp)
 
     /* IEEE 802.11 defines a MTU >= 2290 */
 
-    ifp->if_capabilities |= IFCAP_VLAN_MTU;
-
     ieee80211_setbasicrates(ic);
     (void)ieee80211_setmode(ic, ic->ic_curmode);
 
@@ -137,7 +133,6 @@ void ieee80211_ifattach(struct ifnet *ifp)
     ieee80211_proto_attach(ifp);
 
     if_addgroup(ifp, "wlan");
-    ifp->if_priority = IF_WIRELESS_DEFAULT_PRIORITY;
 }
 
 void ieee80211_ifdetach(struct ifnet *ifp)
@@ -327,9 +322,6 @@ void ieee80211_media_init(struct ifnet *ifp, ifm_change_cb_t media_change, ifm_s
 
     ieee80211_media_status(ifp, &imr);
     ifmedia_set(&ic->ic_media, imr.ifm_active);
-
-    if (maxrate)
-        ifp->if_baudrate = IF_Mbps(maxrate);
 #undef ADD
 }
 
@@ -506,11 +498,8 @@ int ieee80211_media_change(struct ifnet *ifp)
         ieee80211_reset_erp(ic);
         error = ENETRESET;
     }
-#ifdef notdef
-    if (error == 0)
-        ifp->if_baudrate = ifmedia_baudrate(ime->ifm_media);
-#endif
-    return error;
+
+  return error;
 }
 
 void ieee80211_media_status(struct ifnet *ifp, struct ifmediareq *imr)
@@ -569,13 +558,12 @@ void ieee80211_media_status(struct ifnet *ifp, struct ifmediareq *imr)
 
 void ieee80211_watchdog(struct ifnet *ifp)
 {
-    struct ieee80211com *ic = (void *)ifp;
+  struct ieee80211com *ic = (void *)ifp;
 
-    if (ic->ic_mgt_timer && --ic->ic_mgt_timer == 0)
-        ieee80211_new_state(ic, IEEE80211_S_SCAN, -1);
-
-    if (ic->ic_mgt_timer != 0)
-        ifp->if_timer = 1;
+  if (ic->ic_mgt_timer && --ic->ic_mgt_timer == 0)
+    {
+      ieee80211_new_state(ic, IEEE80211_S_SCAN, -1);
+    }
 }
 
 const struct ieee80211_rateset ieee80211_std_rateset_11a =

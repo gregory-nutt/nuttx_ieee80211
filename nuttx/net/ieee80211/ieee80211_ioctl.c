@@ -571,14 +571,6 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         else
             txpower->i_val = ic->ic_txpower;
         break;
-    case SIOCSIFMTU:
-        ifr = (struct ifreq *)data;
-        if (!(IEEE80211_MTU_MIN <= ifr->ifr_mtu &&
-            ifr->ifr_mtu <= IEEE80211_MTU_MAX))
-            error = -EINVAL;
-        else
-            ifp->if_mtu = ifr->ifr_mtu;
-        break;
     case SIOCS80211SCAN:
 #ifdef CONFIG_IEEE80211_AP
         if (ic->ic_opmode == IEEE80211_M_HOSTAP)
@@ -694,6 +686,8 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
         ic->ic_flags = (ic->ic_flags & ~IEEE80211_F_USERMASK) | flags;
         error = -ENETRESET;
         break;
+
+    case SIOCSIFMTU:  /* MTU is fixed by the NuttX configuration */
     default:
       error = -ENOTTY;
     }

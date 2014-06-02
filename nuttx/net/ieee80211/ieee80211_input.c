@@ -551,7 +551,6 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct ieee80211
         break;
     }
  err:
-    ifp->if_ierrors++;
  out:
     if (m != NULL) {
         ieee80211_iofree(m);
@@ -611,7 +610,6 @@ struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *ic, struct ieee8
     }
     if (i == IEEE80211_DEFRAG_SIZE) {
         /* no matching entry found, discard fragment */
-        ic->ic_if.if_ierrors++;
         ieee80211_iofree(m);
         return NULL;
     }
@@ -668,7 +666,6 @@ void ieee80211_input_ba(struct ifnet *ifp, struct ieee80211_iobuf_s *m,
     wd_start(ba->ba_to, USEC2TICK(ba->ba_timeout_val), ieee80211_rx_ba_timeout, 1, ba);
 
     if (SEQ_LT(sn, ba->ba_winstart)) {    /* SN < WinStartB */
-        ifp->if_ierrors++;
         ieee80211_iofree(m);    /* discard the MPDU */
         return;
     }
@@ -696,7 +693,6 @@ void ieee80211_input_ba(struct ifnet *ifp, struct ieee80211_iobuf_s *m,
     idx = (ba->ba_head + idx) % IEEE80211_BA_MAX_WINSZ;
     /* store the received MPDU in the buffer */
     if (ba->ba_buf[idx].m != NULL) {
-        ifp->if_ierrors++;
         ieee80211_iofree(m);
         return;
     }
@@ -779,8 +775,6 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *m
       return;
     }
 
-  ifp->if_ipackets++;
-
   /* Perform as a bridge within the AP.  Notice that we do not
    * bridge EAPOL frames as suggested in C.1.1 of IEEE Std 802.1X.
    */
@@ -798,11 +792,7 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *m
       if (ETHER_IS_MULTICAST(eh->ether_dhost))
         {
           m1 = m_copym2(m, 0, M_COPYALL, M_DONTWAIT);
-          if (m1 == NULL)
-            {
-              ifp->if_oerrors++;
-            }
-            else
+          if (m1 != NULL)
             {
               m1->m_flags |= M_MCAST;
             }
@@ -821,18 +811,8 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *m
         {
           len = m1->m_pktlen;
           error = ieee80211_ifsend(m1);
-          if (error)
+          if (!error)
             {
-              ifp->if_oerrors++;
-            }
-            else
-            {
-              if (m != NULL)
-                {
-                  ifp->if_omcasts++;
-                }
-
-              ifp->if_obytes += len;
               ieee80211_ifstart();
             }
         }

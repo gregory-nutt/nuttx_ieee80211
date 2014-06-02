@@ -31,6 +31,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <debug.h>
 
 #include <net/if.h>
 
@@ -536,37 +537,36 @@ ieee80211_tkip_deauth(void *arg, struct ieee80211_node *ni)
 }
 #endif /* CONFIG_IEEE80211_AP */
 
-/*
- * This function can be called by the software TKIP crypto code or by the
+/* This function can be called by the software TKIP crypto code or by the
  * drivers when their hardware crypto engines detect a Michael MIC failure.
  */
-void
-ieee80211_michael_mic_failure(struct ieee80211com *ic, uint64_t tsc)
+
+void ieee80211_michael_mic_failure(struct ieee80211com *ic, uint64_t tsc)
 {
     extern int ticks;
 
     if (ic->ic_flags & IEEE80211_F_COUNTERM)
         return;    /* countermeasures already active */
 
-    log(LOG_WARNING, "%s: Michael MIC failure\n", ic->ic_if.if_xname);
+    ndbg("ERROR: %s: Michael MIC failure\n", ic->ic_if.if_xname);
 
-    /*
-     * NB. do not send Michael MIC Failure reports as recommended since
+    /* NB. do not send Michael MIC Failure reports as recommended since
      * these may be used as an oracle to verify CRC guesses as described
      * in Beck, M. and Tews S. "Practical attacks against WEP and WPA"
      * http://dl.aircrack-ng.org/breakingwepandwpa.pdf
      */
 
-    /*
-     * Activate TKIP countermeasures (see 8.3.2.4) if less than 60
+    /* Activate TKIP countermeasures (see 8.3.2.4) if less than 60
      * seconds have passed since the most recent previous MIC failure.
      */
+
     if (ic->ic_tkip_micfail == 0 ||
-        ticks - (ic->ic_tkip_micfail + 60 * hz) >= 0) {
+        ticks - (ic->ic_tkip_micfail + 60 * hz) >= 0)
+      {
         ic->ic_tkip_micfail = ticks;
         ic->ic_tkip_micfail_last_tsc = tsc;
         return;
-    }
+      }
 
     switch (ic->ic_opmode) {
 #ifdef CONFIG_IEEE80211_AP

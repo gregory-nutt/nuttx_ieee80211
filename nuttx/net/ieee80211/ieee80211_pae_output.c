@@ -158,7 +158,6 @@ int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf_s *
   error = ieee80211_ifsend(m);
   if (error == 0)
     {
-      ifp->if_obytes += len;
       ieee80211_ifstart();
     }
 

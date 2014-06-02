@@ -85,13 +85,12 @@ void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s
     uint16_t info, desc;
     int totlen;
 
-    ifp->if_ibytes += m->m_pktlen;
-
     eh = mtod(m, struct ether_header *);
-    if (IEEE80211_IS_MULTICAST(eh->ether_dhost)) {
-        ifp->if_imcasts++;
+    if (IEEE80211_IS_MULTICAST(eh->ether_dhost))
+      {
         goto done;
-    }
+      }
+
     m_adj(m, sizeof(*eh));
 
     if (m->m_pktlen < sizeof(*key))

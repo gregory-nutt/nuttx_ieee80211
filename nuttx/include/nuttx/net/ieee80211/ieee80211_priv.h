@@ -1,6 +1,6 @@
-/*    $OpenBSD: ieee80211_priv.h,v 1.5 2009/01/26 19:09:41 damien Exp $    */
-
-/*-
+/****************************************************************************
+ * include/nuttx/net/ieee80211_priv.h
+ *
  * Copyright (c) 2008 Damien Bergamini <damien.bergamini@free.fr>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -14,7 +14,8 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_PRIV_H
 #define __INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_PRIV_H

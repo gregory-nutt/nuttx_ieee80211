@@ -92,8 +92,6 @@ void ieee80211_proto_attach(struct ifnet *ifp)
 {
     struct ieee80211com *ic = (void *)ifp;
 
-    ifp->if_hdrlen = sizeof(struct ieee80211_frame);
-
 #ifdef notdef
     ic->ic_rtsthreshold = IEEE80211_RTS_DEFAULT;
 #else

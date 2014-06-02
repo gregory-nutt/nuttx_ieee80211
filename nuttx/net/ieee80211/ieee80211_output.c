@@ -103,6 +103,7 @@ struct ieee80211_iobuf_s *ieee80211_get_action(struct ieee80211com *,
  * if the buffer has been tagged with a 802.11 data link type.
  */
 
+#warning REVISIT:  This was registered via the ifnet structure for use the driver level.  It is not currently integrated with the rest of the logic
 int ieee80211_output(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct sockaddr *dst, struct rtentry *rt)
 {
   struct ieee80211_frame *wh;
@@ -167,12 +168,6 @@ int ieee80211_output(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct sock
           splx(s);
           ndbg("ERROR: %s: failed to queue raw tx frame\n", ifp->if_xname);
           return error;
-        }
-
-      ifp->if_obytes += len;
-      if (mflags & M_MCAST)
-        {
-          ifp->if_omcasts++;
         }
 
       if ((ifp->if_flags & IFF_OACTIVE) == 0)
@@ -274,7 +269,6 @@ int ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
         return 0;
 #endif
     sq_addlast((sq_entry_t *)m, &ic->ic_mgtq);
-    ifp->if_timer = 1;
     ieee80211_ifstart();
     return 0;
 }
