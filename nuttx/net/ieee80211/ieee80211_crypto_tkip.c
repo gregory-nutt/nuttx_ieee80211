@@ -274,7 +274,7 @@ struct ieee80211_iobuf_s *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct
               }
 
             n = (struct ieee80211_iobuf_s *)n->m_link.flink;
-            n->m_len = MLEN;
+            n->m_len = 0;
             if (left >= MINCLSIZE - IEEE80211_TKIP_TAILLEN)
               {
                 MCLGET(n, M_DONTWAIT);
@@ -285,7 +285,10 @@ struct ieee80211_iobuf_s *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct
               }
 
             if (n->m_len > left)
+              {
                 n->m_len = left;
+              }
+
             noff = 0;
         }
         len = min(m->m_len - moff, n->m_len - noff);
@@ -446,7 +449,7 @@ struct ieee80211_iobuf_s *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct
               }
 
             n = (struct ieee80211_iobuf_s *)n->m_link.flink;
-            n->m_len = MLEN;
+            n->m_len = 0;
             if (left >= MINCLSIZE)
               {
                 MCLGET(n, M_DONTWAIT);

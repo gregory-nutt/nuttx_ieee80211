@@ -146,7 +146,7 @@ ieee80211_node_attach(struct ieee80211com *ic)
     {
       /* XXX no way to recover */
 
-      nvdbg("%s: no memory for AID bitmap!\n", __func__);
+      nvdbg("No memory for AID bitmap!\n");
       ic->ic_max_aid = 0;
     }
 
@@ -155,7 +155,7 @@ ieee80211_node_attach(struct ieee80211com *ic)
       ic->ic_tim_bitmap = kmalloc(ic->ic_tim_len);
       if (ic->ic_tim_bitmap == NULL)
         {
-          nvdbg("%s: no memory for TIM bitmap!\n", __func__);
+          nvdbg("No memory for TIM bitmap!\n");
           ic->ic_tim_len = 0;
         }
       else

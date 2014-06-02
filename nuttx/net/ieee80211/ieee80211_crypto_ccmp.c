@@ -247,12 +247,14 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct
               }
 
             n = (struct ieee80211_iobuf_s *)n->m_link.flink;
-            n->m_len = MLEN;
+            n->m_len = 0;
             if (left >= MINCLSIZE - IEEE80211_CCMP_MICLEN)
               {
                 MCLGET(n, M_DONTWAIT);
                 if (n->m_flags & M_EXT)
+                  {
                     n->m_len = n->m_ext.ext_size;
+                  }
               }
 
             if (n->m_len > left)
@@ -432,14 +434,21 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct
               }
 
             n = (struct ieee80211_iobuf_s *)n->m_link.flink;
-            n->m_len = MLEN;
-            if (left >= MINCLSIZE) {
+            n->m_len = 0;
+            if (left >= MINCLSIZE)
+              {
                 MCLGET(n, M_DONTWAIT);
                 if (n->m_flags & M_EXT)
+                  {
                     n->m_len = n->m_ext.ext_size;
-            }
+                  }
+              }
+
             if (n->m_len > left)
+              {
                 n->m_len = left;
+              }
+
             noff = 0;
         }
         len = min(m->m_len - moff, n->m_len - noff);

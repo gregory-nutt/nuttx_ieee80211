@@ -886,7 +886,7 @@ struct ieee80211_iobuf_s *ieee80211_align_iobuf(struct ieee80211_iobuf_s *m)
               return NULL;
             }
 
-          n->m_len = MLEN;
+          n->m_len = 0;
         }
 
       if (pktlen - off >= MINCLSIZE)
