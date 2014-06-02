@@ -564,8 +564,10 @@ void ieee80211_end_scan(struct ieee80211com *ic)
   struct ieee80211_node *ni;
   struct ieee80211_node *nextbs;
   struct ieee80211_node *selbs;
+#ifdef CONFIG_IEEE80211_AP
   int ndx;
   int bit;
+#endif
 
   nvdbg("%s: end %s scan\n",
        ic->ic_ifname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
@@ -633,6 +635,7 @@ void ieee80211_end_scan(struct ieee80211com *ic)
       goto wakeup;
   }
 #endif
+
   if (ni == NULL)
     {
       ndbg("ERROR: no scan candidate\n");
@@ -652,6 +655,7 @@ void ieee80211_end_scan(struct ieee80211com *ic)
        * like 11b and "pure" 11G mode. This will loop
        * forever except for user-initiated scans.
        */
+
       if (ieee80211_next_mode(ic) == IEEE80211_MODE_AUTO)
         {
           if (ic->ic_scan_lock & IEEE80211_SCAN_REQUEST &&
@@ -673,35 +677,47 @@ void ieee80211_end_scan(struct ieee80211com *ic)
   }
   selbs = NULL;
 
-  for (; ni != NULL; ni = nextbs) {
+  for (; ni != NULL; ni = nextbs)
+    {
       nextbs = RB_NEXT(ieee80211_tree, &ic->ic_tree, ni);
-      if (ni->ni_fails) {
-          /*
-           * The configuration of the access points may change
+      if (ni->ni_fails)
+        {
+          /* The configuration of the access points may change
            * during my scan.  So delete the entry for the AP
            * and retry to associate if there is another beacon.
            */
+
           if (ni->ni_fails++ > 2)
+            {
               ieee80211_free_node(ic, ni);
+            }
+
           continue;
-      }
-      if (ieee80211_match_bss(ic, ni) == 0) {
+        }
+
+      if (ieee80211_match_bss(ic, ni) == 0)
+        {
           if (selbs == NULL)
+            {
               selbs = ni;
+            }
           else if (ni->ni_rssi > selbs->ni_rssi)
+            {
               selbs = ni;
-      }
-  }
+            }
+        }
+    }
+
   if (selbs == NULL)
       goto notfound;
   (*ic->ic_node_copy)(ic, ic->ic_bss, selbs);
   ni = ic->ic_bss;
 
-  /*
-   * Set the erp state (mostly the slot time) to deal with
+  /* Set the erp state (mostly the slot time) to deal with
    * the auto-select case; this should be redundant if the
    * mode is locked.
    */
+
   ic->ic_curmode = ieee80211_chan2mode(ic, ni->ni_chan);
   ieee80211_reset_erp(ic);
 
@@ -1113,7 +1129,6 @@ struct ieee80211_node *ieee80211_find_node_for_beacon(struct ieee80211com *ic,
 void ieee80211_free_node(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
   DEBUGASSERT(ni != ic->ic_bss);
-  splassert(IPL_NET);
 
   nvdbg("%s\n", ieee80211_addr2str(ni->ni_macaddr));
 #ifdef CONFIG_IEEE80211_AP

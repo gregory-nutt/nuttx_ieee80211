@@ -109,6 +109,7 @@ static __inline void ieee80211_iofree(struct ieee80211_iobuf_s *m)
 
 #warning REVISIT: The design seems to attach and detach Ethernet devices.  NuttX does not work this way
 #warning REVISIT:  Perhaps ieee80211_ifattach should become an general one-time initialization function
+struct ieee80211com;
 void ieee80211_ifattach(struct ieee80211com *ic);
 void ieee80211_ifdetach(struct ieee80211com *ic);
 
