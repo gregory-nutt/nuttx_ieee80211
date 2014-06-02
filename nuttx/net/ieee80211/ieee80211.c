@@ -50,6 +50,7 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -141,14 +142,14 @@ void ieee80211_ifattach(struct ifnet *ifp)
 
 void ieee80211_ifdetach(struct ifnet *ifp)
 {
-    struct ieee80211com *ic = (void *)ifp;
+  struct ieee80211com *ic = (void *)ifp;
 
-    ieee80211_proto_detach(ifp);
-    ieee80211_crypto_detach(ifp);
-    ieee80211_node_detach(ifp);
-    dq_rem((dq_entry_t *)ic, ic_list);
-    ifmedia_delete_instance(&ic->ic_media, IFM_INST_ANY);
-    ether_ifdetach(ifp);
+  ieee80211_proto_detach(ifp);
+  ieee80211_crypto_detach(ifp);
+  ieee80211_node_detach(ifp);
+  dq_rem((dq_entry_t *)ic, &ic_list);
+  ifmedia_delete_instance(&ic->ic_media, IFM_INST_ANY);
+  ether_ifdetach(ifp);
 }
 
 /* Convert MHz frequency to IEEE channel number */

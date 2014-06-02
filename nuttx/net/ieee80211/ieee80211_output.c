@@ -56,44 +56,45 @@
 #endif
 
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-int ieee80211_classify(struct ieee80211com *, struct ieee80211_iobuf *);
+int ieee80211_classify(struct ieee80211com *, struct ieee80211_iobuf_s *);
 int ieee80211_mgmt_output(struct ifnet *, struct ieee80211_node *,
-        struct ieee80211_iobuf *, int);
+        struct ieee80211_iobuf_s *, int);
 uint8_t *ieee80211_add_rsn_body(uint8_t *, struct ieee80211com *,
         const struct ieee80211_node *, int);
-struct ieee80211_iobuf *ieee80211_getmgmt(int, int, unsigned int);
-struct ieee80211_iobuf *ieee80211_get_probe_req(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_getmgmt(int, int, unsigned int);
+struct ieee80211_iobuf_s *ieee80211_get_probe_req(struct ieee80211com *,
         struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_AP
-struct ieee80211_iobuf *ieee80211_get_probe_resp(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_get_probe_resp(struct ieee80211com *,
         struct ieee80211_node *);
 #endif
-struct ieee80211_iobuf *ieee80211_get_auth(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_get_auth(struct ieee80211com *,
         struct ieee80211_node *, uint16_t, uint16_t);
-struct ieee80211_iobuf *ieee80211_get_deauth(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_get_deauth(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
-struct ieee80211_iobuf *ieee80211_get_assoc_req(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_get_assoc_req(struct ieee80211com *,
         struct ieee80211_node *, int);
 #ifdef CONFIG_IEEE80211_AP
-struct ieee80211_iobuf *ieee80211_get_assoc_resp(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_get_assoc_resp(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
 #endif
-struct ieee80211_iobuf *ieee80211_get_disassoc(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_get_disassoc(struct ieee80211com *,
         struct ieee80211_node *, uint16_t);
 #ifdef CONFIG_IEEE80211_HT
-struct ieee80211_iobuf *ieee80211_get_addba_req(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_get_addba_req(struct ieee80211com *,
         struct ieee80211_node *, uint8_t);
-struct ieee80211_iobuf *ieee80211_get_addba_resp(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_get_addba_resp(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint8_t, uint16_t);
-struct ieee80211_iobuf *ieee80211_get_delba(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_get_delba(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint8_t, uint16_t);
 #endif
-struct ieee80211_iobuf *ieee80211_get_sa_query(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_get_sa_query(struct ieee80211com *,
         struct ieee80211_node *, uint8_t);
-struct ieee80211_iobuf *ieee80211_get_action(struct ieee80211com *,
+struct ieee80211_iobuf_s *ieee80211_get_action(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint8_t, int);
 
 /* IEEE 802.11 output routine. Normally this will directly call the
@@ -102,7 +103,7 @@ struct ieee80211_iobuf *ieee80211_get_action(struct ieee80211com *,
  * if the buffer has been tagged with a 802.11 data link type.
  */
 
-int ieee80211_output(struct ifnet *ifp, struct ieee80211_iobuf *m, struct sockaddr *dst, struct rtentry *rt)
+int ieee80211_output(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct sockaddr *dst, struct rtentry *rt)
 {
   struct ieee80211_frame *wh;
   struct m_tag *mtag;
@@ -200,7 +201,7 @@ fallback:
  */
 
 int ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
-    struct ieee80211_iobuf *m, int type)
+    struct ieee80211_iobuf_s *m, int type)
 {
     struct ieee80211com *ic = (void *)ifp;
     struct ieee80211_frame *wh;
@@ -426,7 +427,7 @@ ieee80211_up_to_ac(struct ieee80211com *ic, int up)
  * based on the DSCP (Differentiated Services Codepoint) field.
  */
 int
-ieee80211_classify(struct ieee80211com *ic, struct ieee80211_iobuf *m)
+ieee80211_classify(struct ieee80211com *ic, struct ieee80211_iobuf_s *m)
 {
 #ifdef CONFIG_NET_ETHERNET
     struct ether_header *eh;
@@ -491,7 +492,7 @@ ieee80211_classify(struct ieee80211com *ic, struct ieee80211_iobuf *m)
  *     maintain that.
  */
 
-struct ieee80211_iobuf *ieee80211_encap(struct ifnet *ifp, struct ieee80211_iobuf *m, struct ieee80211_node **pni)
+struct ieee80211_iobuf_s *ieee80211_encap(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct ieee80211_node **pni)
 {
     struct ieee80211com *ic = (void *)ifp;
     struct ether_header eh;
@@ -1087,9 +1088,9 @@ ieee80211_add_tie(uint8_t *frm, uint8_t type, uint32_t value)
 }
 #endif
 
-struct (struct ieee80211_iobuf *) *ieee80211_getmgmt(int flags, int type, unsigned int pktlen)
+struct (struct ieee80211_iobuf_s *) *ieee80211_getmgmt(int flags, int type, unsigned int pktlen)
 {
-  struct ieee80211_iobuf *m;
+  struct ieee80211_iobuf_s *m;
 
   /* Reserve space for 802.11 header */
 
@@ -1122,11 +1123,11 @@ struct (struct ieee80211_iobuf *) *ieee80211_getmgmt(int flags, int type, unsign
  * [tlv] HT Capabilities (802.11n)
  */
  
-struct ieee80211_iobuf *ieee80211_get_probe_req(struct ieee80211com *ic, struct ieee80211_node *ni)
+struct ieee80211_iobuf_s *ieee80211_get_probe_req(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     const struct ieee80211_rateset *rs =
         &ic->ic_sup_rates[ieee80211_chan2mode(ic, ni->ni_chan)];
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint8_t *frm;
 
     m = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
@@ -1169,10 +1170,10 @@ struct ieee80211_iobuf *ieee80211_get_probe_req(struct ieee80211com *ic, struct 
  * [tlv] HT Operation (802.11n)
  */
 
-struct ieee80211_iobuf *ieee80211_get_probe_resp(struct ieee80211com *ic, struct ieee80211_node *ni)
+struct ieee80211_iobuf_s *ieee80211_get_probe_resp(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     const struct ieee80211_rateset *rs = &ic->ic_bss->ni_rates;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint8_t *frm;
 
     m = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
@@ -1236,10 +1237,10 @@ struct ieee80211_iobuf *ieee80211_get_probe_resp(struct ieee80211com *ic, struct
  * [2] Status code
  */
 
-struct ieee80211_iobuf *ieee80211_get_auth(struct ieee80211com *ic, struct ieee80211_node *ni,
+struct ieee80211_iobuf_s *ieee80211_get_auth(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint16_t status, uint16_t seq)
 {
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint8_t *frm;
 
     MGETHDR(m, M_DONTWAIT, MT_DATA);
@@ -1260,10 +1261,10 @@ struct ieee80211_iobuf *ieee80211_get_auth(struct ieee80211com *ic, struct ieee8
  * [2] Reason code
  */
 
-struct ieee80211_iobuf *ieee80211_get_deauth(struct ieee80211com *ic, struct ieee80211_node *ni,
+struct ieee80211_iobuf_s *ieee80211_get_deauth(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint16_t reason)
 {
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
 
     MGETHDR(m, M_DONTWAIT, MT_DATA);
     if (m == NULL)
@@ -1288,11 +1289,11 @@ struct ieee80211_iobuf *ieee80211_get_deauth(struct ieee80211com *ic, struct iee
  * [tlv] HT Capabilities (802.11n)
  */
 
-struct ieee80211_iobuf *ieee80211_get_assoc_req(struct ieee80211com *ic, struct ieee80211_node *ni,
+struct ieee80211_iobuf_s *ieee80211_get_assoc_req(struct ieee80211com *ic, struct ieee80211_node *ni,
     int type)
 {
     const struct ieee80211_rateset *rs = &ni->ni_rates;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint8_t *frm;
     uint16_t capinfo;
 
@@ -1365,11 +1366,11 @@ struct ieee80211_iobuf *ieee80211_get_assoc_req(struct ieee80211com *ic, struct 
  * [tlv] HT Operation (802.11n)
  */
 
-struct ieee80211_iobuf *ieee80211_get_assoc_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
+struct ieee80211_iobuf_s *ieee80211_get_assoc_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint16_t status)
 {
     const struct ieee80211_rateset *rs = &ni->ni_rates;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint8_t *frm;
 
     m = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
@@ -1418,10 +1419,10 @@ struct ieee80211_iobuf *ieee80211_get_assoc_resp(struct ieee80211com *ic, struct
  * [2] Reason code
  */
 
-struct ieee80211_iobuf *ieee80211_get_disassoc(struct ieee80211com *ic, struct ieee80211_node *ni,
+struct ieee80211_iobuf_s *ieee80211_get_disassoc(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint16_t reason)
 {
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
 
     MGETHDR(m, M_DONTWAIT, MT_DATA);
     if (m == NULL)
@@ -1444,11 +1445,11 @@ struct ieee80211_iobuf *ieee80211_get_disassoc(struct ieee80211com *ic, struct i
  * [2] Block Ack Starting Sequence Control
  */
 
-struct ieee80211_iobuf *ieee80211_get_addba_req(struct ieee80211com *ic, struct ieee80211_node *ni,
+struct ieee80211_iobuf_s *ieee80211_get_addba_req(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint8_t tid)
 {
     struct ieee80211_tx_ba *ba = &ni->ni_tx_ba[tid];
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint8_t *frm;
     uint16_t params;
 
@@ -1479,11 +1480,11 @@ struct ieee80211_iobuf *ieee80211_get_addba_req(struct ieee80211com *ic, struct 
  * [2] Block Ack Timeout Value
  */
 
-struct ieee80211_iobuf *ieee80211_get_addba_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
+struct ieee80211_iobuf_s *ieee80211_get_addba_resp(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint8_t tid, uint8_t token, uint16_t status)
 {
     struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint8_t *frm;
     uint16_t params;
 
@@ -1518,11 +1519,11 @@ struct ieee80211_iobuf *ieee80211_get_addba_resp(struct ieee80211com *ic, struct
  * [2] Reason Code
  */
 
-struct ieee80211_iobuf *
+struct ieee80211_iobuf_s *
 ieee80211_get_delba(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint8_t tid, uint8_t dir, uint16_t reason)
 {
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint8_t *frm;
     uint16_t params;
 
@@ -1551,10 +1552,10 @@ ieee80211_get_delba(struct ieee80211com *ic, struct ieee80211_node *ni,
  * [16] Transaction Identifier
  */
 
-struct ieee80211_iobuf *ieee80211_get_sa_query(struct ieee80211com *ic, struct ieee80211_node *ni,
+struct ieee80211_iobuf_s *ieee80211_get_sa_query(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint8_t action)
 {
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint8_t *frm;
 
     m = ieee80211_getmgmt(M_DONTWAIT, MT_DATA, 4);
@@ -1571,10 +1572,10 @@ struct ieee80211_iobuf *ieee80211_get_sa_query(struct ieee80211com *ic, struct i
     return m;
 }
 
-struct ieee80211_iobuf *ieee80211_get_action(struct ieee80211com *ic, struct ieee80211_node *ni,
+struct ieee80211_iobuf_s *ieee80211_get_action(struct ieee80211com *ic, struct ieee80211_node *ni,
     uint8_t categ, uint8_t action, int arg)
 {
-    struct ieee80211_iobuf *m = NULL;
+    struct ieee80211_iobuf_s *m = NULL;
 
     switch (categ) {
 #ifdef CONFIG_IEEE80211_HT
@@ -1618,7 +1619,7 @@ int ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
 {
 #define senderr(_x, _v)    do { ic->ic_stats._v++; ret = _x; goto bad; } while (0)
     struct ifnet *ifp = &ic->ic_if;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     int ret, timer;
 
     DEBUGASSERT(ni != NULL);
@@ -1711,11 +1712,11 @@ bad:
 
 /* Build a RTS (Request To Send) control frame (see 7.2.1.1) */
 
-struct ieee80211_iobuf *ieee80211_get_rts(struct ieee80211com *ic, const struct ieee80211_frame *wh,
+struct ieee80211_iobuf_s *ieee80211_get_rts(struct ieee80211com *ic, const struct ieee80211_frame *wh,
     uint16_t dur)
 {
     struct ieee80211_frame_rts *rts;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
 
     MGETHDR(m, M_DONTWAIT, MT_DATA);
     if (m == NULL)
@@ -1736,10 +1737,10 @@ struct ieee80211_iobuf *ieee80211_get_rts(struct ieee80211com *ic, const struct 
 
 /* Build a CTS-to-self (Clear To Send) control frame (see 7.2.1.2) */
 
-struct ieee80211_iobuf *ieee80211_get_cts_to_self(struct ieee80211com *ic, uint16_t dur)
+struct ieee80211_iobuf_s *ieee80211_get_cts_to_self(struct ieee80211com *ic, uint16_t dur)
 {
     struct ieee80211_frame_cts *cts;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
 
     MGETHDR(m, M_DONTWAIT, MT_DATA);
     if (m == NULL)
@@ -1775,11 +1776,11 @@ struct ieee80211_iobuf *ieee80211_get_cts_to_self(struct ieee80211com *ic, uint1
  * [tlv] HT Operation (802.11n)
  */
 
-struct ieee80211_iobuf *ieee80211_beacon_alloc(struct ieee80211com *ic, struct ieee80211_node *ni)
+struct ieee80211_iobuf_s *ieee80211_beacon_alloc(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     const struct ieee80211_rateset *rs = &ni->ni_rates;
     struct ieee80211_frame *wh;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint8_t *frm;
 
     m = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
@@ -1860,7 +1861,7 @@ struct ieee80211_iobuf *ieee80211_beacon_alloc(struct ieee80211com *ic, struct i
  * the AP, or 0 if the frame shall be transmitted immediately.
  */
 int
-ieee80211_pwrsave(struct ieee80211com *ic, struct ieee80211_iobuf *m,
+ieee80211_pwrsave(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
     struct ieee80211_node *ni)
 {
   const struct ieee80211_frame *wh;

@@ -44,10 +44,11 @@
 #endif
 
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-int ieee80211_send_eapol_key(struct ieee80211com *, struct ieee80211_iobuf *,
+int ieee80211_send_eapol_key(struct ieee80211com *, struct ieee80211_iobuf_s *,
             struct ieee80211_node *, const struct ieee80211_ptk *);
 #ifdef CONFIG_IEEE80211_AP
 uint8_t *ieee80211_add_gtk_kde(uint8_t *, struct ieee80211_node *,
@@ -55,13 +56,13 @@ uint8_t *ieee80211_add_gtk_kde(uint8_t *, struct ieee80211_node *,
 uint8_t *ieee80211_add_pmkid_kde(uint8_t *, const uint8_t *);
 uint8_t *ieee80211_add_igtk_kde(uint8_t *, const struct ieee80211_key *);
 #endif
-struct ieee80211_iobuf *ieee80211_get_eapol_key(int, int, unsigned int);
+struct ieee80211_iobuf_s *ieee80211_get_eapol_key(int, int, unsigned int);
 
 /* Send an EAPOL-Key frame to node `ni'.  If MIC or encryption is required,
  * the PTK must be passed (otherwise it can be set to NULL.)
  */
 
-int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf *m,
+int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
     struct ieee80211_node *ni, const struct ieee80211_ptk *ptk)
 {
   struct ifnet *ifp = &ic->ic_if;
@@ -259,9 +260,9 @@ ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
 }
 #endif /* CONFIG_IEEE80211_AP */
 
-struct ieee80211_iobuf *ieee80211_get_eapol_key(int flags, int type, unsigned int pktlen)
+struct ieee80211_iobuf_s *ieee80211_get_eapol_key(int flags, int type, unsigned int pktlen)
 {
-  struct ieee80211_iobuf *m;
+  struct ieee80211_iobuf_s *m;
 
   /* Reserve space for 802.11 encapsulation and EAPOL-Key header */
 
@@ -296,7 +297,7 @@ int
 ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     struct ieee80211_eapol_key *key;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint16_t info, keylen;
     uint8_t *frm;
 
@@ -349,7 +350,7 @@ ieee80211_send_4way_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
     const uint8_t *replaycnt, const struct ieee80211_ptk *tptk)
 {
     struct ieee80211_eapol_key *key;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint16_t info;
     uint8_t *frm;
 
@@ -399,7 +400,7 @@ ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     struct ieee80211_eapol_key *key;
     struct ieee80211_key *k;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint16_t info, keylen;
     uint8_t *frm;
 
@@ -470,7 +471,7 @@ ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
 int ieee80211_send_4way_msg4(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     struct ieee80211_eapol_key *key;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint16_t info;
 
     m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
@@ -512,7 +513,7 @@ int ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni
 {
     struct ieee80211_eapol_key *key;
     const struct ieee80211_key *k;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     uint16_t info;
     uint8_t *frm;
     uint8_t kid;
@@ -591,7 +592,7 @@ int ieee80211_send_group_msg2(struct ieee80211com *ic, struct ieee80211_node *ni
 {
     struct ieee80211_eapol_key *key;
     uint16_t info;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
 
     m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
     if (m == NULL)
@@ -633,7 +634,7 @@ int ieee80211_send_eapol_key_req(struct ieee80211com *ic,
     struct ieee80211_node *ni, uint16_t info, uint64_t tsc)
 {
   struct ieee80211_eapol_key *key;
-  struct ieee80211_iobuf *m;
+  struct ieee80211_iobuf_s *m;
 
   m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
   if (m == NULL)

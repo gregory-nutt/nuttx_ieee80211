@@ -39,6 +39,7 @@
 #endif
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -184,7 +185,7 @@ struct ieee80211_key *ieee80211_get_txkey(struct ieee80211com *ic, const struct 
     return &ic->ic_nw_keys[kid];
 }
 
-struct ieee80211_iobuf *ieee80211_encrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
+struct ieee80211_iobuf_s *ieee80211_encrypt(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
     struct ieee80211_key *k)
 {
     switch (k->k_cipher) {
@@ -209,7 +210,7 @@ struct ieee80211_iobuf *ieee80211_encrypt(struct ieee80211com *ic, struct ieee80
     return m0;
 }
 
-struct ieee80211_iobuf *ieee80211_decrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
+struct ieee80211_iobuf_s *ieee80211_decrypt(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
     struct ieee80211_node *ni)
 {
     struct ieee80211_frame *wh;

@@ -39,6 +39,7 @@
 #endif
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
@@ -87,14 +88,14 @@ struct ieee80211_bip_frame {
     uint8_t    i_addr3[IEEE80211_ADDR_LEN];
 } packed_struct;
 
-struct ieee80211_iobuf *ieee80211_bip_encap(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
+struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_bip_ctx *ctx = k->k_priv;
     struct ieee80211_bip_frame aad;
     struct ieee80211_frame *wh;
     uint8_t *mmie, mic[AES_CMAC_DIGEST_LENGTH];
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
 
     wh = mtod(m0, struct ieee80211_frame *);
     DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
@@ -122,13 +123,13 @@ struct ieee80211_iobuf *ieee80211_bip_encap(struct ieee80211com *ic, struct ieee
 
     if (M_TRAILINGSPACE(m) < IEEE80211_MMIE_LEN)
       {
-        MGET((struct ieee80211_iobuf *)m->m_link.flink, M_DONTWAIT, m->m_type);
+        MGET((struct ieee80211_iobuf_s *)m->m_link.flink, M_DONTWAIT, m->m_type);
         if (m->m_link.flink == NULL)
           {
             goto nospace;
           }
 
-        m = (struct ieee80211_iobuf *)m->m_link.flink;
+        m = (struct ieee80211_iobuf_s *)m->m_link.flink;
         m->m_len = 0;
       }
 
@@ -157,7 +158,7 @@ struct ieee80211_iobuf *ieee80211_bip_encap(struct ieee80211com *ic, struct ieee
     return NULL;
 }
 
-struct ieee80211_iobuf *ieee80211_bip_decap(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
+struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_bip_ctx *ctx = k->k_priv;

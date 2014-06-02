@@ -43,10 +43,15 @@
 #include <queue.h>
 
 #include <nuttx/net/ieee80211/ieee80211.h>
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 #include <nuttx/net/ieee80211/ieee80211_ioctl.h>        /* for ieee80211_stats */
 #include <nuttx/net/ieee80211/ieee80211_node.h>
 #include <nuttx/net/ieee80211/ieee80211_proto.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 
 #define IEEE80211_CHAN_MAX    255
 #define IEEE80211_CHAN_ANY    0xffff        /* token for ``any channel'' */
@@ -161,22 +166,6 @@ struct ieee80211_channel
 #define IEEE80211_IS_CHAN_XR(_c) \
     (((_c)->ic_flags & IEEE80211_CHAN_XR) != 0)
 
-/* Represents one packet buffer */
-
-struct ieee80211_iobuf
-{
-  sq_entry_t m_link;
-  uint16_t   m_flags;
-  uint16_t   m_len;
-  uint16_t   m_pktlen;
-  uint16_t   m_hdrlen;
-#if NVLAN > 0
-  uint16_t   m_vtag;
-#endif
-  void      *m_priv;
-  uint8_t    m_data[CONFIG_IEEE80211_BUFSIZE];
-};
-
 /* EDCA AC parameters */
 
 struct ieee80211_edca_ac_params
@@ -197,7 +186,7 @@ struct ieee80211_edca_ac_params
 struct ieee80211_defrag
 {
   WDOG_ID      df_to;
-  struct ieee80211_iobuf *df_m;
+  struct ieee80211_iobuf_s *df_m;
   uint16_t     df_seq;
   uint8_t      df_frag;
 };
@@ -219,7 +208,7 @@ struct ieee80211com
 #warning REVISIT: ic_if represents the device interface and needs to go away
   struct ifnet ic_if;
   void            (*ic_recv_mgmt)(struct ieee80211com *,
-                  struct ieee80211_iobuf *, struct ieee80211_node *,
+                  struct ieee80211_iobuf_s *, struct ieee80211_node *,
                   struct ieee80211_rxinfo *, int);
   int            (*ic_send_mgmt)(struct ieee80211com *,
                   struct ieee80211_node *, int, int, int);
@@ -407,39 +396,6 @@ extern dq_queue_t ieee80211com_head;
  * Global Data
  ****************************************************************************/
 
-extern sq_queue_t g_ieee80211_freelist;
-
-/****************************************************************************
- * Inline Functions
- ****************************************************************************/
-
-static __inline void ieee80211_ifpurge(sq_queue_t *q)
-{
-  /* If the free list is empty, then just move the entry queue to the the
-   * free list.  Otherwise, append the list to the end of the freelist.
-   */
-
-  if (g_ieee80211_freelist.tail)
-    {
-      g_ieee80211_freelist.tail->flink = q->head;
-    }
-  else
-    {
-      g_ieee80211_freelist.head = q->head;
-    }
-
-  /* In either case, the tail of the queue is the tail of queue becomes the
-   * tail of the free list.
-   */
-
-  g_ieee80211_freelist.tail = q->tail;
-}
-
-static __inline void ieee80211_iofree(struct ieee80211_iobuf *m)
-{
-  sq_addlast(&m->m_link, &g_ieee80211_freelist);
-}
-
 /****************************************************************************
  * Public Function Protytypes
  ****************************************************************************/
@@ -451,11 +407,6 @@ struct ifnet;
 struct ifmediareq;
 typedef int (*ifm_change_cb_t)(struct ifnet *);
 typedef void (*ifm_stat_cb_t)(struct ifnet *, struct ifmediareq *);
-
-#warning REVISIT: The design seems to attach and detach Ethernet devices.  NuttX does not work this way
-#warning REVISIT:  Perhaps ieee80211_ifattach should become an general one-time initialization function
-void ieee80211_ifattach(struct ifnet *);
-void ieee80211_ifdetach(struct ifnet *);
 
 #warning REVISIT: I think that these media interfaces should go away??? They are not used internally.
 void ieee80211_media_init(struct ifnet *, ifm_change_cb_t, ifm_stat_cb_t);

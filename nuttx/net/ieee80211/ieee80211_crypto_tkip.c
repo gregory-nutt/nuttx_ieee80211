@@ -39,6 +39,7 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 
@@ -120,13 +121,13 @@ struct ieee80211_tkip_frame
  * call it without a software crypto context.
  */
 void
-ieee80211_tkip_mic(struct ieee80211_iobuf *m0, int off, const uint8_t *key,
+ieee80211_tkip_mic(struct ieee80211_iobuf_s *m0, int off, const uint8_t *key,
     uint8_t mic[IEEE80211_TKIP_MICLEN])
 {
     const struct ieee80211_frame *wh;
     struct ieee80211_tkip_frame wht;
     MICHAEL_CTX ctx;    /* small enough */
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     void *pos;
     int len;
 
@@ -171,7 +172,7 @@ ieee80211_tkip_mic(struct ieee80211_iobuf *m0, int off, const uint8_t *key,
     for (;;)
       {
         michael_update(&ctx, pos, len);
-        if ((m = (struct ieee80211_iobuf *)m->m_link.flink) == NULL)
+        if ((m = (struct ieee80211_iobuf_s *)m->m_link.flink) == NULL)
           {
             break;
           }
@@ -189,14 +190,14 @@ ieee80211_tkip_mic(struct ieee80211_iobuf *m0, int off, const uint8_t *key,
 #define IEEE80211_TKIP_OVHD    \
     (IEEE80211_TKIP_HDRLEN + IEEE80211_TKIP_TAILLEN)
 
-struct ieee80211_iobuf *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
+struct ieee80211_iobuf_s *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_tkip_ctx *ctx = k->k_priv;
     uint16_t wepseed[8];    /* needs to be 16-bit aligned for Phase2 */
     const struct ieee80211_frame *wh;
     uint8_t *ivp, *mic, *icvp;
-    struct ieee80211_iobuf *n0, *m, *n;
+    struct ieee80211_iobuf_s *n0, *m, *n;
     uint32_t crc;
     int left, moff, noff, len, hdrlen;
 
@@ -255,7 +256,7 @@ struct ieee80211_iobuf *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct i
           {
             /* Nothing left to copy from m */
 
-            m = (struct ieee80211_iobuf *)m->m_link.flink;
+            m = (struct ieee80211_iobuf_s *)m->m_link.flink;
             moff = 0;
           }
 
@@ -263,13 +264,13 @@ struct ieee80211_iobuf *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct i
           {
             /* n is full and there's more data to copy */
 
-            MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+            MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
             if (n->m_link.flink == NULL)
               {
                 goto nospace;
               }
 
-            n = (struct ieee80211_iobuf *)n->m_link.flink;
+            n = (struct ieee80211_iobuf_s *)n->m_link.flink;
             n->m_len = MLEN;
             if (left >= MINCLSIZE - IEEE80211_TKIP_TAILLEN)
               {
@@ -299,13 +300,13 @@ struct ieee80211_iobuf *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct i
 
     if (M_TRAILINGSPACE(n) < IEEE80211_TKIP_TAILLEN)
       {
-        MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+        MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
         if (n->m_link.flink == NULL)
           {
             goto nospace;
           }
 
-        n = (struct ieee80211_iobuf *)n->m_link.flink;
+        n = (struct ieee80211_iobuf_s *)n->m_link.flink;
         n->m_len = 0;
       }
 
@@ -338,7 +339,7 @@ struct ieee80211_iobuf *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct i
     return NULL;
 }
 
-struct ieee80211_iobuf *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
+struct ieee80211_iobuf_s *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_tkip_ctx *ctx = k->k_priv;
@@ -350,7 +351,7 @@ struct ieee80211_iobuf *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct i
     uint32_t crc, crc0;
     uint8_t *ivp, *mic0;
     uint8_t tid;
-    struct ieee80211_iobuf *n0, *m, *n;
+    struct ieee80211_iobuf_s *n0, *m, *n;
     int hdrlen, left, moff, noff, len;
 
     wh = mtod(m0, struct ieee80211_frame *);
@@ -427,7 +428,7 @@ struct ieee80211_iobuf *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct i
           {
             /* Nothing left to copy from m */
 
-            m = (struct ieee80211_iobuf *)m->m_link.flink;
+            m = (struct ieee80211_iobuf_s *)m->m_link.flink;
             moff = 0;
           }
 
@@ -435,13 +436,13 @@ struct ieee80211_iobuf *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct i
           {
             /* n is full and there's more data to copy */
 
-            MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+            MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
             if (n->m_link.flink == NULL)
               {
                 goto nospace;
               }
 
-            n = (struct ieee80211_iobuf *)n->m_link.flink;
+            n = (struct ieee80211_iobuf_s *)n->m_link.flink;
             n->m_len = MLEN;
             if (left >= MINCLSIZE)
               {

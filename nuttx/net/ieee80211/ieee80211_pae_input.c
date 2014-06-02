@@ -42,6 +42,7 @@
 #endif
 
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -75,7 +76,7 @@ void    ieee80211_recv_eapol_key_req(struct ieee80211com *,
  * EAPOL-Key frames with an IEEE 802.11 or WPA descriptor type.
  */
 
-void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf *m,
+void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
     struct ieee80211_node *ni)
 {
     struct ifnet *ifp = &ic->ic_if;

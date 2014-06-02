@@ -39,6 +39,7 @@
 #endif
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 
@@ -164,7 +165,7 @@ ieee80211_ccmp_phase1(rijndael_ctx *ctx, const struct ieee80211_frame *wh,
     rijndael_encrypt(ctx, a, s0);
 }
 
-struct ieee80211_iobuf *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
+struct ieee80211_iobuf_s *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_ccmp_ctx *ctx = k->k_priv;
@@ -172,7 +173,7 @@ struct ieee80211_iobuf *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct i
     const uint8_t *src;
     uint8_t *ivp, *mic, *dst;
     uint8_t a[16], b[16], s0[16], s[16];
-    struct ieee80211_iobuf *n0, *m, *n;
+    struct ieee80211_iobuf_s *n0, *m, *n;
     int hdrlen, left, moff, noff, len;
     uint16_t ctr;
     int i, j;
@@ -232,7 +233,7 @@ struct ieee80211_iobuf *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct i
           {
             /* Nothing left to copy from m */
 
-            m = (struct ieee80211_iobuf *)m->m_link.flink;
+            m = (struct ieee80211_iobuf_s *)m->m_link.flink;
             moff = 0;
           }
 
@@ -240,13 +241,13 @@ struct ieee80211_iobuf *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct i
           {
             /* n is full and there's more data to copy */
 
-            MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+            MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
             if (n->m_link.flink == NULL)
               {
                 goto nospace;
               }
 
-            n = (struct ieee80211_iobuf *)n->m_link.flink;
+            n = (struct ieee80211_iobuf_s *)n->m_link.flink;
             n->m_len = MLEN;
             if (left >= MINCLSIZE - IEEE80211_CCMP_MICLEN)
               {
@@ -294,7 +295,7 @@ struct ieee80211_iobuf *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct i
 
     if (M_TRAILINGSPACE(n) < IEEE80211_CCMP_MICLEN)
       {
-        MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+        MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
         if (n->m_link.flink == NULL)
           {
             goto nospace;
@@ -321,7 +322,7 @@ struct ieee80211_iobuf *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct i
     return NULL;
 }
 
-struct ieee80211_iobuf *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
+struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_ccmp_ctx *ctx = k->k_priv;
@@ -331,7 +332,7 @@ struct ieee80211_iobuf *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct i
     uint8_t *dst;
     uint8_t mic0[IEEE80211_CCMP_MICLEN];
     uint8_t a[16], b[16], s0[16], s[16];
-    struct ieee80211_iobuf *n0, *m, *n;
+    struct ieee80211_iobuf_s *n0, *m, *n;
     int hdrlen, left, moff, noff, len;
     uint16_t ctr;
     int i, j;
@@ -417,7 +418,7 @@ struct ieee80211_iobuf *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct i
           {
             /* Nothing left to copy from m */
 
-            m = (struct ieee80211_iobuf *)m->m_link.flink;
+            m = (struct ieee80211_iobuf_s *)m->m_link.flink;
             moff = 0;
           }
 
@@ -425,13 +426,13 @@ struct ieee80211_iobuf *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct i
           {
             /* n is full and there's more data to copy */
 
-            MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+            MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
             if (n->m_link.flink == NULL)
               {
                 goto nospace;
               }
 
-            n = (struct ieee80211_iobuf *)n->m_link.flink;
+            n = (struct ieee80211_iobuf_s *)n->m_link.flink;
             n->m_len = MLEN;
             if (left >= MINCLSIZE) {
                 MCLGET(n, M_DONTWAIT);

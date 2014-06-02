@@ -38,6 +38,7 @@
 #endif
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 
@@ -81,13 +82,13 @@ void ieee80211_wep_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
 #define IEEE80211_WEP_HDRLEN    \
     (IEEE80211_WEP_IVLEN + IEEE80211_WEP_KIDLEN)
 
-struct ieee80211_iobuf *ieee80211_wep_encrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
+struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_wep_ctx *ctx = k->k_priv;
     uint8_t wepseed[16];
     const struct ieee80211_frame *wh;
-    struct ieee80211_iobuf *n0, *m, *n;
+    struct ieee80211_iobuf_s *n0, *m, *n;
     uint8_t *ivp, *icvp;
     uint32_t iv, crc;
     int left, moff, noff, len, hdrlen;
@@ -142,7 +143,7 @@ struct ieee80211_iobuf *ieee80211_wep_encrypt(struct ieee80211com *ic, struct ie
           {
             /* Nothing left to copy from m */
 
-            m = (struct ieee80211_iobuf *)m->m_link.flink;
+            m = (struct ieee80211_iobuf_s *)m->m_link.flink;
             moff = 0;
           }
 
@@ -150,13 +151,13 @@ struct ieee80211_iobuf *ieee80211_wep_encrypt(struct ieee80211com *ic, struct ie
           {
             /* n is full and there's more data to copy */
 
-            MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+            MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
             if (n->m_link.flink == NULL)
               {
                 goto nospace;
               }
 
-            n = (struct ieee80211_iobuf *)n->m_link.flink;
+            n = (struct ieee80211_iobuf_s *)n->m_link.flink;
             n->m_len = MLEN;
             if (left >= MINCLSIZE - IEEE80211_WEP_CRCLEN) {
                 MCLGET(n, M_DONTWAIT);
@@ -182,13 +183,13 @@ struct ieee80211_iobuf *ieee80211_wep_encrypt(struct ieee80211com *ic, struct ie
 
     if (M_TRAILINGSPACE(n) < IEEE80211_WEP_CRCLEN)
       {
-        MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+        MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
         if (n->m_link.flink == NULL)
           {
             goto nospace;
           }
 
-        n = (struct ieee80211_iobuf *)n->m_link.flink;
+        n = (struct ieee80211_iobuf_s *)n->m_link.flink;
         n->m_len = 0;
     }
 
@@ -213,7 +214,7 @@ struct ieee80211_iobuf *ieee80211_wep_encrypt(struct ieee80211com *ic, struct ie
     return NULL;
 }
 
-struct ieee80211_iobuf *ieee80211_wep_decrypt(struct ieee80211com *ic, struct ieee80211_iobuf *m0,
+struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_wep_ctx *ctx = k->k_priv;
@@ -221,7 +222,7 @@ struct ieee80211_iobuf *ieee80211_wep_decrypt(struct ieee80211com *ic, struct ie
     uint8_t wepseed[16];
     uint32_t crc, crc0;
     uint8_t *ivp;
-    struct ieee80211_iobuf *n0, *m, *n;
+    struct ieee80211_iobuf_s *n0, *m, *n;
     int hdrlen, left, moff, noff, len;
 
     wh = mtod(m0, struct ieee80211_frame *);
@@ -271,7 +272,7 @@ struct ieee80211_iobuf *ieee80211_wep_decrypt(struct ieee80211com *ic, struct ie
           {
             /* Nothing left to copy from m */
 
-            m =(struct ieee80211_iobuf *) m->m_link.flink;
+            m =(struct ieee80211_iobuf_s *) m->m_link.flink;
             moff = 0;
           }
 
@@ -279,13 +280,13 @@ struct ieee80211_iobuf *ieee80211_wep_decrypt(struct ieee80211com *ic, struct ie
           {
             /* n is full and there's more data to copy */
 
-            MGET((struct ieee80211_iobuf *)n->m_link.flink, M_DONTWAIT, n->m_type);
+            MGET((struct ieee80211_iobuf_s *)n->m_link.flink, M_DONTWAIT, n->m_type);
             if (n->m_link.flink == NULL)
               {
                 goto nospace;
               }
 
-            n = (struct ieee80211_iobuf *)n->m_link.flink;
+            n = (struct ieee80211_iobuf_s *)n->m_link.flink;
             n->m_len = MLEN;
             if (left >= MINCLSIZE)
               {

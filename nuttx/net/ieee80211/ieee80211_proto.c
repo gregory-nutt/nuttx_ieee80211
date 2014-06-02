@@ -56,6 +56,7 @@
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 

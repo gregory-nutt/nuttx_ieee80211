@@ -42,6 +42,7 @@
 #include <queue.h>
 
 #include <nuttx/tree.h>
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -162,7 +163,7 @@ struct ieee80211_rx_ba
   struct ieee80211_node *ba_ni;        /* backpointer for callbacks */
   struct
   {
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
     struct ieee80211_rxinfo rxi;
   }             *ba_buf;
   WDOG_ID        ba_to;

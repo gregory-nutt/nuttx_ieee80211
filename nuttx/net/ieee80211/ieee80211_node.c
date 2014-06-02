@@ -1775,13 +1775,13 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
     struct ieee80211_node *ni = ic->ic_bss;
     struct ifnet *ifp = &ic->ic_if;
     struct ieee80211_frame *wh;
-    struct ieee80211_iobuf *m;
+    struct ieee80211_iobuf_s *m;
 
     DEBUGASSERT(ic->ic_opmode == IEEE80211_M_HOSTAP);
 
     for (;;)
       {
-        m = (struct ieee80211_iobuf *)sq_remfirst(&ni->ni_savedq);
+        m = (struct ieee80211_iobuf_s *)sq_remfirst(&ni->ni_savedq);
         if (m == NULL)
           {
             break;

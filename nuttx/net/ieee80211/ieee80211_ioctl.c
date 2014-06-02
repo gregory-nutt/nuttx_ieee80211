@@ -38,6 +38,7 @@
 #include <net/if.h>
 
 #include <string.h>
+#include <errno.h>
 
 #ifdef CONFIG_NET_ETHERNET
 #  include <netinet/in.h>
@@ -128,23 +129,23 @@ static int ieee80211_ioctl_setnwkeys(struct ieee80211com *ic,
     int error, i;
 
     if (!(ic->ic_caps & IEEE80211_C_WEP))
-        return ENODEV;
+        return -ENODEV;
 
     if (nwkey->i_wepon == IEEE80211_NWKEY_OPEN) {
         if (!(ic->ic_flags & IEEE80211_F_WEPON))
             return 0;
         ic->ic_flags &= ~IEEE80211_F_WEPON;
-        return ENETRESET;
+        return -ENETRESET;
     }
     if (nwkey->i_defkid < 1 || nwkey->i_defkid > IEEE80211_WEP_NKID)
-        return EINVAL;
+        return -EINVAL;
 
     for (i = 0; i < IEEE80211_WEP_NKID; i++) {
         if (nwkey->i_key[i].i_keylen == 0 ||
             nwkey->i_key[i].i_keydat == NULL)
             continue;    /* entry not set */
         if (nwkey->i_key[i].i_keylen > IEEE80211_KEYBUF_SIZE)
-            return EINVAL;
+            return -EINVAL;
 
         /* map wep key to ieee80211_key */
         k = &ic->ic_nw_keys[i];
@@ -167,7 +168,7 @@ static int ieee80211_ioctl_setnwkeys(struct ieee80211com *ic,
     ic->ic_def_txkey = nwkey->i_defkid - 1;
     ic->ic_flags |= IEEE80211_F_WEPON;
 
-    return ENETRESET;
+    return -ENETRESET;
 }
 
 static int ieee80211_ioctl_getnwkeys(struct ieee80211com *ic,
@@ -204,13 +205,13 @@ static int ieee80211_ioctl_setwpaparms(struct ieee80211com *ic,
     const struct ieee80211_wpaparams *wpa)
 {
     if (!(ic->ic_caps & IEEE80211_C_RSN))
-        return ENODEV;
+        return -ENODEV;
 
     if (!wpa->i_enabled) {
         if (!(ic->ic_flags & IEEE80211_F_RSNON))
             return 0;
         ic->ic_flags &= ~IEEE80211_F_RSNON;
-        return ENETRESET;
+        return -ENETRESET;
     }
 
     ic->ic_rsnprotos = 0;
@@ -261,7 +262,7 @@ static int ieee80211_ioctl_setwpaparms(struct ieee80211com *ic,
 
     ic->ic_flags |= IEEE80211_F_RSNON;
 
-    return ENETRESET;
+    return -ENETRESET;
 }
 
 static int ieee80211_ioctl_getwpaparms(struct ieee80211com *ic,
