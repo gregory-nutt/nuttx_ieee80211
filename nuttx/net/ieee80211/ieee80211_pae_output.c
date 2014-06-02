@@ -62,7 +62,7 @@ struct ieee80211_iobuf_s *ieee80211_get_eapol_key(int, int, unsigned int);
  * the PTK must be passed (otherwise it can be set to NULL.)
  */
 
-int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
+int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
     struct ieee80211_node *ni, const struct ieee80211_ptk *ptk)
 {
   struct ether_header *eh;
@@ -70,15 +70,15 @@ int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf_s *
   uint16_t info;
   int s, len, error;
 
-  M_PREPEND(m, sizeof(struct ether_header), M_DONTWAIT);
-  if (m == NULL)
+  M_PREPEND(iob, sizeof(struct ether_header), M_DONTWAIT);
+  if (iob == NULL)
     {
       return ENOMEM;
     }
 
   /* No need to m_pullup here (ok by construction) */
 
-  eh = mtod(m, struct ether_header *);
+  eh = mtod(iob, struct ether_header *);
   eh->ether_type = htons(ETHERTYPE_PAE);
   IEEE80211_ADDR_COPY(eh->ether_shost, ic->ic_myaddr);
   IEEE80211_ADDR_COPY(eh->ether_dhost, ni->ni_macaddr);
@@ -111,7 +111,7 @@ int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf_s *
 
   BE_WRITE_2(key->info, info);
 
-  len = m->m_len - sizeof(struct ether_header);
+  len = iob->m_len - sizeof(struct ether_header);
   BE_WRITE_2(key->paylen, len - sizeof(*key));
   BE_WRITE_2(key->len, len - 4);
 
@@ -132,7 +132,7 @@ int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf_s *
         {
           /* AES Key Wrap adds 8 bytes + padding */
 
-          m->m_pktlen = m->m_len = sizeof(*eh) + 4 + BE_READ_2(key->len);
+          iob->m_pktlen = iob->m_len = sizeof(*eh) + 4 + BE_READ_2(key->len);
         }
     }
 #endif
@@ -142,7 +142,7 @@ int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf_s *
       ieee80211_eapol_key_mic(key, ptk->kck);
     }
 
-  len = m->m_pktlen;
+  len = iob->m_pktlen;
   s = splnet();
 
 #ifdef CONFIG_IEEE80211_AP
@@ -154,7 +154,7 @@ int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf_s *
     }
 #endif
 
-  error = ieee80211_ifsend(m);
+  error = ieee80211_ifsend(iob);
   if (error == 0)
     {
       ieee80211_ifstart();
@@ -260,7 +260,7 @@ ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
 
 struct ieee80211_iobuf_s *ieee80211_get_eapol_key(int flags, int type, unsigned int pktlen)
 {
-  struct ieee80211_iobuf_s *m;
+  struct ieee80211_iobuf_s *iob;
 
   /* Reserve space for 802.11 encapsulation and EAPOL-Key header */
 
@@ -268,23 +268,23 @@ struct ieee80211_iobuf_s *ieee80211_get_eapol_key(int flags, int type, unsigned 
             sizeof(struct ieee80211_eapol_key);
   DEBUGASSERT(pktlen <= MCLBYTES);
 
-  MGETHDR(m, flags, type);
-  if (m == NULL)
+  iob = ieee80211_ioalloc();
+  if (iob == NULL)
     {
       return NULL;
     }
 
   if (pktlen > MHLEN)
     {
-      MCLGET(m, flags);
-      if (!(m->m_flags & M_EXT))
+      MCLGET(iob, flags);
+      if (!(iob->m_flags & M_EXT))
         {
-          return ieee80211_iofree(m);
+          return ieee80211_iofree(iob);
         }
     }
 
-  m->m_data += sizeof(struct ieee80211_frame) + LLC_SNAPFRAMELEN;
-  return m;
+  iob->m_data += sizeof(struct ieee80211_frame) + LLC_SNAPFRAMELEN;
+  return iob;
 }
 
 #ifdef CONFIG_IEEE80211_AP
@@ -295,7 +295,7 @@ int
 ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     struct ieee80211_eapol_key *key;
-    struct ieee80211_iobuf_s *m;
+    struct ieee80211_iobuf_s *iob;
     uint16_t info, keylen;
     uint8_t *frm;
 
@@ -306,11 +306,11 @@ ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
         ieee80211_node_leave(ic, ni);
         return 0;
     }
-    m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
+    iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
         (ni->ni_rsnprotos == IEEE80211_PROTO_RSN) ? 2 + 20 : 0);
-    if (m == NULL)
+    if (iob == NULL)
         return ENOMEM;
-    key = mtod(m, struct ieee80211_eapol_key *);
+    key = mtod(iob, struct ieee80211_eapol_key *);
     memset(key, 0, sizeof(*key));
 
     info = EAPOL_KEY_PAIRWISE | EAPOL_KEY_KEYACK;
@@ -328,7 +328,7 @@ ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
         ieee80211_is_8021x_akm(ni->ni_rsnakms))
         frm = ieee80211_add_pmkid_kde(frm, ni->ni_pmkid);
 
-    m->m_pktlen = m->m_len = frm - (uint8_t *)key;
+    iob->m_pktlen = iob->m_len = frm - (uint8_t *)key;
 
   nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
         ic->ic_ifname, 1, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
@@ -336,7 +336,7 @@ ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
   ni->ni_replaycnt++;
   BE_WRITE_8(key->replaycnt, ni->ni_replaycnt);
 
-  return ieee80211_send_eapol_key(ic, m, ni, NULL);
+  return ieee80211_send_eapol_key(ic, iob, ni, NULL);
 }
 #endif /* CONFIG_IEEE80211_AP */
 
@@ -348,17 +348,17 @@ ieee80211_send_4way_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
     const uint8_t *replaycnt, const struct ieee80211_ptk *tptk)
 {
     struct ieee80211_eapol_key *key;
-    struct ieee80211_iobuf_s *m;
+    struct ieee80211_iobuf_s *iob;
     uint16_t info;
     uint8_t *frm;
 
-    m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
+    iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
         (ni->ni_rsnprotos == IEEE80211_PROTO_WPA) ?
         2 + IEEE80211_WPAIE_MAXLEN :
         2 + IEEE80211_RSNIE_MAXLEN);
-    if (m == NULL)
+    if (iob == NULL)
         return ENOMEM;
-    key = mtod(m, struct ieee80211_eapol_key *);
+    key = mtod(iob, struct ieee80211_eapol_key *);
     memset(key, 0, sizeof(*key));
 
     info = EAPOL_KEY_PAIRWISE | EAPOL_KEY_KEYMIC;
@@ -381,12 +381,12 @@ ieee80211_send_4way_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
     } else    /* RSN */
         frm = ieee80211_add_rsn(frm, ic, ni);
 
-    m->m_pktlen = m->m_len = frm - (uint8_t *)key;
+    iob->m_pktlen = iob->m_len = frm - (uint8_t *)key;
 
   nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
         ic->ic_ifname, 2, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
-  return ieee80211_send_eapol_key(ic, m, ni, tptk);
+  return ieee80211_send_eapol_key(ic, iob, ni, tptk);
 }
 
 #ifdef CONFIG_IEEE80211_AP
@@ -398,7 +398,7 @@ ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     struct ieee80211_eapol_key *key;
     struct ieee80211_key *k;
-    struct ieee80211_iobuf_s *m;
+    struct ieee80211_iobuf_s *iob;
     uint16_t info, keylen;
     uint8_t *frm;
 
@@ -412,14 +412,14 @@ ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
     if (ni->ni_rsnprotos == IEEE80211_PROTO_RSN)
         k = &ic->ic_nw_keys[ic->ic_def_txkey];
 
-    m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
+    iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
         ((ni->ni_rsnprotos == IEEE80211_PROTO_WPA) ?
         2 + IEEE80211_WPAIE_MAXLEN :
         2 + IEEE80211_RSNIE_MAXLEN + 2 + 6 + k->k_len + 15) +
         ((ni->ni_flags & IEEE80211_NODE_MFP) ? 2 + 28 : 0));
-    if (m == NULL)
+    if (iob == NULL)
         return ENOMEM;
-    key = mtod(m, struct ieee80211_eapol_key *);
+    key = mtod(iob, struct ieee80211_eapol_key *);
     memset(key, 0, sizeof(*key));
 
     info = EAPOL_KEY_PAIRWISE | EAPOL_KEY_KEYACK | EAPOL_KEY_KEYMIC;
@@ -455,12 +455,12 @@ ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
     /* write the key info field */
     BE_WRITE_2(key->info, info);
 
-    m->m_pktlen = m->m_len = frm - (uint8_t *)key;
+    iob->m_pktlen = iob->m_len = frm - (uint8_t *)key;
 
   nvbg("%s: sending msg %d/%d of the %s handshake to %s\n",
        ic->ic_ifname, 3, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
-  return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
+  return ieee80211_send_eapol_key(ic, iob, ni, &ni->ni_ptk);
 }
 #endif /* CONFIG_IEEE80211_AP */
 
@@ -469,13 +469,13 @@ ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
 int ieee80211_send_4way_msg4(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
     struct ieee80211_eapol_key *key;
-    struct ieee80211_iobuf_s *m;
+    struct ieee80211_iobuf_s *iob;
     uint16_t info;
 
-    m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
-    if (m == NULL)
+    iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
+    if (iob == NULL)
         return ENOMEM;
-    key = mtod(m, struct ieee80211_eapol_key *);
+    key = mtod(iob, struct ieee80211_eapol_key *);
     memset(key, 0, sizeof(*key));
 
     info = EAPOL_KEY_PAIRWISE | EAPOL_KEY_KEYMIC;
@@ -496,12 +496,12 @@ int ieee80211_send_4way_msg4(struct ieee80211com *ic, struct ieee80211_node *ni)
 
   /* Empty key data field */
 
-  m->m_pktlen = m->m_len = sizeof(*key);
+  iob->m_pktlen = iob->m_len = sizeof(*key);
 
   nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
         ic->ic_ifname, 4, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
-  return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
+  return ieee80211_send_eapol_key(ic, iob, ni, &ni->ni_ptk);
 }
 
 #ifdef CONFIG_IEEE80211_AP
@@ -511,7 +511,7 @@ int ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni
 {
     struct ieee80211_eapol_key *key;
     const struct ieee80211_key *k;
-    struct ieee80211_iobuf_s *m;
+    struct ieee80211_iobuf_s *iob;
     uint16_t info;
     uint8_t *frm;
     uint8_t kid;
@@ -529,14 +529,14 @@ int ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni
         kid = ic->ic_def_txkey;
     k = &ic->ic_nw_keys[kid];
 
-    m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
+    iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
         ((ni->ni_rsnprotos == IEEE80211_PROTO_WPA) ?
         k->k_len : 2 + 6 + k->k_len) +
         ((ni->ni_flags & IEEE80211_NODE_MFP) ? 2 + 28 : 0) +
         15);
-    if (m == NULL)
+    if (iob == NULL)
         return ENOMEM;
-    key = mtod(m, struct ieee80211_eapol_key *);
+    key = mtod(iob, struct ieee80211_eapol_key *);
     memset(key, 0, sizeof(*key));
 
     info = EAPOL_KEY_KEYACK | EAPOL_KEY_KEYMIC | EAPOL_KEY_SECURE |
@@ -574,12 +574,12 @@ int ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni
 
   BE_WRITE_2(key->info, info);
 
-  m->m_pktlen = m->m_len = frm - (uint8_t *)key;
+  iob->m_pktlen = iob->m_len = frm - (uint8_t *)key;
 
   nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
         ic->ic_ifname, 1, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
 
-  return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
+  return ieee80211_send_eapol_key(ic, iob, ni, &ni->ni_ptk);
 }
 #endif /* CONFIG_IEEE80211_AP */
 
@@ -590,12 +590,12 @@ int ieee80211_send_group_msg2(struct ieee80211com *ic, struct ieee80211_node *ni
 {
     struct ieee80211_eapol_key *key;
     uint16_t info;
-    struct ieee80211_iobuf_s *m;
+    struct ieee80211_iobuf_s *iob;
 
-    m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
-    if (m == NULL)
+    iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
+    if (iob == NULL)
         return ENOMEM;
-    key = mtod(m, struct ieee80211_eapol_key *);
+    key = mtod(iob, struct ieee80211_eapol_key *);
     memset(key, 0, sizeof(*key));
 
     info = EAPOL_KEY_KEYMIC | EAPOL_KEY_SECURE;
@@ -615,12 +615,12 @@ int ieee80211_send_group_msg2(struct ieee80211com *ic, struct ieee80211_node *ni
 
   /* Empty key data field */
 
-  m->m_pktlen = m->m_len = sizeof(*key);
+  iob->m_pktlen = iob->m_len = sizeof(*key);
 
   nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
         ic->ic_ifname, 2, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
 
-  return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
+  return ieee80211_send_eapol_key(ic, iob, ni, &ni->ni_ptk);
 }
 
 /* EAPOL-Key Request frames are sent by the supplicant to request that the
@@ -632,12 +632,12 @@ int ieee80211_send_eapol_key_req(struct ieee80211com *ic,
     struct ieee80211_node *ni, uint16_t info, uint64_t tsc)
 {
   struct ieee80211_eapol_key *key;
-  struct ieee80211_iobuf_s *m;
+  struct ieee80211_iobuf_s *iob;
 
-  m = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
-  if (m == NULL)
+  iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
+  if (iob == NULL)
       return ENOMEM;
-  key = mtod(m, struct ieee80211_eapol_key *);
+  key = mtod(iob, struct ieee80211_eapol_key *);
   memset(key, 0, sizeof(*key));
 
   info |= EAPOL_KEY_REQUEST;
@@ -656,5 +656,5 @@ int ieee80211_send_eapol_key_req(struct ieee80211com *ic,
   nvdbg("%s: sending EAPOL-Key request to %s\n",
         ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr));
 
-  return ieee80211_send_eapol_key(ic, m, ni, &ni->ni_ptk);
+  return ieee80211_send_eapol_key(ic, iob, ni, &ni->ni_ptk);
 }

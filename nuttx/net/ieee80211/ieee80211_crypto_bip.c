@@ -96,19 +96,24 @@ struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ie
     struct ieee80211_bip_frame aad;
     struct ieee80211_frame *wh;
     uint8_t *mmie, mic[AES_CMAC_DIGEST_LENGTH];
-    struct ieee80211_iobuf_s *m;
+    struct ieee80211_iobuf_s *iob;
 
     wh = mtod(m0, struct ieee80211_frame *);
     DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
         IEEE80211_FC0_TYPE_MGT);
-    /* clear Protected bit from group management frames */
+
+    /* Clear Protected bit from group management frames */
+
     wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 
-    /* construct AAD (additional authenticated data) */
+    /* Construct AAD (additional authenticated data) */
+
     aad.i_fc[0] = wh->i_fc[0];
     aad.i_fc[1] = wh->i_fc[1] & ~(IEEE80211_FC1_RETRY |
         IEEE80211_FC1_PWR_MGT | IEEE80211_FC1_MORE_DATA);
+
     /* XXX 11n may require clearing the Order bit too */
+
     IEEE80211_ADDR_COPY(aad.i_addr1, wh->i_addr1);
     IEEE80211_ADDR_COPY(aad.i_addr2, wh->i_addr2);
     IEEE80211_ADDR_COPY(aad.i_addr3, wh->i_addr3);
@@ -118,24 +123,27 @@ struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ie
     AES_CMAC_Update(&ctx->cmac, (uint8_t *)&wh[1],
         m0->m_len - sizeof(*wh));
 
-    m = m0;
+    iob = m0;
 
     /* Reserve trailing space for MMIE */
 
-    if (M_TRAILINGSPACE(m) < IEEE80211_MMIE_LEN)
+    if (M_TRAILINGSPACE(iob) < IEEE80211_MMIE_LEN)
       {
-        MGET((struct ieee80211_iobuf_s *)m->m_link.flink, M_DONTWAIT, m->m_type);
-        if (m->m_link.flink == NULL)
+        struct ieee80211_iobuf_s *newbuf;
+
+        newbuf = ieee80211_ioalloc();
+        if (iob->m_link.flink == NULL)
           {
             goto nospace;
           }
 
-        m = (struct ieee80211_iobuf_s *)m->m_link.flink;
-        m->m_len = 0;
+        iob->m_link.flink = (sq_entry_t *)newbuf;
+        iob = newbuf;
+        iob->m_len = 0;
       }
 
     /* construct Management MIC IE */
-    mmie = mtod(m, uint8_t *) + m->m_len;
+    mmie = mtod(iob, uint8_t *) + iob->m_len;
     mmie[0] = IEEE80211_ELEMID_MMIE;
     mmie[1] = 16;
     LE_WRITE_2(&mmie[2], k->k_id);
@@ -147,7 +155,7 @@ struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ie
     /* truncate AES-128-CMAC to 64-bit */
     memcpy(&mmie[10], mic, 8);
 
-    m->m_len += IEEE80211_MMIE_LEN;
+    iob->m_len += IEEE80211_MMIE_LEN;
     m0->m_pktlen += IEEE80211_MMIE_LEN;
 
     k->k_tsc++;
@@ -208,12 +216,14 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
         m0->m_len - sizeof(*wh));
     AES_CMAC_Final(mic, &ctx->cmac);
 
-    /* check that MIC matches the one in MMIE */
-    if (timingsafe_bcmp(mic, mic0, 8) != 0) {
+    /* Check that MIC matches the one in MMIE */
+
+    if (timingsafe_bcmp(mic, mic0, 8) != 0)
+      {
         ic->ic_stats.is_cmac_icv_errs++;
         ieee80211_iofree(m0);
         return NULL;
-    }
+      }
 
     /* There is no need to trim the MMIE from the buffer since it is
      * an information element and will be ignored by upper layers.

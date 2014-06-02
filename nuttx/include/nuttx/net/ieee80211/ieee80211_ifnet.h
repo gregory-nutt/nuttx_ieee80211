@@ -76,6 +76,11 @@ extern sq_queue_t g_ieee80211_freelist;
  * Inline Functions
  ****************************************************************************/
 
+static __inline FAR struct ieee80211_iobuf_s *ieee80211_ioalloc(void)
+{
+  return (FAR struct ieee80211_iobuf_s *)sq_remfirst(&g_ieee80211_freelist);
+}
+
 static __inline void ieee80211_ifpurge(sq_queue_t *q)
 {
   /* If the free list is empty, then just move the entry queue to the the
@@ -98,9 +103,9 @@ static __inline void ieee80211_ifpurge(sq_queue_t *q)
   g_ieee80211_freelist.tail = q->tail;
 }
 
-static __inline void ieee80211_iofree(struct ieee80211_iobuf_s *m)
+static __inline void ieee80211_iofree(FAR struct ieee80211_iobuf_s *iob)
 {
-  sq_addlast(&m->m_link, &g_ieee80211_freelist);
+  sq_addlast(&iob->m_link, &g_ieee80211_freelist);
 }
 
 /****************************************************************************
@@ -121,6 +126,6 @@ void ieee80211_ifstart(void);
 
 /* Enqueue the packet to be sent by the Ethernet driver */
 
-int ieee80211_ifsend(struct ieee80211_iobuf_s *m);
+int ieee80211_ifsend(struct ieee80211_iobuf_s *iob);
 
 #endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_IFNET_H */
