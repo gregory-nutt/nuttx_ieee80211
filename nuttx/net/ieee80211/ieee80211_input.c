@@ -921,60 +921,74 @@ struct ieee80211_iobuf_s *ieee80211_align_iobuf(struct ieee80211_iobuf_s *m)
 }
 #endif /* __STRICT_ALIGNMENT */
 
-void ieee80211_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
-    struct ieee80211_node *ni, int hdrlen)
+void ieee80211_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *m, struct ieee80211_node *ni, int hdrlen)
 {
     struct ether_header eh;
     struct ieee80211_frame *wh;
     struct llc *llc;
 
     if (m->m_len < hdrlen + LLC_SNAPFRAMELEN &&
-        (m = m_pullup(m, hdrlen + LLC_SNAPFRAMELEN)) == NULL) {
+        (m = m_pullup(m, hdrlen + LLC_SNAPFRAMELEN)) == NULL)
+      {
         ic->ic_stats.is_rx_decap++;
         return;
-    }
+      }
+
     wh = mtod(m, struct ieee80211_frame *);
-    switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK) {
-    case IEEE80211_FC1_DIR_NODS:
+    switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK)
+      {
+      case IEEE80211_FC1_DIR_NODS:
         IEEE80211_ADDR_COPY(eh.ether_dhost, wh->i_addr1);
         IEEE80211_ADDR_COPY(eh.ether_shost, wh->i_addr2);
         break;
-    case IEEE80211_FC1_DIR_TODS:
+
+      case IEEE80211_FC1_DIR_TODS:
         IEEE80211_ADDR_COPY(eh.ether_dhost, wh->i_addr3);
         IEEE80211_ADDR_COPY(eh.ether_shost, wh->i_addr2);
         break;
-    case IEEE80211_FC1_DIR_FROMDS:
+
+      case IEEE80211_FC1_DIR_FROMDS:
         IEEE80211_ADDR_COPY(eh.ether_dhost, wh->i_addr1);
         IEEE80211_ADDR_COPY(eh.ether_shost, wh->i_addr3);
         break;
-    case IEEE80211_FC1_DIR_DSTODS:
+
+      case IEEE80211_FC1_DIR_DSTODS:
         IEEE80211_ADDR_COPY(eh.ether_dhost, wh->i_addr3);
         IEEE80211_ADDR_COPY(eh.ether_shost,
-            ((struct ieee80211_frame_addr4 *)wh)->i_addr4);
+                            ((struct ieee80211_frame_addr4 *)wh)->i_addr4);
         break;
     }
+
     llc = (struct llc *)((void *)wh + hdrlen);
     if (llc->llc_dsap == LLC_SNAP_LSAP &&
         llc->llc_ssap == LLC_SNAP_LSAP &&
         llc->llc_control == LLC_UI &&
         llc->llc_snap.org_code[0] == 0 &&
         llc->llc_snap.org_code[1] == 0 &&
-        llc->llc_snap.org_code[2] == 0) {
+        llc->llc_snap.org_code[2] == 0)
+      {
         eh.ether_type = llc->llc_snap.ether_type;
         m_adj(m, hdrlen + LLC_SNAPFRAMELEN - ETHER_HDR_LEN);
-    } else {
+      }
+    else
+      {
         eh.ether_type = htons(m->m_pktlen - hdrlen);
         m_adj(m, hdrlen - ETHER_HDR_LEN);
-    }
-    memcpy(mtod(m, void *), &eh, ETHER_HDR_LEN);
+      }
+
+    memcpy(mtod(m, &eh, ETHER_HDR_LEN);
+
 #ifdef __STRICT_ALIGNMENT
-    if (!ALIGNED_POINTER(mtod(m, void *) + ETHER_HDR_LEN, uint32_t)) {
-        if ((m = ieee80211_align_iobuf(m)) == NULL) {
+    if (!ALIGNED_POINTER(mtod(m, void *) + ETHER_HDR_LEN, uint32_t))
+      {
+        if ((m = ieee80211_align_iobuf(m)) == NULL)
+          {
             ic->ic_stats.is_rx_decap++;
             return;
-        }
-    }
+          }
+      }
 #endif
+
     ieee80211_deliver_data(ic, m, ni);
 }
 
@@ -1369,12 +1383,12 @@ void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
    * does not use management frames at all).
    */
 
-  DEBUGASSERT((ic->ic_opmode == IEEE80211_M_STA ||
+  DEBUGASSERT(ic->ic_opmode == IEEE80211_M_STA ||
 #ifdef CONFIG_IEEE80211_AP
-               ic->ic_opmode == IEEE80211_M_IBSS ||
-               ic->ic_opmode == IEEE80211_M_HOSTAP ||
+              ic->ic_opmode == IEEE80211_M_IBSS ||
+              ic->ic_opmode == IEEE80211_M_HOSTAP ||
 #endif
-               ic->ic_state == IEEE80211_S_SCAN);
+              ic->ic_state == IEEE80211_S_SCAN);
 
   /* Make sure all mandatory fixed fields are present */
 
@@ -1504,7 +1518,7 @@ void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
   if (
 #if IEEE80211_CHAN_MAX < 255
       chan > IEEE80211_CHAN_MAX ||
-#endifg
+#endif
       (ic->ic_chan_active[ndx] & (1 << bit)) == 0)
     {
       ndbg("ERROR: ignore %s with invalid channel %u\n",
@@ -2162,23 +2176,28 @@ void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
         if (ieee80211_is_8021x_akm(ni->ni_rsnakms)) {
             struct ieee80211_pmk *pmk = NULL;
             const uint8_t *pmkid = rsn.rsn_pmkids;
-            /*
-             * Check if we have a cached PMK entry matching one
+
+            /* Check if we have a cached PMK entry matching one
              * of the PMKIDs specified in the RSN IE.
              */
-            while (rsn.rsn_npmkids-- > 0) {
+
+            while (rsn.rsn_npmkids-- > 0)
+              {
                 pmk = ieee80211_pmksa_find(ic, ni, pmkid);
                 if (pmk != NULL)
+                  {
                     break;
+                  }
+
                 pmkid += IEEE80211_PMKID_LEN;
-            }
-            if (pmk != NULL) {
-                memcpy(ni->ni_pmk, pmk->pmk_key,
-                    IEEE80211_PMK_LEN);
-                memcpy(ni->ni_pmkid, pmk->pmk_pmkid,
-                    IEEE80211_PMKID_LEN);
+              }
+
+            if (pmk != NULL)
+              {
+                memcpy(ni->ni_pmk, pmk->pmk_key, IEEE80211_PMK_LEN);
+                memcpy(ni->ni_pmkid, pmk->pmk_pmkid, IEEE80211_PMKID_LEN);
                 ni->ni_flags |= IEEE80211_NODE_PMK;
-            }
+              }
         }
     } else
         ni->ni_rsnprotos = IEEE80211_PROTO_NONE;

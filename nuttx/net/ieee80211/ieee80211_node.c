@@ -241,27 +241,33 @@ void ieee80211_reset_scan(FAR struct ieee80211com *ic)
 
 /* Begin an active scan */
 
-void ieee80211_begin_scan(truct ieee80211com *ic)
+void ieee80211_begin_scan(struct ieee80211com *ic)
 {
   if (ic->ic_scan_lock & IEEE80211_SCAN_LOCKED)
+    {
       return;
+    }
+
   ic->ic_scan_lock |= IEEE80211_SCAN_LOCKED;
 
-  /*
-   * In all but hostap mode scanning starts off in
+  /* In all but hostap mode scanning starts off in
    * an active mode before switching to passive.
    */
+
 #ifdef CONFIG_IEEE80211_AP
   if (ic->ic_opmode != IEEE80211_M_HOSTAP)
 #endif
-  {
+    {
       ic->ic_flags |= IEEE80211_F_ASCAN;
       ic->ic_stats.is_scan_active++;
-  }
+    }
 #ifdef CONFIG_IEEE80211_AP
   else
+    {
       ic->ic_stats.is_scan_passive++;
+    }
 #endif
+
   nvdbg("%s: begin %s scan\n",
         ic->ic_ifname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
 
@@ -270,18 +276,23 @@ void ieee80211_begin_scan(truct ieee80211com *ic)
    * otherwise we'll potentially flush state of stations
    * associated with us.
    */
+
   ieee80211_free_allnodes(ic);
 
   /* Reset the current mode. Setting the current mode will also
    * reset scan state.
    */
-  if (IFM_MODE(ic->ic_media.ifm_cur->ifm_media) == IFM_AUTO)
-      ic->ic_curmode = IEEE80211_MODE_AUTO;
-  ieee80211_setmode(ic, ic->ic_curmode);
 
+  if (IFM_MODE(ic->ic_media.ifm_cur->ifm_media) == IFM_AUTO)
+    {
+      ic->ic_curmode = IEEE80211_MODE_AUTO;
+    }
+
+  ieee80211_setmode(ic, ic->ic_curmode);
   ic->ic_scan_count = 0;
 
   /* Scan the next channel. */
+
   ieee80211_next_scan(ic);
 }
 
@@ -338,8 +349,7 @@ void ieee80211_next_scan(struct ieee80211com *ic)
 }
 
 #ifdef CONFIG_IEEE80211_AP
-void
-ieee80211_create_ibss(struct ieee80211com* ic, struct ieee80211_channel *chan)
+void ieee80211_create_ibss(struct ieee80211com* ic, struct ieee80211_channel *chan)
 {
   struct ieee80211_node *ni;
 
@@ -429,7 +439,7 @@ int ieee80211_match_bss(struct ieee80211com *ic, struct ieee80211_node *ni)
   int fail;
   int ibss;
   int ndx;
-  int bit
+  int bit;
 
   fail = 0;
   ibss = ieee80211_chan2ieee(ic, ni->ni_chan);
@@ -543,6 +553,7 @@ int ieee80211_match_bss(struct ieee80211com *ic, struct ieee80211_node *ni)
   nvdbg("%s\n",
         fail & 0x10 ? "!" : "");
 #endif
+
     return fail;
 }
 
@@ -550,7 +561,9 @@ int ieee80211_match_bss(struct ieee80211com *ic, struct ieee80211_node *ni)
 
 void ieee80211_end_scan(struct ieee80211com *ic)
 {
-  struct ieee80211_node *ni, *nextbs, *selbs;
+  struct ieee80211_node *ni;
+  struct ieee80211_node *nextbs;
+  struct ieee80211_node *selbs;
   int ndx;
   int bit;
 
@@ -609,7 +622,7 @@ void ieee80211_end_scan(struct ieee80211com *ic)
               ndx  = (i >> 3);
               bit  = (i & 7);
 
-              if ((ic->ic_chan_active[ndx} & (1 << bit)) != 0 && fail-- == 0)
+              if ((ic->ic_chan_active[ndx] & (1 << bit)) != 0 && fail-- == 0)
                 {
                   break;
                 }
@@ -620,7 +633,8 @@ void ieee80211_end_scan(struct ieee80211com *ic)
       goto wakeup;
   }
 #endif
-  if (ni == NULL) {
+  if (ni == NULL)
+    {
       ndbg("ERROR: no scan candidate\n");
  notfound:
 
@@ -638,9 +652,11 @@ void ieee80211_end_scan(struct ieee80211com *ic)
        * like 11b and "pure" 11G mode. This will loop
        * forever except for user-initiated scans.
        */
-      if (ieee80211_next_mode(ic) == IEEE80211_MODE_AUTO) {
+      if (ieee80211_next_mode(ic) == IEEE80211_MODE_AUTO)
+        {
           if (ic->ic_scan_lock & IEEE80211_SCAN_REQUEST &&
-              ic->ic_scan_lock & IEEE80211_SCAN_RESUME) {
+              ic->ic_scan_lock & IEEE80211_SCAN_RESUME)
+            {
               ic->ic_scan_lock = IEEE80211_SCAN_LOCKED;
               /* Return from an user-initiated scan */
               wakeup(&ic->ic_scan_lock);
@@ -1693,66 +1709,86 @@ int ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni, uin
   uint64_t beacon_tsft;
   int sign;
   bool did_print = false;
-  union {
-      uint64_t    word;
-      uint8_t    tstamp[8];
+  union
+  {
+    uint64_t    word;
+    uint8_t    tstamp[8];
   } u;
 
-  /* ensure alignment */
+  /* Ensure alignment */
+
   (void)memcpy(&u, &ni->ni_tstamp[0], sizeof(u));
   beacon_tsft = letoh64(u.word);
 
-  /* we are faster, let the other guy catch up */
-  if (beacon_tsft < local_tsft)
-      sign = -1;
-  else
-      sign = 1;
+  /* Ee are faster, let the other guy catch up */
 
-  if (IEEE80211_ADDR_EQ(ni->ni_bssid, ic->ic_bss->ni_bssid)) {
+  if (beacon_tsft < local_tsft)
+    {
+      sign = -1;
+    }
+  else
+    {
+      sign = 1;
+    }
+
+  if (IEEE80211_ADDR_EQ(ni->ni_bssid, ic->ic_bss->ni_bssid))
+    {
       if (!ieee80211_do_slow_print(ic, &did_print))
+        {
           return 0;
+        }
+
       nvdbg("%s: tsft offset %s%llu\n", ic->ic_ifname,
           (sign < 0) ? "-" : "",
           (sign < 0)
           ? (local_tsft - beacon_tsft)
           : (beacon_tsft - local_tsft));
+
       return 0;
-  }
+    }
 
   if (sign < 0)
+    {
       return 0;
+    }
 
   if (ieee80211_match_bss(ic, ni) != 0)
+    {
       return 0;
+    }
 
-  if (ieee80211_do_slow_print(ic, &did_print)) {
+  if (ieee80211_do_slow_print(ic, &did_print))
+    {
       nvdbg("%s: ieee80211_ibss_merge: bssid mismatch %s\n",
           ic->ic_ifname, ieee80211_addr2str(ni->ni_bssid));
       nvdbg("%s: my tsft %llu beacon tsft %llu\n",
           ic->ic_ifname, local_tsft, beacon_tsft);
       nvdbg("%s: sync TSF with %s\n",
           ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr));
-  }
+    }
 
   ic->ic_flags &= ~IEEE80211_F_SIBSS;
 
   /* negotiate rates with new IBSS */
-  ieee80211_fix_rate(ic, ni, IEEE80211_F_DOFRATE |
-      IEEE80211_F_DONEGO | IEEE80211_F_DODEL);
+
+  ieee80211_fix_rate(ic, ni, IEEE80211_F_DOFRATE | IEEE80211_F_DONEGO | IEEE80211_F_DODEL);
   if (ni->ni_rates.rs_nrates == 0) {
-      if (ieee80211_do_slow_print(ic, &did_print)) {
+      if (ieee80211_do_slow_print(ic, &did_print))
+        {
           nvdbg("%s: rates mismatch, BSSID %s\n",
               ic->ic_ifname, ieee80211_addr2str(ni->ni_bssid));
-      }
+        }
+
       return 0;
   }
 
-  if (ieee80211_do_slow_print(ic, &did_print)) {
+  if (ieee80211_do_slow_print(ic, &did_print))
+    {
       nvdbg("%s: sync BSSID %s -> ",
           ic->ic_ifname, ieee80211_addr2str(ic->ic_bss->ni_bssid));
       nvdbg("%s ", ieee80211_addr2str(ni->ni_bssid));
       nvdbg("(from %s)\n", ieee80211_addr2str(ni->ni_macaddr));
-  }
+    }
 
   ieee80211_node_newstate(ni, IEEE80211_STA_BSS);
   (*ic->ic_node_copy)(ic, ic->ic_bss, ni);
@@ -1810,7 +1846,8 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
 
       sq_addlast((sq_entry_t *)m, &ic->ic_pwrsaveq);
       ieee80211_ifstart();
-  }
+    }
+
   /* XXX assumes everything has been sent */
   ic->ic_tim_mcast_pending = 0;
 }
