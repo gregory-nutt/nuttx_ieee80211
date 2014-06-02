@@ -290,29 +290,45 @@ void ieee80211_begin_scan(truct ieee80211com *ic)
 void ieee80211_next_scan(struct ieee80211com *ic)
 {
   struct ieee80211_channel *chan;
+  int tmp;
+  int byte;
+  int bit;
 
   chan = ic->ic_bss->ni_chan;
-  for (;;) {
+  for (;;)
+    {
       if (++chan > &ic->ic_channels[IEEE80211_CHAN_MAX])
+        {
           chan = &ic->ic_channels[0];
-      if (isset(ic->ic_chan_scan, ieee80211_chan2ieee(ic, chan))) {
-          /*
-           * Ignore channels marked passive-only
-           * during an active scan.
-           */
+        }
+
+      if (isset(ic->ic_chan_scan, ieee80211_chan2ieee(ic, chan)))
+        {
+          /* Ignore channels marked passive-only during an active scan */
+
           if ((ic->ic_flags & IEEE80211_F_ASCAN) == 0 ||
               (chan->ic_flags & IEEE80211_CHAN_PASSIVE) == 0)
+            {
               break;
-      }
-      if (chan == ic->ic_bss->ni_chan) {
+            }
+        }
+
+      if (chan == ic->ic_bss->ni_chan)
+        {
           ieee80211_end_scan(ic);
           return;
-      }
-  }
-  clrbit(ic->ic_chan_scan, ieee80211_chan2ieee(ic, chan));
+        }
+    }
+
+  tmp  = ieee80211_chan2ieee(ic, chan);
+  byte = (tmp >> 3);
+  bit  = (tmp & 7);
+  ic->ic_chan_scan[byte] &= ~(1 << bit);
+
   nvdbg("chan %d->%d\n",
       ieee80211_chan2ieee(ic, ic->ic_bss->ni_chan),
       ieee80211_chan2ieee(ic, chan));
+
   ic->ic_bss->ni_chan = chan;
   ieee80211_new_state(ic, IEEE80211_S_SCAN, -1);
 }
@@ -531,30 +547,51 @@ void ieee80211_end_scan(struct ieee80211com *ic)
   ni = RB_MIN(ieee80211_tree, &ic->ic_tree);
 
 #ifdef CONFIG_IEEE80211_AP
-  if (ic->ic_opmode == IEEE80211_M_HOSTAP) {
+  if (ic->ic_opmode == IEEE80211_M_HOSTAP)
+    {
       /* XXX off stack? */
-      uint8_t occupied[howmany(IEEE80211_CHAN_MAX, 8)];
-      int i, fail;
 
-      /*
-       * The passive scan to look for existing AP's completed,
+      uint8_t occupied[howmany(IEEE80211_CHAN_MAX, 8)];
+      int fail;
+      int i;
+
+      /* The passive scan to look for existing AP's completed,
        * select a channel to camp on.  Identify the channels
        * that already have one or more AP's and try to locate
        * an unnoccupied one.  If that fails, pick a random
        * channel from the active set.
        */
+
       memset(occupied, 0, sizeof(occupied));
       RB_FOREACH(ni, ieee80211_tree, &ic->ic_tree)
-          setbit(occupied, ieee80211_chan2ieee(ic, ni->ni_chan));
+        {
+          int chan = ieee80211_chan2ieee(ic, ni->ni_chan)
+          int ndx  = (chan >> 3);
+          int bit  = (chan & 7);
+
+          occupied[ndx] |= (1 << bit);
+        }
+
       for (i = 0; i < IEEE80211_CHAN_MAX; i++)
+        {
           if (isset(ic->ic_chan_active, i) && isclr(occupied, i))
+            {
               break;
-      if (i == IEEE80211_CHAN_MAX) {
+            }
+        }
+
+      if (i == IEEE80211_CHAN_MAX)
+        {
           fail = arc4random() & 3;    /* random 0-3 */
           for (i = 0; i < IEEE80211_CHAN_MAX; i++)
+            {
               if (isset(ic->ic_chan_active, i) && fail-- == 0)
+                {
                   break;
-      }
+                }
+            }
+        }
+
       ieee80211_create_ibss(ic, &ic->ic_channels[i]);
       goto wakeup;
   }
@@ -1360,13 +1397,14 @@ void ieee80211_node_join(struct ieee80211com *ic, struct ieee80211_node *ni, int
 {
   int newassoc;
 
-  if (ni->ni_associd == 0) {
+  if (ni->ni_associd == 0)
+    {
       uint16_t aid;
 
-      /*
-       * It would be clever to search the bitmap
+      /* It would be clever to search the bitmap
        * more efficiently, but this will do for now.
        */
+
       for (aid = 1; aid < ic->ic_max_aid; aid++) {
           if (!IEEE80211_AID_ISSET(aid,
               ic->ic_aid_bitmap))
@@ -1700,10 +1738,21 @@ int ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni, uin
 
 void ieee80211_set_tim(struct ieee80211com *ic, int aid, int set)
 {
+  int ndx;
+  int bit;
+
+  aid &= 0xc000;
+  ndx  = (aid >> 3);
+  bit  = (aid & 7);
+
   if (set)
-      setbit(ic->ic_tim_bitmap, aid & ~0xc000);
+    {
+      ic->ic_tim_bitmap[ndx] |= (1 << bit);
+    }
   else
-      clrbit(ic->ic_tim_bitmap, aid & ~0xc000);
+    {
+      ic->ic_tim_bitmap[ndx] &= ~(1 << bit);
+    }
 }
 
 /* This function shall be called by drivers immediately after every DTIM.

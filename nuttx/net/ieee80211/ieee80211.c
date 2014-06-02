@@ -66,45 +66,59 @@ int ieee80211_findrate(struct ieee80211com *, enum ieee80211_phymode, int);
 #warning REVISIT:  This should receive the internet string as an argument ("eth0").
 void ieee80211_ifattach(struct ieee80211com *ic)
 {
-    struct ieee80211_channel *c;
-    int i;
+  struct ieee80211_channel *c;
+  int ndx;
+  int bit;
+  int i;
 
-    ieee80211_crypto_attach(ic);
+  ieee80211_crypto_attach(ic);
 
-    /* Fill in 802.11 available channel set, mark
-     * all available channels as active, and pick
-     * a default channel if not already specified.
-     */
+  /* Fill in 802.11 available channel set, mark all available channels as
+   * active, and pick a default channel if not already specified.
+   */
 
-    memset(ic->ic_chan_avail, 0, sizeof(ic->ic_chan_avail));
-    ic->ic_modecaps |= 1<<IEEE80211_MODE_AUTO;
-    for (i = 0; i <= IEEE80211_CHAN_MAX; i++) {
-        c = &ic->ic_channels[i];
-        if (c->ic_flags)
-          {
-            /* Verify driver passed us valid data */
+  memset(ic->ic_chan_avail, 0, sizeof(ic->ic_chan_avail));
+  ic->ic_modecaps |= 1<<IEEE80211_MODE_AUTO;
+  for (i = 0; i <= IEEE80211_CHAN_MAX; i++)
+    {
+      c = &ic->ic_channels[i];
+      if (c->ic_flags)
+        {
+          /* Verify driver passed us valid data */
 
-            if (i != ieee80211_chan2ieee(ic, c))
-              {
-                nvdbg("ERROR %s: bad channel ignored; freq %u flags %x number %u\n",
-                    ic->ic_ifname, c->ic_freq, c->ic_flags, i);
+          if (i != ieee80211_chan2ieee(ic, c))
+            {
+              nvdbg("ERROR %s: bad channel ignored; freq %u flags %x number %u\n",
+                  ic->ic_ifname, c->ic_freq, c->ic_flags, i);
 
-                c->ic_flags = 0;    /* NB: remove */
-                continue;
-              }
+              c->ic_flags = 0;    /* NB: remove */
+              continue;
+            }
 
-            setbit(ic->ic_chan_avail, i);
-            /*
-             * Identify mode capabilities.
-             */
-            if (IEEE80211_IS_CHAN_A(c))
-                ic->ic_modecaps |= 1<<IEEE80211_MODE_11A;
-            if (IEEE80211_IS_CHAN_B(c))
-                ic->ic_modecaps |= 1<<IEEE80211_MODE_11B;
-            if (IEEE80211_IS_CHAN_PUREG(c))
-                ic->ic_modecaps |= 1<<IEEE80211_MODE_11G;
-            if (IEEE80211_IS_CHAN_T(c))
-                ic->ic_modecaps |= 1<<IEEE80211_MODE_TURBO;
+          ndx = (i >> 3);
+          bit = (i & 7);
+          ic->ic_chan_avail[ndx] |= (1 << bit);
+
+          /* Identify mode capabilities */
+
+          if (IEEE80211_IS_CHAN_A(c))
+            {
+              ic->ic_modecaps |= 1<<IEEE80211_MODE_11A;
+            }
+
+          if (IEEE80211_IS_CHAN_B(c))
+            {
+              ic->ic_modecaps |= 1<<IEEE80211_MODE_11B;
+            }
+
+          if (IEEE80211_IS_CHAN_PUREG(c))
+            {
+              ic->ic_modecaps |= 1<<IEEE80211_MODE_11G;
+            }
+
+          if (IEEE80211_IS_CHAN_T(c))
+              ic->ic_modecaps |= 1<<IEEE80211_MODE_TURBO;
+            }
         }
     }
 
@@ -623,6 +637,8 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
     };
     const struct ieee80211_channel *c;
     unsigned int modeflags;
+    int ndx;
+    int bit;
     int i;
 
     /* validate new mode */
@@ -654,27 +670,36 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
         return EINVAL;
     }
 
-    /*
-     * Calculate the active channel set.
-     */
+    /* Calculate the active channel set */
+
     memset(ic->ic_chan_active, 0, sizeof(ic->ic_chan_active));
-    for (i = 0; i <= IEEE80211_CHAN_MAX; i++) {
+    for (i = 0; i <= IEEE80211_CHAN_MAX; i++)
+      {
         c = &ic->ic_channels[i];
-        if (mode == IEEE80211_MODE_AUTO) {
-            /* take anything but pure turbo channels */
+        ndx = (i >> 3);
+        bit = (i & 7);
+
+        if (mode == IEEE80211_MODE_AUTO)
+          {
+            /* Take anything but pure turbo channels */
+
             if ((c->ic_flags &~ IEEE80211_CHAN_TURBO) != 0)
-                setbit(ic->ic_chan_active, i);
-        } else {
-            if ((c->ic_flags & modeflags) == modeflags)
-                setbit(ic->ic_chan_active, i);
-        }
-    }
-    /*
-     * If no current/default channel is setup or the current
+              {
+                ic->ic_chan_active[ndx] |= (1 << bit);
+              }
+          }
+        else if ((c->ic_flags & modeflags) == modeflags)
+          {
+            ic->ic_chan_active[ndx] |= (1 << bit);
+          }
+      }
+
+    /* If no current/default channel is setup or the current
      * channel is wrong for the mode then pick the first
      * available channel from the active list.  This is likely
      * not the right one.
      */
+
     if (ic->ic_ibss_chan == NULL ||
         isclr(ic->ic_chan_active, ieee80211_chan2ieee(ic, ic->ic_ibss_chan)))
       {
