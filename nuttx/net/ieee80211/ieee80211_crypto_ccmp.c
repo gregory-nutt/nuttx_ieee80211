@@ -81,12 +81,11 @@ void ieee80211_ccmp_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
   k->k_priv = NULL;
 }
 
-/*-
- * Counter with CBC-MAC (CCM) - see RFC3610.
+/* Counter with CBC-MAC (CCM) - see RFC3610.
  * CCMP uses the following CCM parameters: M = 8, L = 2
  */
-static void
-ieee80211_ccmp_phase1(rijndael_ctx *ctx, const struct ieee80211_frame *wh,
+
+static void ieee80211_ccmp_phase1(rijndael_ctx *ctx, const struct ieee80211_frame *wh,
     uint64_t pn, int lm, uint8_t b[16], uint8_t a[16], uint8_t s0[16])
 {
     uint8_t auth[32], nonce[13];

@@ -50,6 +50,32 @@
  * Public Types
  ****************************************************************************/
 
+#warning This structure is going away soon
+struct ifnet
+{
+  char if_xname[IFNAMSIZ];        /* external name (name + unit) */
+  uint8_t if_priority;
+  uint8_t if_link_state;          /* current link state */
+  uint8_t  if_hdrlen;             /* media header length */
+  uint16_t if_flags;              /* up/down, broadcast, etc. */
+  uint16_t if_timer;              /* time 'til if_watchdog called */
+  uint32_t if_capabilities;       /* interface capabilities */
+  uint32_t if_mtu;                /* maximum transmission unit */
+  uint64_t if_baudrate;           /* linespeed */
+
+  int (*if_output)(struct ifnet *, struct mbuf *, struct sockaddr *,  struct rtentry *);
+
+  /* Statistics */
+
+  uint64_t if_ierrors;            /* input errors on interface */
+  uint64_t if_oerrors;            /* output errors on interface */
+  uint64_t if_ipackets;           /* packets received on interface */
+  uint64_t if_ibytes;             /* total number of octets received */
+  uint64_t if_obytes;             /* total number of octets sent */
+  uint64_t if_imcasts;            /* packets received via multicast */
+  uint64_t if_omcasts;            /* packets sent via multicast */
+};
+
 /* Represents one packet buffer */
 
 struct ieee80211_iobuf_s
