@@ -50,10 +50,8 @@ void ieee80211_kdf(const uint8_t *, size_t, const uint8_t *, size_t,
 void ieee80211_derive_pmkid(enum ieee80211_akm, const uint8_t *,
         const uint8_t *, const uint8_t *, uint8_t *);
 
-void ieee80211_crypto_attach(struct ifnet *ifp)
+void ieee80211_crypto_attach(struct ieee80211com *ic)
 {
-    struct ieee80211com *ic = (void *)ifp;
-
     sq_init(&ic->ic_pmksa);
     if (ic->ic_caps & IEEE80211_C_RSN) {
         ic->ic_rsnprotos = IEEE80211_PROTO_WPA | IEEE80211_PROTO_RSN;
@@ -67,9 +65,8 @@ void ieee80211_crypto_attach(struct ifnet *ifp)
     ic->ic_delete_key = ieee80211_delete_key;
 }
 
-void ieee80211_crypto_detach(struct ifnet *ifp)
+void ieee80211_crypto_detach(struct ieee80211com *ic)
 {
-    struct ieee80211com *ic = (void *)ifp;
     struct ieee80211_pmk *pmk;
     int i;
 

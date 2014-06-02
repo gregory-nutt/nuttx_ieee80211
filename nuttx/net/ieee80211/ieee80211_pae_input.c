@@ -79,7 +79,6 @@ void    ieee80211_recv_eapol_key_req(struct ieee80211com *,
 void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
     struct ieee80211_node *ni)
 {
-    struct ifnet *ifp = &ic->ic_if;
     struct ether_header *eh;
     struct ieee80211_eapol_key *key;
     uint16_t info, desc;

@@ -50,14 +50,6 @@
  * Public Types
  ****************************************************************************/
 
-#warning This structure is going away soon
-struct ifnet
-{
-  uint16_t if_flags;              /* up/down, broadcast, etc. */
-#define IFF_OACTIVE 0x01
-#define IFF_SIMPLEX 0x02
-};
-
 /* Represents one packet buffer */
 
 struct ieee80211_iobuf_s
@@ -117,8 +109,8 @@ static __inline void ieee80211_iofree(struct ieee80211_iobuf_s *m)
 
 #warning REVISIT: The design seems to attach and detach Ethernet devices.  NuttX does not work this way
 #warning REVISIT:  Perhaps ieee80211_ifattach should become an general one-time initialization function
-void ieee80211_ifattach(struct ifnet *ifp);
-void ieee80211_ifdetach(struct ifnet *ifp);
+void ieee80211_ifattach(struct ieee80211com *ic);
+void ieee80211_ifdetach(struct ieee80211com *ic);
 
 /* Start polling for queued packets if the device is ready and polling has
  * not already been started.

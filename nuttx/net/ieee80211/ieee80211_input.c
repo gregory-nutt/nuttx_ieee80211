@@ -60,7 +60,7 @@
 struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *, struct ieee80211_iobuf_s *, int);
 void ieee80211_defrag_timeout(void *);
 #ifdef CONFIG_IEEE80211_HT
-void ieee80211_input_ba(struct ifnet *, struct ieee80211_iobuf_s *,
+void ieee80211_input_ba(struct ieee80211com *, struct ieee80211_iobuf_s *,
         struct ieee80211_node *, int, struct ieee80211_rxinfo *);
 void ieee80211_ba_move_window(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint16_t);
@@ -128,7 +128,7 @@ void ieee80211_bar_tid(struct ieee80211com *, struct ieee80211_node *,
         uint8_t, uint16_t);
 #endif
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
-void ieee80211_input_print(struct ieee80211com *,  struct ifnet *,
+void ieee80211_input_print(struct ieee80211com *,  struct ieee80211com *,
         struct ieee80211_frame *, struct ieee80211_rxinfo *);
 #endif
 void ieee80211_input_print_task(void *, void *);
@@ -165,8 +165,7 @@ void ieee80211_input_print_task(void *arg1, void *arg2)
   kfree(msg);
 }
 
-static void ieee80211_input_print(struct ieee80211com *ic,  struct ifnet *ifp,
-                                  struct ieee80211_frame *wh, struct ieee80211_rxinfo *rxi)
+static void ieee80211_input_print(struct ieee80211com *ic, struct ieee80211_frame *wh, struct ieee80211_rxinfo *rxi)
 {
   int error;
   char *msg;
@@ -190,8 +189,7 @@ static void ieee80211_input_print(struct ieee80211com *ic,  struct ifnet *ifp,
 }
 #endif
 
-/*
- * Process a received frame.  The node associated with the sender
+/* Process a received frame.  The node associated with the sender
  * should be supplied.  If nothing was found in the node table then
  * the caller is assumed to supply a reference to ic_bss instead.
  * The RSSI and a timestamp are also supplied.  The RSSI data is used
@@ -200,11 +198,10 @@ static void ieee80211_input_print(struct ieee80211com *ic,  struct ifnet *ifp,
  * mean ``better signal''.  The receive timestamp is currently not used
  * by the 802.11 layer.
  */
-void
-ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct ieee80211_node *ni,
+
+void ieee80211_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *m, struct ieee80211_node *ni,
     struct ieee80211_rxinfo *rxi)
 {
-    struct ieee80211com *ic = (void *)ifp;
     struct ieee80211_frame *wh;
     uint16_t *orxseq, nrxseq, qos;
     uint8_t dir, type, subtype, tid;
@@ -307,34 +304,43 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct ieee80211
         }
     }
 #endif
-    switch (type) {
-    case IEEE80211_FC0_TYPE_DATA:
-        switch (ic->ic_opmode) {
-        case IEEE80211_M_STA:
-            if (dir != IEEE80211_FC1_DIR_FROMDS) {
+    switch (type)
+      {
+      case IEEE80211_FC0_TYPE_DATA:
+        switch (ic->ic_opmode)
+          {
+          case IEEE80211_M_STA:
+            if (dir != IEEE80211_FC1_DIR_FROMDS)
+              {
                 ic->ic_stats.is_rx_wrongdir++;
                 goto out;
-            }
+              }
+
             if (ic->ic_state != IEEE80211_S_SCAN &&
-                !IEEE80211_ADDR_EQ(wh->i_addr2, ni->ni_bssid)) {
+                !IEEE80211_ADDR_EQ(wh->i_addr2, ni->ni_bssid))
+              {
                 /* Source address is not our BSS. */
+
                 nvdbg("discard frame from SA %s\n",
                     ieee80211_addr2str(wh->i_addr2));
+
                 ic->ic_stats.is_rx_wrongbss++;
                 goto out;
-            }
-            if ((ifp->if_flags & IFF_SIMPLEX) &&
+              }
+
+            if (/* REVISIT: (dev->d_flags & IFF_SIMPLEX) && */
                 IEEE80211_IS_MULTICAST(wh->i_addr1) &&
-                IEEE80211_ADDR_EQ(wh->i_addr3, ic->ic_myaddr)) {
-                /*
-                 * In IEEE802.11 network, multicast frame
-                 * sent from me is broadcasted from AP.
+                IEEE80211_ADDR_EQ(wh->i_addr3, ic->ic_myaddr))
+             {
+                /* In IEEE802.11 network, multicast frame
+                 * sent from me is broadcast from AP.
                  * It should be silently discarded for
                  * SIMPLEX interface.
                  */
+
                 ic->ic_stats.is_rx_mcastecho++;
                 goto out;
-            }
+              }
             break;
 #ifdef CONFIG_IEEE80211_AP
         case IEEE80211_M_IBSS:
@@ -434,7 +440,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct ieee80211
 
             /* Go through A-MPDU reordering */
 
-            ieee80211_input_ba(ifp, m, ni, tid, rxi);
+            ieee80211_input_ba(ic, m, ni, tid, rxi);
             return;    /* don't free m! */
         }
 #endif
@@ -519,7 +525,7 @@ ieee80211_input(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct ieee80211
         }
 
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
-       ieee80211_input_print(ic, ifp, wh, rxi);
+       ieee80211_input_print(ic, ic, wh, rxi);
 #endif
 
         (*ic->ic_recv_mgmt)(ic, m, ni, rxi, subtype);
@@ -651,7 +657,7 @@ ieee80211_defrag_timeout(void *arg)
  * agreement (see 9.10.7.6).
  */
 
-void ieee80211_input_ba(struct ifnet *ifp, struct ieee80211_iobuf_s *m,
+void ieee80211_input_ba(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
     struct ieee80211_node *ni, int tid, struct ieee80211_rxinfo *rxi)
 {
     struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
@@ -676,7 +682,7 @@ void ieee80211_input_ba(struct ifnet *ifp, struct ieee80211_iobuf_s *m,
         while (count-- > 0) {
             /* gaps may exist */
             if (ba->ba_buf[ba->ba_head].m != NULL) {
-                ieee80211_input(ifp, ba->ba_buf[ba->ba_head].m,
+                ieee80211_input(ic, ba->ba_buf[ba->ba_head].m,
                     ni, &ba->ba_buf[ba->ba_head].rxi);
                 ba->ba_buf[ba->ba_head].m = NULL;
             }
@@ -703,7 +709,7 @@ void ieee80211_input_ba(struct ifnet *ifp, struct ieee80211_iobuf_s *m,
 
     /* pass reordered MPDUs up to the next MAC process */
     while (ba->ba_buf[ba->ba_head].m != NULL) {
-        ieee80211_input(ifp, ba->ba_buf[ba->ba_head].m, ni,
+        ieee80211_input(ic, ba->ba_buf[ba->ba_head].m, ni,
             &ba->ba_buf[ba->ba_head].rxi);
         ba->ba_buf[ba->ba_head].m = NULL;
 
@@ -714,15 +720,12 @@ void ieee80211_input_ba(struct ifnet *ifp, struct ieee80211_iobuf_s *m,
     ba->ba_winend = (ba->ba_winstart + ba->ba_winsize - 1) & 0xfff;
 }
 
-/*
- * Change the value of WinStartB (move window forward) upon reception of a
+/* Change the value of WinStartB (move window forward) upon reception of a
  * BlockAckReq frame or an ADDBA Request (PBAC).
  */
-void
-ieee80211_ba_move_window(struct ieee80211com *ic, struct ieee80211_node *ni,
-    uint8_t tid, uint16_t ssn)
+
+void ieee80211_ba_move_window(struct ieee80211com *ic, struct ieee80211_node *ni, uint8_t tid, uint16_t ssn)
 {
-    struct ifnet *ifp = &ic->ic_if;
     struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
     int count;
 
@@ -734,7 +737,7 @@ ieee80211_ba_move_window(struct ieee80211com *ic, struct ieee80211_node *ni,
     while (count-- > 0) {
         /* gaps may exist */
         if (ba->ba_buf[ba->ba_head].m != NULL) {
-            ieee80211_input(ifp, ba->ba_buf[ba->ba_head].m, ni,
+            ieee80211_input(ic, ba->ba_buf[ba->ba_head].m, ni,
                 &ba->ba_buf[ba->ba_head].rxi);
             ba->ba_buf[ba->ba_head].m = NULL;
         }
@@ -745,7 +748,7 @@ ieee80211_ba_move_window(struct ieee80211com *ic, struct ieee80211_node *ni,
 
     /* pass reordered MPDUs up to the next MAC process */
     while (ba->ba_buf[ba->ba_head].m != NULL) {
-        ieee80211_input(ifp, ba->ba_buf[ba->ba_head].m, ni,
+        ieee80211_input(ic, ba->ba_buf[ba->ba_head].m, ni,
             &ba->ba_buf[ba->ba_head].rxi);
         ba->ba_buf[ba->ba_head].m = NULL;
 
@@ -760,7 +763,6 @@ ieee80211_ba_move_window(struct ieee80211com *ic, struct ieee80211_node *ni,
 void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
     struct ieee80211_node *ni)
 {
-  struct ifnet *ifp = &ic->ic_if;
   struct ether_header *eh;
   struct ieee80211_iobuf_s *m1;
 
@@ -827,7 +829,7 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *m
           }
         else
           {
-            ether_input_mbuf(ifp, m);
+            ether_input_mbuf(ic, m);
           }
     }
 }
@@ -2106,7 +2108,6 @@ void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
 void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
     struct ieee80211_node *ni, int reassoc)
 {
-    struct ifnet *ifp = &ic->ic_if;
     const struct ieee80211_frame *wh;
     const uint8_t *frm, *efrm;
     const uint8_t *rates, *xrates, *edcaie, *wmmie, *htcaps, *htop;
@@ -2794,7 +2795,6 @@ void ieee80211_recv_mgmt(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
 void ieee80211_recv_pspoll(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
     struct ieee80211_node *ni)
 {
-    struct ifnet *ifp = &ic->ic_if;
     struct ieee80211_frame_pspoll *psp;
     struct ieee80211_frame *wh;
     uint16_t aid;

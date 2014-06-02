@@ -55,13 +55,14 @@
 #  endif
 #endif
 
+#include <nuttx/net/uip/uip-arch.h>
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
 int ieee80211_classify(struct ieee80211com *, struct ieee80211_iobuf_s *);
-int ieee80211_mgmt_output(struct ifnet *, struct ieee80211_node *,
+int ieee80211_mgmt_output(struct ieee80211com *, struct ieee80211_node *,
         struct ieee80211_iobuf_s *, int);
 uint8_t *ieee80211_add_rsn_body(uint8_t *, struct ieee80211com *,
         const struct ieee80211_node *, int);
@@ -104,20 +105,30 @@ struct ieee80211_iobuf_s *ieee80211_get_action(struct ieee80211com *,
  */
 
 #warning REVISIT:  This was registered via the ifnet structure for use the driver level.  It is not currently integrated with the rest of the logic
-int ieee80211_output(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct sockaddr *dst, struct rtentry *rt)
+int ieee80211_output(struct ieeeu80211com *ic, struct ieee80211_iobuf_s *m, struct sockaddr *dst, struct rtentry *rt)
 {
-  struct ieee80211_frame *wh;
-  struct m_tag *mtag;
+  FAR struct uip_driver_s *dev;
+  FAR struct ieee80211_frame *wh;
+  FAR struct m_tag *mtag;
   unsigned short mflags;
   int s;
   int len;
   int error = 0;
 
+  /* Get the driver structure */
+
+  dev = netdev_findbyaddr(ic->ic_ifname);
+  if (!dev)
+    {
+      error = -ENODEV;
+      goto bad;
+    }
+
   /* Interface has to be up and running */
 
-  if ((ifp->if_flags & (IFF_UP | IFF_RUNNING)) != (IFF_UP | IFF_RUNNING))
+  if ((dev->d_flags & (IFF_UP | IFF_RUNNING)) != (IFF_UP | IFF_RUNNING))
     {
-      error = ENETDOWN;
+      error = -ENETDOWN;
       goto bad;
     }
 
@@ -125,7 +136,6 @@ int ieee80211_output(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct sock
 
   if ((mtag = m_tag_find(m, PACKET_TAG_DLT, NULL)) != NULL)
     {
-      struct ieee80211com *ic = (void *)ifp;
       unsigned int dlt = *(unsigned int *)(mtag + 1);
 
       /* Fallback to ethernet for non-802.11 linktypes */
@@ -170,17 +180,13 @@ int ieee80211_output(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct sock
           return error;
         }
 
-      if ((ifp->if_flags & IFF_OACTIVE) == 0)
-        {
-          ieee80211_ifstart();
-        }
-
+      ieee80211_ifstart();
       splx(s);
       return error;
     }
 
 fallback:
-  return (ether_output(ifp, m, dst, rt));
+  return (ether_output(ic, m, dst, rt));
 
  bad:
     if (m)
@@ -195,10 +201,9 @@ fallback:
  * reference (and potentially free'ing up any associated storage).
  */
 
-int ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
+int ieee80211_mgmt_output(struct ieee80211com *ic, struct ieee80211_node *ni,
     struct ieee80211_iobuf_s *m, int type)
 {
-    struct ieee80211com *ic = (void *)ifp;
     struct ieee80211_frame *wh;
 
     DEBUGASSERT(ni != NULL);
@@ -486,9 +491,8 @@ ieee80211_classify(struct ieee80211com *ic, struct ieee80211_iobuf_s *m)
  *     maintain that.
  */
 
-struct ieee80211_iobuf_s *ieee80211_encap(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct ieee80211_node **pni)
+struct ieee80211_iobuf_s *ieee80211_encap(struct ieee80211com *ic, struct ieee80211_iobuf_s *m, struct ieee80211_node **pni)
 {
-    struct ieee80211com *ic = (void *)ifp;
     struct ether_header eh;
     struct ieee80211_frame *wh;
     struct ieee80211_node *ni = NULL;
@@ -1612,7 +1616,6 @@ int ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
     int type, int arg1, int arg2)
 {
 #define senderr(_x, _v)    do { ic->ic_stats._v++; ret = _x; goto bad; } while (0)
-    struct ifnet *ifp = &ic->ic_if;
     struct ieee80211_iobuf_s *m;
     int ret, timer;
 
@@ -1692,7 +1695,7 @@ int ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
         /* NOTREACHED */
     }
 
-    ret = ieee80211_mgmt_output(ifp, ni, m, type);
+    ret = ieee80211_mgmt_output(ic, ni, m, type);
     if (ret == 0) {
         if (timer)
             ic->ic_mgt_timer = timer;

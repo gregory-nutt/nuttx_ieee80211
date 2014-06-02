@@ -64,16 +64,12 @@ int ieee80211_findrate(struct ieee80211com *, enum ieee80211_phymode, int);
 #warning REVISIT:  There is no concept of attaching devices in NuttX.
 #warning REVISIT:  Perhaps this should become an general one-time initialization function
 #warning REVISIT:  This should receive the internet string as an argument ("eth0").
-void ieee80211_ifattach(struct ifnet *ifp)
+void ieee80211_ifattach(struct ieee80211com *ic)
 {
-    struct ieee80211com *ic = (void *)ifp;
     struct ieee80211_channel *c;
     int i;
 
-    memcpy(((struct arpcom *)ifp)->ac_enaddr, ic->ic_myaddr, ETHER_ADDR_LEN);
-    ether_ifattach(ifp);
-
-    ieee80211_crypto_attach(ifp);
+    ieee80211_crypto_attach(ic);
 
     /* Fill in 802.11 available channel set, mark
      * all available channels as active, and pick
@@ -130,20 +126,18 @@ void ieee80211_ifattach(struct ifnet *ifp)
     ic->ic_dtim_period = 1;    /* all TIMs are DTIMs */
 
     dq_addfirst((FAR dq_entry_t *)ic, &ieee80211com_head);
-    ieee80211_node_attach(ifp);
-    ieee80211_proto_attach(ifp);
+    ieee80211_node_attach(ic);
+    ieee80211_proto_attach(ic);
 }
 
-void ieee80211_ifdetach(struct ifnet *ifp)
+void ieee80211_ifdetach(struct ieee80211com *ic)
 {
-  struct ieee80211com *ic = (void *)ifp;
-
-  ieee80211_proto_detach(ifp);
-  ieee80211_crypto_detach(ifp);
-  ieee80211_node_detach(ifp);
+  ieee80211_proto_detach(ic);
+  ieee80211_crypto_detach(ic);
+  ieee80211_node_detach(ic);
   dq_rem((dq_entry_t *)ic, &ic_list);
   ifmedia_delete_instance(&ic->ic_media, IFM_INST_ANY);
-  ether_ifdetach(ifp);
+  ether_ifdetach(ic);
 }
 
 /* Convert MHz frequency to IEEE channel number */
@@ -174,18 +168,24 @@ unsigned int ieee80211_mhz2ieee(unsigned int freq, unsigned int flags)
 
 unsigned int ieee80211_chan2ieee(struct ieee80211com *ic, const struct ieee80211_channel *c)
 {
-    struct ifnet *ifp = &ic->ic_if;
-    if (ic->ic_channels <= c && c <= &ic->ic_channels[IEEE80211_CHAN_MAX])
-        return c - ic->ic_channels;
-    else if (c == IEEE80211_CHAN_ANYC)
-        return IEEE80211_CHAN_ANY;
-    else if (c != NULL) {
-        ndbg("ERROR: %s: invalid channel freq %u flags %x\n",
-            ic->ic_ifname, c->ic_freq, c->ic_flags);
-        return 0;        /* XXX */
-    } else {
-        ndbg("ERROR: %s: invalid channel (NULL)\n", ic->ic_ifname);
-        return 0;        /* XXX */
+  if (ic->ic_channels <= c && c <= &ic->ic_channels[IEEE80211_CHAN_MAX])
+    {
+      return c - ic->ic_channels;
+    }
+  else if (c == IEEE80211_CHAN_ANYC)
+    {
+      return IEEE80211_CHAN_ANY;
+    }
+  else if (c != NULL)
+    {
+      ndbg("ERROR: %s: invalid channel freq %u flags %x\n",
+           ic->ic_ifname, c->ic_freq, c->ic_flags);
+      return 0;
+    }
+  else
+    {
+      ndbg("ERROR: %s: invalid channel (NULL)\n", ic->ic_ifname);
+      return 0;
     }
 }
 
@@ -218,12 +218,11 @@ unsigned int ieee80211_ieee2mhz(unsigned int chan, unsigned int flags)
  * ieee80211_attach and before most anything else.
  */
 
-void ieee80211_media_init(struct ifnet *ifp, ifm_change_cb_t media_change, ifm_stat_cb_t media_stat)
+void ieee80211_media_init(struct ieee80211com *ic, ifm_change_cb_t media_change, ifm_stat_cb_t media_stat)
 {
 #define ADD(_ic, _s, _o) \
     ifmedia_add(&(_ic)->ic_media, \
         IFM_MAKEWORD(IFM_IEEE80211, (_s), (_o), 0), 0, NULL)
-    struct ieee80211com *ic = (void *)ifp;
     struct ifmediareq imr;
     int i, j, mode, rate, maxrate, mword, mopt, r;
     const struct ieee80211_rateset *rs;
@@ -233,7 +232,7 @@ void ieee80211_media_init(struct ifnet *ifp, ifm_change_cb_t media_change, ifm_s
      * (i.e. driver) work such as overriding methods.
      */
 
-     ieee80211_node_lateattach(ifp);
+     ieee80211_node_lateattach(ic);
 
     /* Fill in media characteristics */
 
@@ -319,7 +318,7 @@ void ieee80211_media_init(struct ifnet *ifp, ifm_change_cb_t media_change, ifm_s
             ADD(ic, mword, IFM_IEEE80211_MONITOR);
     }
 
-    ieee80211_media_status(ifp, &imr);
+    ieee80211_media_status(ic, &imr);
     ifmedia_set(&ic->ic_media, imr.ifm_active);
 #undef ADD
 }
@@ -339,9 +338,8 @@ int ieee80211_findrate(struct ieee80211com *ic, enum ieee80211_phymode mode,
 
 /* Handle a media change request */
 
-int ieee80211_media_change(struct ifnet *ifp)
+int ieee80211_media_change(struct ieee80211com *ic)
 {
-    struct ieee80211com *ic = (void *)ifp;
     struct ifmedia_entry *ime;
     enum ieee80211_opmode newopmode;
     enum ieee80211_phymode newphymode;
@@ -501,9 +499,8 @@ int ieee80211_media_change(struct ifnet *ifp)
   return error;
 }
 
-void ieee80211_media_status(struct ifnet *ifp, struct ifmediareq *imr)
+void ieee80211_media_status(struct ieee80211com *ic, struct ifmediareq *imr)
 {
-    struct ieee80211com *ic = (void *)ifp;
     const struct ieee80211_node *ni = NULL;
 
     imr->ifm_status = IFM_AVALID;
@@ -555,10 +552,8 @@ void ieee80211_media_status(struct ifnet *ifp, struct ifmediareq *imr)
     }
 }
 
-void ieee80211_watchdog(struct ifnet *ifp)
+void ieee80211_watchdog(struct ieee80211com *ic)
 {
-  struct ieee80211com *ic = (void *)ifp;
-
   if (ic->ic_mgt_timer && --ic->ic_mgt_timer == 0)
     {
       ieee80211_new_state(ic, IEEE80211_S_SCAN, -1);
@@ -619,7 +614,6 @@ void ieee80211_setbasicrates(struct ieee80211com *ic)
 int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
 {
 #define    N(a)    (sizeof(a) / sizeof(a[0]))
-    struct ifnet *ifp = &ic->ic_if;
     static const unsigned int chanflags[] = {
         0,            /* IEEE80211_MODE_AUTO */
         IEEE80211_CHAN_A,    /* IEEE80211_MODE_11A */
@@ -706,7 +700,7 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
      * Reset the scan state for the new mode. This avoids scanning
      * of invalid channels, ie. 5GHz channels in 11b mode.
      */
-    ieee80211_reset_scan(ifp);
+    ieee80211_reset_scan(ic);
 
     ic->ic_curmode = mode;
     ieee80211_reset_erp(ic);    /* reset ERP state */
@@ -715,18 +709,16 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
 #undef N
 }
 
-enum ieee80211_phymode ieee80211_next_mode(struct ifnet *ifp)
+enum ieee80211_phymode ieee80211_next_mode(struct ieee80211com *ic)
 {
-    struct ieee80211com *ic = (void *)ifp;
-
-    if (IFM_MODE(ic->ic_media.ifm_cur->ifm_media) != IFM_AUTO) {
-        /*
-         * Reset the scan state and indicate a wrap around
-         * if we're running in a fixed, user-specified phy mode.
-         */
-        ieee80211_reset_scan(ifp);
-        return (IEEE80211_MODE_AUTO);
-    }
+  if (IFM_MODE(ic->ic_media.ifm_cur->ifm_media) != IFM_AUTO) {
+      /*
+       * Reset the scan state and indicate a wrap around
+       * if we're running in a fixed, user-specified phy mode.
+       */
+      ieee80211_reset_scan(ic);
+      return (IEEE80211_MODE_AUTO);
+  }
 
     /*
      * Get the next supported mode

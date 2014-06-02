@@ -88,10 +88,8 @@ const char * const ieee80211_phymode_name[] =
 
 int ieee80211_newstate(struct ieee80211com *, enum ieee80211_state, int);
 
-void ieee80211_proto_attach(struct ifnet *ifp)
+void ieee80211_proto_attach( struct ieee80211com *ic)
 {
-    struct ieee80211com *ic = (void *)ifp;
-
 #ifdef notdef
     ic->ic_rtsthreshold = IEEE80211_RTS_DEFAULT;
 #else
@@ -109,12 +107,10 @@ void ieee80211_proto_attach(struct ifnet *ifp)
     ic->ic_send_mgmt = ieee80211_send_mgmt;
 }
 
-void ieee80211_proto_detach(struct ifnet *ifp)
+void ieee80211_proto_detach(struct ieee80211com *ic)
 {
-    struct ieee80211com *ic = (void *)ifp;
-
-    ieee80211_ifpurge(&ic->ic_mgtq);
-    ieee80211_ifpurge(&ic->ic_pwrsaveq);
+  ieee80211_ifpurge(&ic->ic_mgtq);
+  ieee80211_ifpurge(&ic->ic_pwrsaveq);
 }
 
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
@@ -701,12 +697,10 @@ ieee80211_delba_request(struct ieee80211com *ic, struct ieee80211_node *ni,
 }
 #endif /* !CONFIG_IEEE80211_HT */
 
-void
-ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
+void ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, uint16_t seq,
     uint16_t status)
 {
-    struct ifnet *ifp = &ic->ic_if;
     switch (ic->ic_opmode) {
 #ifdef CONFIG_IEEE80211_AP
     case IEEE80211_M_IBSS:
@@ -800,7 +794,6 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
 
 int ieee80211_newstate(struct ieee80211com *ic, enum ieee80211_state nstate, int mgt)
 {
-    struct ifnet *ifp = &ic->ic_if;
     struct ieee80211_node *ni;
     enum ieee80211_state ostate;
     unsigned int rate;
@@ -913,7 +906,7 @@ justcleanup:
                 ieee80211_create_ibss(ic, ic->ic_des_chan);
             } else
 #endif
-                ieee80211_begin_scan(ifp);
+                ieee80211_begin_scan(ic);
             break;
         case IEEE80211_S_SCAN:
             /* scan next */
@@ -938,7 +931,7 @@ justcleanup:
             ni = ieee80211_find_node(ic, ic->ic_bss->ni_macaddr);
             if (ni != NULL)
                 ni->ni_fails++;
-            ieee80211_begin_scan(ifp);
+            ieee80211_begin_scan(ic);
             break;
         }
         break;

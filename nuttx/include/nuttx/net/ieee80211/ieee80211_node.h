@@ -329,14 +329,14 @@ static __inline void ieee80211_unref_node(struct ieee80211_node **ni)
   *ni = NULL;            /* guard against use */
 }
 
-void ieee80211_node_attach(struct ifnet *);
-void ieee80211_node_lateattach(struct ifnet *);
-void ieee80211_node_detach(struct ifnet *);
+void ieee80211_node_attach(struct ieee80211com *);
+void ieee80211_node_lateattach(struct ieee80211com *);
+void ieee80211_node_detach(struct ieee80211com *);
 
-void ieee80211_begin_scan(struct ifnet *);
-void ieee80211_next_scan(struct ifnet *);
-void ieee80211_end_scan(struct ifnet *);
-void ieee80211_reset_scan(struct ifnet *);
+void ieee80211_begin_scan(struct ieee80211com *);
+void ieee80211_next_scan(struct ieee80211com *);
+void ieee80211_end_scan(struct ieee80211com *);
+void ieee80211_reset_scan(struct ieee80211com *);
 struct ieee80211_node *ieee80211_alloc_node(struct ieee80211com *,
         const uint8_t *);
 struct ieee80211_node *ieee80211_dup_bss(struct ieee80211com *,

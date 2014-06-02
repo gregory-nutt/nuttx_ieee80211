@@ -71,17 +71,17 @@ extern const char * const ieee80211_mgt_subtype_name[];
 extern const char * const ieee80211_state_name[IEEE80211_S_MAX];
 extern const char * const ieee80211_phymode_name[];
 
-void ieee80211_proto_attach(struct ifnet *);
-void ieee80211_proto_detach(struct ifnet *);
+void ieee80211_proto_attach(struct ieee80211com *);
+void ieee80211_proto_detach(struct ieee80211com *);
 
 struct ieee80211_node;
 struct ieee80211_rxinfo;
 struct ieee80211_rsnparams;
 void ieee80211_set_link_state(struct ieee80211com *ic, enum ieee80211_linkstate_e linkstate);
 unsigned int ieee80211_get_hdrlen(const struct ieee80211_frame *);
-void ieee80211_input(struct ifnet *, struct ieee80211_iobuf_s *,
+void ieee80211_input(struct ieee80211com *, struct ieee80211_iobuf_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
-int ieee80211_output(struct ifnet *, struct ieee80211_iobuf_s *, struct sockaddr *,
+int ieee80211_output(struct ieee80211com *, struct ieee80211_iobuf_s *, struct sockaddr *,
         struct rtentry *);
 void ieee80211_recv_mgmt(struct ieee80211com *, struct ieee80211_iobuf_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
@@ -89,7 +89,7 @@ int ieee80211_send_mgmt(struct ieee80211com *, struct ieee80211_node *,
         int, int, int);
 void ieee80211_eapol_key_input(struct ieee80211com *, struct ieee80211_iobuf_s *,
         struct ieee80211_node *);
-struct ieee80211_iobuf_s *ieee80211_encap(struct ifnet *, struct ieee80211_iobuf_s *,
+struct ieee80211_iobuf_s *ieee80211_encap(struct ieee80211com *, struct ieee80211_iobuf_s *,
         struct ieee80211_node **);
 struct ieee80211_iobuf_s *ieee80211_get_rts(struct ieee80211com *,
         const struct ieee80211_frame *, uint16_t);

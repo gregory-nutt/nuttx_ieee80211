@@ -31,6 +31,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <debug.h>
 
 #include <net/if.h>
@@ -40,6 +41,7 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>

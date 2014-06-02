@@ -246,8 +246,6 @@ struct ieee80211com
   void            (*ic_ampdu_rx_stop)(struct ieee80211com *,
                   struct ieee80211_node *, uint8_t);
 
-#warning REVISIT: ic_if represents the device interface and needs to go away
-  struct ifnet    ic_if;
   char            ic_ifname[IFNAMSIZ];  /* Network interface name */
   uint8_t         ic_myaddr[IEEE80211_ADDR_LEN];
   uint8_t         ic_linkstate;        /* See enum ieee80211_linkstate_e */
@@ -418,18 +416,18 @@ extern dq_queue_t ieee80211com_head;
 /* Driver callbacks for media status and change requests. */
 #warning REVISIT: These don't make sense with NuttX.
 
-struct ifnet;
+struct ieee80211com;
 struct ifmediareq;
-typedef int (*ifm_change_cb_t)(struct ifnet *);
-typedef void (*ifm_stat_cb_t)(struct ifnet *, struct ifmediareq *);
+typedef int (*ifm_change_cb_t)(struct ieee80211com *);
+typedef void (*ifm_stat_cb_t)(struct ieee80211com *, struct ifmediareq *);
 
 #warning REVISIT: I think that these media interfaces should go away??? They are not used internally.
-void ieee80211_media_init(struct ifnet *, ifm_change_cb_t, ifm_stat_cb_t);
-int ieee80211_media_change(struct ifnet *);
-void ieee80211_media_status(struct ifnet *, struct ifmediareq *);
-int ieee80211_ioctl(struct ifnet *, unsigned long, void *);
+void ieee80211_media_init(struct ieee80211com *, ifm_change_cb_t, ifm_stat_cb_t);
+int ieee80211_media_change(struct ieee80211com *);
+void ieee80211_media_status(struct ieee80211com *, struct ifmediareq *);
+int ieee80211_ioctl(struct ieee80211com *, unsigned long, void *);
 int ieee80211_get_rate(struct ieee80211com *);
-void ieee80211_watchdog(struct ifnet *);
+void ieee80211_watchdog(struct ieee80211com *);
 int ieee80211_fix_rate(struct ieee80211com *, struct ieee80211_node *, int);
 int ieee80211_rate2media(struct ieee80211com *, int,
         enum ieee80211_phymode);
@@ -441,7 +439,7 @@ unsigned int ieee80211_chan2ieee(struct ieee80211com *,
         const struct ieee80211_channel *);
 unsigned int ieee80211_ieee2mhz(unsigned int, unsigned int);
 int ieee80211_setmode(struct ieee80211com *, enum ieee80211_phymode);
-enum ieee80211_phymode ieee80211_next_mode(struct ifnet *);
+enum ieee80211_phymode ieee80211_next_mode(struct ieee80211com *);
 enum ieee80211_phymode ieee80211_chan2mode(struct ieee80211com *,
         const struct ieee80211_channel *);
 

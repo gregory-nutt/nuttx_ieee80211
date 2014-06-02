@@ -46,6 +46,7 @@
 #endif
 
 #include <nuttx/tree.h>
+#include <nuttx/net/uip/uip-arch.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 #include <nuttx/net/ieee80211/ieee80211_ioctl.h>
@@ -308,9 +309,8 @@ static int ieee80211_ioctl_getwpaparms(struct ieee80211com *ic,
     return 0;
 }
 
-int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
+int ieee80211_ioctl(struct ieee80211com *ic, u_long cmd, void *data)
 {
-    struct ieee80211com *ic = (void *)ifp;
     struct ifreq *ifr = (struct ifreq *)data;
     int i, error = 0;
     struct ieee80211_nwid nwid;
@@ -334,7 +334,7 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
     switch (cmd) {
     case SIOCSIFMEDIA:
     case SIOCGIFMEDIA:
-        error = ifmedia_ioctl(ifp, ifr, &ic->ic_media, cmd);
+        error = ifmedia_ioctl(ic, ifr, &ic->ic_media, cmd);
         break;
     case SIOCS80211NWID:
         if ((error = copyin(ifr->ifr_data, &nwid, sizeof(nwid))) != 0)
@@ -572,33 +572,61 @@ int ieee80211_ioctl(struct ifnet *ifp, u_long cmd, void *data)
             txpower->i_val = ic->ic_txpower;
         break;
     case SIOCS80211SCAN:
+      {
+       FAR struct uip_driver_s *dev;
+
 #ifdef CONFIG_IEEE80211_AP
         if (ic->ic_opmode == IEEE80211_M_HOSTAP)
+          {
             break;
+          }
 #endif
-        if ((ifp->if_flags & (IFF_UP | IFF_RUNNING)) !=
-            (IFF_UP | IFF_RUNNING)) {
+
+        /* Get the driver structure and test the interface flags to make
+         * sure that the interface is up.
+         */
+
+        dev = netdev_findbyaddr(ic->ic_ifname);
+        if (!dev)
+          {
+            error = -ENODEV;
+            break;
+          }
+        else if ((dev->d_flags & (IFF_UP | IFF_RUNNING)) != (IFF_UP | IFF_RUNNING))
+          {
             error = -ENETDOWN;
             break;
-        }
-        if ((ic->ic_scan_lock & IEEE80211_SCAN_REQUEST) == 0) {
+          }
+
+        if ((ic->ic_scan_lock & IEEE80211_SCAN_REQUEST) == 0)
+          {
             if (ic->ic_scan_lock & IEEE80211_SCAN_LOCKED)
+              {
                 ic->ic_scan_lock |= IEEE80211_SCAN_RESUME;
+              }
+
             ic->ic_scan_lock |= IEEE80211_SCAN_REQUEST;
             if (ic->ic_state != IEEE80211_S_SCAN)
+              {
                 ieee80211_new_state(ic, IEEE80211_S_SCAN, -1);
-        }
+              }
+          }
+
         /* Let the userspace process wait for completion */
+
         error = tsleep(&ic->ic_scan_lock, PCATCH, "80211scan",
-            hz * IEEE80211_SCAN_TIMEOUT);
-        break;
+                       hz * IEEE80211_SCAN_TIMEOUT);
+      }
+      break;
     case SIOCG80211NODE:
         nr = (struct ieee80211_nodereq *)data;
         ni = ieee80211_find_node(ic, nr->nr_macaddr);
-        if (ni == NULL) {
+        if (ni == NULL)
+          {
             error = -ENOENT;
             break;
-        }
+          }
+
         ieee80211_node2req(ic, ni, nr);
         break;
     case SIOCS80211NODE:

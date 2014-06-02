@@ -65,7 +65,6 @@ struct ieee80211_iobuf_s *ieee80211_get_eapol_key(int, int, unsigned int);
 int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
     struct ieee80211_node *ni, const struct ieee80211_ptk *ptk)
 {
-  struct ifnet *ifp = &ic->ic_if;
   struct ether_header *eh;
   struct ieee80211_eapol_key *key;
   uint16_t info;
