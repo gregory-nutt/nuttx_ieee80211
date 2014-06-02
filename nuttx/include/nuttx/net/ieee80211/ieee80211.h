@@ -41,70 +41,75 @@
 /* is 802.11 address multicast/broadcast? */
 #define IEEE80211_IS_MULTICAST(_a)    (*(_a) & 0x01)
 
-/*
- * Generic definitions for IEEE 802.11 frames.
- */
-struct ieee80211_frame {
-    uint8_t    i_fc[2];
-    uint8_t    i_dur[2];
-    uint8_t    i_addr1[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr2[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr3[IEEE80211_ADDR_LEN];
-    uint8_t    i_seq[2];
+/* Generic definitions for IEEE 802.11 frames  */
+
+struct ieee80211_frame
+{
+  uint8_t    i_fc[2];
+  uint8_t    i_dur[2];
+  uint8_t    i_addr1[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr2[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr3[IEEE80211_ADDR_LEN];
+  uint8_t    i_seq[2];
 } packed_struct;
 
-struct ieee80211_qosframe {
-    uint8_t    i_fc[2];
-    uint8_t    i_dur[2];
-    uint8_t    i_addr1[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr2[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr3[IEEE80211_ADDR_LEN];
-    uint8_t    i_seq[2];
-    uint8_t    i_qos[2];
+struct ieee80211_qosframe
+{
+  uint8_t    i_fc[2];
+  uint8_t    i_dur[2];
+  uint8_t    i_addr1[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr2[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr3[IEEE80211_ADDR_LEN];
+  uint8_t    i_seq[2];
+  uint8_t    i_qos[2];
 } packed_struct;
 
-struct ieee80211_htframe {        /* 11n */
-    uint8_t    i_fc[2];
-    uint8_t    i_dur[2];
-    uint8_t    i_addr1[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr2[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr3[IEEE80211_ADDR_LEN];
-    uint8_t    i_seq[2];
-    uint8_t    i_qos[2];
-    uint8_t    i_ht[4];
+struct ieee80211_htframe        /* 11n */
+{
+  uint8_t    i_fc[2];
+  uint8_t    i_dur[2];
+  uint8_t    i_addr1[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr2[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr3[IEEE80211_ADDR_LEN];
+  uint8_t    i_seq[2];
+  uint8_t    i_qos[2];
+  uint8_t    i_ht[4];
 } packed_struct;
 
-struct ieee80211_frame_addr4 {
-    uint8_t    i_fc[2];
-    uint8_t    i_dur[2];
-    uint8_t    i_addr1[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr2[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr3[IEEE80211_ADDR_LEN];
-    uint8_t    i_seq[2];
-    uint8_t    i_addr4[IEEE80211_ADDR_LEN];
+struct ieee80211_frame_addr4
+{
+  uint8_t    i_fc[2];
+  uint8_t    i_dur[2];
+  uint8_t    i_addr1[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr2[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr3[IEEE80211_ADDR_LEN];
+  uint8_t    i_seq[2];
+   uint8_t    i_addr4[IEEE80211_ADDR_LEN];
 } packed_struct;
 
-struct ieee80211_qosframe_addr4 {
-    uint8_t    i_fc[2];
-    uint8_t    i_dur[2];
-    uint8_t    i_addr1[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr2[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr3[IEEE80211_ADDR_LEN];
-    uint8_t    i_seq[2];
-    uint8_t    i_addr4[IEEE80211_ADDR_LEN];
-    uint8_t    i_qos[2];
+struct ieee80211_qosframe_addr4
+{
+  uint8_t    i_fc[2];
+  uint8_t    i_dur[2];
+  uint8_t    i_addr1[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr2[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr3[IEEE80211_ADDR_LEN];
+  uint8_t    i_seq[2];
+  uint8_t    i_addr4[IEEE80211_ADDR_LEN];
+  uint8_t    i_qos[2];
 } packed_struct;
 
-struct ieee80211_htframe_addr4 {    /* 11n */
-    uint8_t    i_fc[2];
-    uint8_t    i_dur[2];
-    uint8_t    i_addr1[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr2[IEEE80211_ADDR_LEN];
-    uint8_t    i_addr3[IEEE80211_ADDR_LEN];
-    uint8_t    i_seq[2];
-    uint8_t    i_addr4[IEEE80211_ADDR_LEN];
-    uint8_t    i_qos[2];
-    uint8_t    i_ht[4];
+struct ieee80211_htframe_addr4     /* 11n */
+{
+  uint8_t    i_fc[2];
+  uint8_t    i_dur[2];
+  uint8_t    i_addr1[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr2[IEEE80211_ADDR_LEN];
+  uint8_t    i_addr3[IEEE80211_ADDR_LEN];
+  uint8_t    i_seq[2];
+  uint8_t    i_addr4[IEEE80211_ADDR_LEN];
+  uint8_t    i_qos[2];
+  uint8_t    i_ht[4];
 } packed_struct;
 
 #define    IEEE80211_FC0_VERSION_MASK        0x03

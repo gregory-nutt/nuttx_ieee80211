@@ -177,10 +177,10 @@ static void ieee80211_input_print(struct ieee80211com *ic,  struct ifnet *ifp,
     }
 
   snprintf(msg, 1024, "%s: received %s from %s rssi %d mode %s\n",
-           ifp->if_xname,
+           ic->ic_ifname,
            ieee80211_mgt_subtype_name[subtype >> IEEE80211_FC0_SUBTYPE_SHIFT],
            ieee80211_addr2str(wh->i_addr2), rxi->rxi_rssi,
-          ieee80211_phymode_name[ieee80211_chan2mode(ic, ic->ic_bss->ni_chan)]);
+           ieee80211_phymode_name[ieee80211_chan2mode(ic, ic->ic_bss->ni_chan)]);
 
   error = workq_add_task(NULL, 0, ieee80211_input_print_task, msg, NULL);
   if (error)
@@ -2133,7 +2133,7 @@ void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
     if (status != IEEE80211_STATUS_SUCCESS)
       {
         nvdbg("%s: %sassociation failed (status %d) for %s\n",
-              ifp->if_xname, reassoc ?  "re" : "",
+              ic->ic_ifname, reassoc ?  "re" : "",
               status, ieee80211_addr2str((uint8_t *)wh->i_addr3));
 
         if (ni != ic->ic_bss)
@@ -2279,7 +2279,7 @@ void ieee80211_recv_deauth(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
         if (ni != ic->ic_bss)
           {
             nvdbg("%s: station %s deauthenticated by peer (reason %d)\n",
-                  ic->ic_if.if_xname, ieee80211_addr2str(ni->ni_macaddr), reason);
+                  ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), reason);
 
             ieee80211_node_leave(ic, ni);
           }
@@ -2322,7 +2322,7 @@ void ieee80211_recv_disassoc(struct ieee80211com *ic, struct ieee80211_iobuf_s *
         if (ni != ic->ic_bss)
           {
             nvdbg("%s: station %s disassociated by peer (reason %d)\n",
-                  ic->ic_if.if_xname, ieee80211_addr2str(ni->ni_macaddr), reason);
+                  ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), reason);
 
             ieee80211_node_leave(ic, ni);
         }

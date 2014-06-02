@@ -751,7 +751,7 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
       IEEE80211_SEND_MGMT(ic, ni,  IEEE80211_FC0_SUBTYPE_AUTH, seq + 1);
 
       nvdbg("%s: station %s %s authenticated (open)\n",
-            ifp->if_xname,
+            ic->ic_ifname,
             ieee80211_addr2str((uint8_t *)ni->ni_macaddr),
             ni->ni_state != IEEE80211_STA_CACHE ? "newly" : "already");
 
@@ -780,7 +780,7 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
       if (status != 0)
         {
           nvdbg("%s: open authentication failed (reason %d) for %s\n",
-                ifp->if_xname, status, ieee80211_addr2str((uint8_t *)wh->i_addr3));
+                ic->ic_ifname, status, ieee80211_addr2str((uint8_t *)wh->i_addr3));
 
           if (ni != ic->ic_bss)
             {
@@ -924,7 +924,7 @@ justcleanup:
           /* beacon miss */
 
           nvdbg("%s: no recent beacons from %s; rescanning\n",
-                ifp->if_xname, ieee80211_addr2str(ic->ic_bss->ni_bssid));
+                ic->ic_ifname, ieee80211_addr2str(ic->ic_bss->ni_bssid));
 
           ieee80211_free_allnodes(ic);
 
@@ -1008,7 +1008,7 @@ justcleanup:
 
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
             nvdbg("%s: %s with %s ssid ",
-                   ifp->if_xname,
+                   ic->ic_ifname,
                    ic->ic_opmode == IEEE80211_M_STA ? "associated" : "synchronized",
                    ieee80211_addr2str(ni->ni_bssid));
             ieee80211_print_essid(ic->ic_bss->ni_essid, ni->ni_esslen);

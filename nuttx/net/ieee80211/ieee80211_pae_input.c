@@ -256,8 +256,7 @@ ieee80211_recv_4way_msg1(struct ieee80211com *ic,
         ic->ic_myaddr, ni->ni_nonce, ic->ic_nonce, &tptk);
 
     nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-          ic->ic_if.if_xname, 1, 4, "4-way",
-          ieee80211_addr2str(ni->ni_macaddr));
+          ic->ic_ifname, 1, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
     /* Send message 2 to authenticator using TPTK */
 
@@ -320,7 +319,7 @@ ieee80211_recv_4way_msg2(struct ieee80211com *ic,
     }
 
   nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-        ic->ic_if.if_xname, 2, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
+        ic->ic_ifname, 2, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
   /* Send message 3 to supplicant */
 
@@ -493,7 +492,7 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
     ni->ni_replaycnt_ok = 1;
 
     nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-          ic->ic_if.if_xname, 3, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
+          ic->ic_ifname, 3, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
     /* Send message 4 to authenticator */
 
@@ -661,7 +660,7 @@ ieee80211_recv_4way_msg4(struct ieee80211com *ic,
     }
 
   nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-        ic->ic_if.if_xname, 4, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
+        ic->ic_ifname, 4, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
 
   /* initiate a group key handshake for WPA */
 
@@ -859,7 +858,7 @@ ieee80211_recv_rsn_group_msg1(struct ieee80211com *ic,
   ni->ni_replaycnt = BE_READ_8(key->replaycnt);
 
   nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-        ic->ic_if.if_xname, 1, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
+        ic->ic_ifname, 1, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
 
   /* Send message 2 to authenticator */
 
@@ -953,7 +952,7 @@ void ieee80211_recv_wpa_group_msg1(struct ieee80211com *ic,
   ni->ni_replaycnt = BE_READ_8(key->replaycnt);
 
   nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-        ic->ic_if.if_xname, 1, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
+        ic->ic_ifname, 1, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
 
   /* Send message 2 to authenticator */
 
@@ -1001,7 +1000,7 @@ ieee80211_recv_group_msg2(struct ieee80211com *ic,
     ni->ni_rsn_retries = 0;
 
   nvdbg("%s: received msg %d/%d of the %s handshake from %s\n",
-        ic->ic_if.if_xname, 2, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
+        ic->ic_ifname, 2, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
 }
 
 /* EAPOL-Key Request frames are sent by the supplicant to request that the

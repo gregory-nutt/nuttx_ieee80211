@@ -63,6 +63,7 @@ int ieee80211_findrate(struct ieee80211com *, enum ieee80211_phymode, int);
 
 #warning REVISIT:  There is no concept of attaching devices in NuttX.
 #warning REVISIT:  Perhaps this should become an general one-time initialization function
+#warning REVISIT:  This should receive the internet string as an argument ("eth0").
 void ieee80211_ifattach(struct ifnet *ifp)
 {
     struct ieee80211com *ic = (void *)ifp;
@@ -90,7 +91,7 @@ void ieee80211_ifattach(struct ifnet *ifp)
             if (i != ieee80211_chan2ieee(ic, c))
               {
                 nvdbg("ERROR %s: bad channel ignored; freq %u flags %x number %u\n",
-                    ifp->if_xname, c->ic_freq, c->ic_flags, i);
+                    ic->ic_ifname, c->ic_freq, c->ic_flags, i);
 
                 c->ic_flags = 0;    /* NB: remove */
                 continue;
@@ -182,10 +183,10 @@ unsigned int ieee80211_chan2ieee(struct ieee80211com *ic, const struct ieee80211
         return IEEE80211_CHAN_ANY;
     else if (c != NULL) {
         ndbg("ERROR: %s: invalid channel freq %u flags %x\n",
-            ifp->if_xname, c->ic_freq, c->ic_flags);
+            ic->ic_ifname, c->ic_freq, c->ic_flags);
         return 0;        /* XXX */
     } else {
-        ndbg("ERROR: %s: invalid channel (NULL)\n", ifp->if_xname);
+        ndbg("ERROR: %s: invalid channel (NULL)\n", ic->ic_ifname);
         return 0;        /* XXX */
     }
 }

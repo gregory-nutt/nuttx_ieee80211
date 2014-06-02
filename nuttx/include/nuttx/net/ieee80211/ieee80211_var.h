@@ -42,6 +42,8 @@
 #include <wdog.h>
 #include <queue.h>
 
+#include <net/if.h>
+
 #include <nuttx/net/ieee80211/ieee80211.h>
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
@@ -67,10 +69,10 @@
 
 enum ieee80211_phytype
 {
-  IEEE80211_T_DS,		/* direct sequence spread spectrum */
-  IEEE80211_T_OFDM,		/* frequency division multiplexing */
-  IEEE80211_T_TURBO,		/* high rate OFDM, aka turbo mode */
-  IEEE80211_T_XR		/* extended range mode */
+  IEEE80211_T_DS,               /* Direct sequence spread spectrum */
+  IEEE80211_T_OFDM,             /* Frequency division multiplexing */
+  IEEE80211_T_TURBO,            /* High rate OFDM, aka turbo mode */
+  IEEE80211_T_XR                /* Extended range mode */
 };
 
 #define IEEE80211_T_CCK    IEEE80211_T_DS    /* more common nomenclature */
@@ -204,9 +206,10 @@ struct ieee80211_defrag
 
 struct ieee80211com
 {
-  dq_entry_t      ic_list;    /* chain of all ieee80211com */
+  dq_entry_t      ic_list;             /* Chain of all ieee80211com */
 #warning REVISIT: ic_if represents the device interface and needs to go away
   struct ifnet ic_if;
+  char            ic_ifname[IFNAMSIZ];  /* Network interface name */
   void            (*ic_recv_mgmt)(struct ieee80211com *,
                   struct ieee80211_iobuf_s *, struct ieee80211_node *,
                   struct ieee80211_rxinfo *, int);

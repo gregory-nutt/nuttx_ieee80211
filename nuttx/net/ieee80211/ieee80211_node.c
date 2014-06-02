@@ -272,7 +272,7 @@ void ieee80211_begin_scan(struct ifnet *ifp)
         ic->ic_stats.is_scan_passive++;
 #endif
     nvdbg("%s: begin %s scan\n",
-          ifp->if_xname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
+          ic->ic_ifname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
 
     /* Flush any previously seen AP's. Note that the latter 
      * assumes we don't act as both an AP and a station,
@@ -335,7 +335,7 @@ ieee80211_create_ibss(struct ieee80211com* ic, struct ieee80211_channel *chan)
     struct ifnet *ifp = &ic->ic_if;
 
     ni = ic->ic_bss;
-    nvdbg("%s: creating ibss\n", ifp->if_xname);
+    nvdbg("%s: creating ibss\n", ic->ic_ifname);
 
     ic->ic_flags |= IEEE80211_F_SIBSS;
     ni->ni_chan = chan;
@@ -536,7 +536,7 @@ void ieee80211_end_scan(struct ifnet *ifp)
     struct ieee80211_node *ni, *nextbs, *selbs;
 
     nvdbg("%s: end %s scan\n",
-         ifp->if_xname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
+         ic->ic_ifname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
 
     if (ic->ic_scan_count)
         ic->ic_flags &= ~IEEE80211_F_ASCAN;
@@ -1182,7 +1182,7 @@ ieee80211_clean_nodes(struct ieee80211com *ic, int cache_timeout)
         }
 
         nvdbg("%s: station %s purged from node cache\n",
-              ifp->if_xname, ieee80211_addr2str(ni->ni_macaddr));
+              ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr));
 #endif
         /*
          * If we're hostap and the node is authenticated, send
@@ -1216,7 +1216,7 @@ ieee80211_clean_nodes(struct ieee80211com *ic, int cache_timeout)
     if (cache_timeout && nnodes != ic->ic_nnodes)
       {
         ndbg("WARNING: %s: number of cached nodes is %d, expected %d, possible nodes leak\n",
-             ifp->if_xname, nnodes, ic->ic_nnodes);
+             ic->ic_ifname, nnodes, ic->ic_nnodes);
       }
 #endif
     splx(s);
@@ -1707,7 +1707,7 @@ ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni,
     if (IEEE80211_ADDR_EQ(ni->ni_bssid, ic->ic_bss->ni_bssid)) {
         if (!ieee80211_do_slow_print(ic, &did_print))
             return 0;
-        nvdbg("%s: tsft offset %s%llu\n", ic->ic_if.if_xname,
+        nvdbg("%s: tsft offset %s%llu\n", ic->ic_ifname,
             (sign < 0) ? "-" : "",
             (sign < 0)
             ? (local_tsft - beacon_tsft)
@@ -1723,11 +1723,11 @@ ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni,
 
     if (ieee80211_do_slow_print(ic, &did_print)) {
         nvdbg("%s: ieee80211_ibss_merge: bssid mismatch %s\n",
-            ic->ic_if.if_xname, ieee80211_addr2str(ni->ni_bssid));
+            ic->ic_ifname, ieee80211_addr2str(ni->ni_bssid));
         nvdbg("%s: my tsft %llu beacon tsft %llu\n",
-            ic->ic_if.if_xname, local_tsft, beacon_tsft);
+            ic->ic_ifname, local_tsft, beacon_tsft);
         nvdbg("%s: sync TSF with %s\n",
-            ic->ic_if.if_xname, ieee80211_addr2str(ni->ni_macaddr));
+            ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr));
     }
 
     ic->ic_flags &= ~IEEE80211_F_SIBSS;
@@ -1738,14 +1738,14 @@ ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni,
     if (ni->ni_rates.rs_nrates == 0) {
         if (ieee80211_do_slow_print(ic, &did_print)) {
             nvdbg("%s: rates mismatch, BSSID %s\n",
-                ic->ic_if.if_xname, ieee80211_addr2str(ni->ni_bssid));
+                ic->ic_ifname, ieee80211_addr2str(ni->ni_bssid));
         }
         return 0;
     }
 
     if (ieee80211_do_slow_print(ic, &did_print)) {
         nvdbg("%s: sync BSSID %s -> ",
-            ic->ic_if.if_xname, ieee80211_addr2str(ic->ic_bss->ni_bssid));
+            ic->ic_ifname, ieee80211_addr2str(ic->ic_bss->ni_bssid));
         nvdbg("%s ", ieee80211_addr2str(ni->ni_bssid));
         nvdbg("(from %s)\n", ieee80211_addr2str(ni->ni_macaddr));
     }

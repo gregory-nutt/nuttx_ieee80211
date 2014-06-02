@@ -548,7 +548,7 @@ void ieee80211_michael_mic_failure(struct ieee80211com *ic, uint64_t tsc)
     if (ic->ic_flags & IEEE80211_F_COUNTERM)
         return;    /* countermeasures already active */
 
-    ndbg("ERROR: %s: Michael MIC failure\n", ic->ic_if.if_xname);
+    ndbg("ERROR: %s: Michael MIC failure\n", ic->ic_ifname);
 
     /* NB. do not send Michael MIC Failure reports as recommended since
      * these may be used as an oracle to verify CRC guesses as described

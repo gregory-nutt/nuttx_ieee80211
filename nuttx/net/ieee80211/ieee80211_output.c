@@ -166,7 +166,7 @@ int ieee80211_output(struct ifnet *ifp, struct ieee80211_iobuf_s *m, struct sock
           /* buffer is already freed */
 
           splx(s);
-          ndbg("ERROR: %s: failed to queue raw tx frame\n", ifp->if_xname);
+          ndbg("ERROR: %s: failed to queue raw tx frame\n", ic->ic_ifname);
           return error;
         }
 
@@ -255,7 +255,7 @@ int ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
       (type & IEEE80211_FC0_SUBTYPE_MASK) != IEEE80211_FC0_SUBTYPE_PROBE_RESP)
     {
        nvdbg("%s: sending %s to %s on channel %u mode %s\n",
-             ifp->if_xname,
+             ic->ic_ifname,
              ieee80211_mgt_subtype_name[(type & IEEE80211_FC0_SUBTYPE_MASK) >> IEEE80211_FC0_SUBTYPE_SHIFT],
              ieee80211_addr2str(ni->ni_macaddr),
              ieee80211_chan2ieee(ic, ni->ni_chan),
@@ -524,7 +524,7 @@ struct ieee80211_iobuf_s *ieee80211_encap(struct ifnet *ifp, struct ieee80211_io
             ni = ieee80211_ref_node(ic->ic_bss);
         if (ni == NULL) {
             nvdbg("%s: no node for dst %s, discard raw tx frame\n",
-                  ifp->if_xname, ieee80211_addr2str(addr));
+                  ic->ic_ifname, ieee80211_addr2str(addr));
             ic->ic_stats.is_tx_nonode++;
             goto bad;
         }
@@ -1652,7 +1652,7 @@ int ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
             senderr(ENOMEM, is_tx_nombuf);
 
         nvdbg("%s: station %s deauthenticate (reason %d)\n",
-              ifp->if_xname, ieee80211_addr2str(ni->ni_macaddr), arg1);
+              ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), arg1);
         }
         break;
 
@@ -1675,7 +1675,7 @@ int ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
             senderr(ENOMEM, is_tx_nombuf);
 
         nvdbg("%s: station %s disassociate (reason %d)\n",
-              ifp->if_xname, ieee80211_addr2str(ni->ni_macaddr), arg1);
+              ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), arg1);
         }
         break;
 

@@ -163,7 +163,7 @@ ieee80211_rssadapt_input(struct ieee80211com *ic,
         ra->ra_avg_rssi, (rssi << 8));
 
     RSSADAPT_PRINTF(("%s: src %s rssi %d avg %d -> %d\n",
-        ic->ic_if.if_xname, ieee80211_addr2str((uint8_t *)ni->ni_macaddr),
+        ic->ic_ifname, ieee80211_addr2str((uint8_t *)ni->ni_macaddr),
         rssi, last_avg_rssi, ra->ra_avg_rssi));
 }
 
@@ -206,7 +206,7 @@ ieee80211_rssadapt_lower_rate(struct ieee80211com *ic,
         (id->id_rssi << 8));
 
     RSSADAPT_PRINTF(("%s: dst %s rssi %d threshold[%d, %d.%d] %d -> %d\n",
-        ic->ic_if.if_xname, ieee80211_addr2str((uint8_t *)ni->ni_macaddr),
+        ic->ic_ifname, ieee80211_addr2str((uint8_t *)ni->ni_macaddr),
         id->id_rssi, id->id_len,
         (rs->rs_rates[id->id_rateidx] & IEEE80211_RATE_VAL) / 2,
         (rs->rs_rates[id->id_rateidx] & IEEE80211_RATE_VAL) * 5 % 10,
@@ -243,7 +243,7 @@ ieee80211_rssadapt_raise_rate(struct ieee80211com *ic,
         rate = (rs->rs_rates[id->id_rateidx + 1] & IEEE80211_RATE_VAL);
 
         RSSADAPT_PRINTF(("%s: threshold[%d, %d.%d] decay %d ",
-            ic->ic_if.if_xname, IEEE80211_RSSADAPT_BKT0 <<
+            ic->ic_ifname, IEEE80211_RSSADAPT_BKT0 <<
             (IEEE80211_RSSADAPT_BKTPOWER * i),
             rate / 2, rate * 5 % 10, (*thrs)[id->id_rateidx + 1]));
         oldthr = (*thrs)[id->id_rateidx + 1];
@@ -260,7 +260,7 @@ ieee80211_rssadapt_raise_rate(struct ieee80211com *ic,
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
     if (RSSADAPT_DO_PRINT())
       {
-        nvdbg("%s: dst %s thresholds\n", ic->ic_if.if_xname,
+        nvdbg("%s: dst %s thresholds\n", ic->ic_ifname,
             ieee80211_addr2str((uint8_t *)ni->ni_macaddr));
 
         for (i = 0; i < IEEE80211_RSSADAPT_BKTS; i++)
