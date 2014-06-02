@@ -150,7 +150,8 @@ void ieee80211_ifdetach(struct ieee80211com *ic)
   ieee80211_crypto_detach(ic);
   ieee80211_node_detach(ic);
   dq_rem((dq_entry_t *)ic, &ic_list);
-  ifmedia_delete_instance(&ic->ic_media, IFM_INST_ANY);
+  //ifmedia_delete_instance(&ic->ic_media, IFM_INST_ANY);
+  // it needs send a signal to alert it need to be deleted
   ether_ifdetach(ic);
 }
 
@@ -227,131 +228,10 @@ unsigned int ieee80211_ieee2mhz(unsigned int chan, unsigned int flags)
     }
 }
 
-/* Setup the media data structures according to the channel and
- * rate tables.  This must be called by the driver after
- * ieee80211_attach and before most anything else.
- */
-
-void ieee80211_media_init(struct ieee80211com *ic, ifm_change_cb_t media_change, ifm_stat_cb_t media_stat)
-{
-#define ADD(_ic, _s, _o) \
-    ifmedia_add(&(_ic)->ic_media, \
-        IFM_MAKEWORD(IFM_IEEE80211, (_s), (_o), 0), 0, NULL)
-    struct ifmediareq imr;
-    int i, j, mode, rate, maxrate, mword, mopt, r;
-    const struct ieee80211_rateset *rs;
-    struct ieee80211_rateset allrates;
-
-    /* Do late attach work that must wait for any subclass
-     * (i.e. driver) work such as overriding methods.
-     */
-
-     ieee80211_node_lateattach(ic);
-
-    /* Fill in media characteristics */
-
-    ifmedia_init(&ic->ic_media, 0, media_change, media_stat);
-    maxrate = 0;
-    memset(&allrates, 0, sizeof(allrates));
-    for (mode = IEEE80211_MODE_AUTO; mode < IEEE80211_MODE_MAX; mode++) {
-        static const unsigned int mopts[] = {
-            IFM_AUTO,
-            IFM_IEEE80211_11A,
-            IFM_IEEE80211_11B,
-            IFM_IEEE80211_11G,
-            IFM_IEEE80211_11A | IFM_IEEE80211_TURBO,
-        };
-        if ((ic->ic_modecaps & (1<<mode)) == 0)
-            continue;
-        mopt = mopts[mode];
-        ADD(ic, IFM_AUTO, mopt);    /* e.g. 11a auto */
-#ifdef CONFIG_IEEE80211_AP
-        if (ic->ic_caps & IEEE80211_C_IBSS)
-            ADD(ic, IFM_AUTO, mopt | IFM_IEEE80211_IBSS);
-        if (ic->ic_caps & IEEE80211_C_HOSTAP)
-            ADD(ic, IFM_AUTO, mopt | IFM_IEEE80211_HOSTAP);
-        if (ic->ic_caps & IEEE80211_C_AHDEMO)
-            ADD(ic, IFM_AUTO, mopt | IFM_IEEE80211_ADHOC);
-#endif
-        if (ic->ic_caps & IEEE80211_C_MONITOR)
-            ADD(ic, IFM_AUTO, mopt | IFM_IEEE80211_MONITOR);
-        if (mode == IEEE80211_MODE_AUTO)
-            continue;
-        rs = &ic->ic_sup_rates[mode];
-        for (i = 0; i < rs->rs_nrates; i++)
-          {
-            rate = rs->rs_rates[i];
-            mword = ieee80211_rate2media(ic, rate, mode);
-            if (mword == 0)
-                continue;
-            ADD(ic, mword, mopt);
-#ifdef CONFIG_IEEE80211_AP
-            if (ic->ic_caps & IEEE80211_C_IBSS)
-                ADD(ic, mword, mopt | IFM_IEEE80211_IBSS);
-            if (ic->ic_caps & IEEE80211_C_HOSTAP)
-                ADD(ic, mword, mopt | IFM_IEEE80211_HOSTAP);
-            if (ic->ic_caps & IEEE80211_C_AHDEMO)
-                ADD(ic, mword, mopt | IFM_IEEE80211_ADHOC);
-#endif
-            if (ic->ic_caps & IEEE80211_C_MONITOR)
-                ADD(ic, mword, mopt | IFM_IEEE80211_MONITOR);
-            /*
-             * Add rate to the collection of all rates.
-             */
-            r = rate & IEEE80211_RATE_VAL;
-            for (j = 0; j < allrates.rs_nrates; j++)
-                if (allrates.rs_rates[j] == r)
-                    break;
-            if (j == allrates.rs_nrates) {
-                /* unique, add to the set */
-                allrates.rs_rates[j] = r;
-                allrates.rs_nrates++;
-            }
-            rate = (rate & IEEE80211_RATE_VAL) / 2;
-            if (rate > maxrate)
-                maxrate = rate;
-        }
-    }
-
-    for (i = 0; i < allrates.rs_nrates; i++) {
-        mword = ieee80211_rate2media(ic, allrates.rs_rates[i],
-                IEEE80211_MODE_AUTO);
-        if (mword == 0)
-            continue;
-        mword = IFM_SUBTYPE(mword);    /* remove media options */
-        ADD(ic, mword, 0);
-#ifdef CONFIG_IEEE80211_AP
-        if (ic->ic_caps & IEEE80211_C_IBSS)
-            ADD(ic, mword, IFM_IEEE80211_IBSS);
-        if (ic->ic_caps & IEEE80211_C_HOSTAP)
-            ADD(ic, mword, IFM_IEEE80211_HOSTAP);
-        if (ic->ic_caps & IEEE80211_C_AHDEMO)
-            ADD(ic, mword, IFM_IEEE80211_ADHOC);
-#endif
-        if (ic->ic_caps & IEEE80211_C_MONITOR)
-            ADD(ic, mword, IFM_IEEE80211_MONITOR);
-    }
-
-    ieee80211_media_status(ic, &imr);
-    ifmedia_set(&ic->ic_media, imr.ifm_active);
-#undef ADD
-}
-
-int ieee80211_findrate(struct ieee80211com *ic, enum ieee80211_phymode mode,
-    int rate)
-{
-#define    IEEERATE(_ic,_m,_i) \
-    ((_ic)->ic_sup_rates[_m].rs_rates[_i] & IEEE80211_RATE_VAL)
-    int i, nrates = ic->ic_sup_rates[mode].rs_nrates;
-    for (i = 0; i < nrates; i++)
-        if (IEEERATE(ic, mode, i) == rate)
-            return i;
-    return -1;
-#undef IEEERATE
-}
-
 /* Handle a media change request */
 
+// ieee80211_media_change will be replaced by ieee80211_ioctl_setmode
+#if 0
 int ieee80211_media_change(struct ieee80211com *ic)
 {
     struct ifmedia_entry *ime;
@@ -380,7 +260,8 @@ int ieee80211_media_change(struct ieee80211com *ic)
         return EINVAL;
     }
     /*
-     * Turbo mode is an ``option''.  Eventually it
+     
+* Turbo mode is an ``option''.  Eventually it
      * needs to be applied to 11g too.
      */
     if (ime->ifm_media & IFM_IEEE80211_TURBO) {
@@ -512,7 +393,10 @@ int ieee80211_media_change(struct ieee80211com *ic)
 
   return error;
 }
+#endif
 
+// ieee80211_media_status will be replaced by ieee80211_ioctl_getmode
+#if 0
 void ieee80211_media_status(struct ieee80211com *ic, struct ifmediareq *imr)
 {
     const struct ieee80211_node *ni = NULL;
@@ -565,6 +449,7 @@ void ieee80211_media_status(struct ieee80211com *ic, struct ifmediareq *imr)
         break;
     }
 }
+#endif
 
 void ieee80211_watchdog(struct ieee80211com *ic)
 {
@@ -812,6 +697,8 @@ enum ieee80211_phymode ieee80211_chan2mode(struct ieee80211com *ic,
  * ieee80211 rate is in unit of 0.5Mbps.
  */
 
+// TO BE REMOVED
+#if 0
 int ieee80211_rate2media(struct ieee80211com *ic, int rate,
     enum ieee80211_phymode mode)
 {
@@ -905,6 +792,7 @@ int ieee80211_media2rate(int mword)
     return 0;
 #undef N
 }
+#endif
 
 /* Convert bit rate (in 0.5Mbps units) to PLCP signal (R4-R1) and vice versa */
 
