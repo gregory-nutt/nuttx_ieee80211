@@ -82,8 +82,8 @@ struct ieee80211_key
   enum ieee80211_cipher    k_cipher;
   unsigned int            k_flags;
 #define IEEE80211_KEY_GROUP    0x00000001    /* group data key */
-#define IEEE80211_KEY_TX    0x00000002    /* Tx+Rx */
-#define IEEE80211_KEY_IGTK    0x00000004    /* integrity group key */
+#define IEEE80211_KEY_TX       0x00000002    /* Tx+Rx */
+#define IEEE80211_KEY_IGTK     0x00000004    /* integrity group key */
 
   unsigned int            k_len;
   uint64_t        k_rsc[IEEE80211_NUM_TID];

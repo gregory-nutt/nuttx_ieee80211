@@ -110,30 +110,30 @@ struct ieee80211_nwid {
 
 /* network key (WEP), the first member must be matched with struct ifreq */
 struct ieee80211_nwkey {
-    char        i_name[IFNAMSIZ];    /* if_name, e.g. "wi0" */
-    int        i_wepon;        /* wep enabled flag */
-    int        i_defkid;        /* default encrypt key id */
+    char       i_name[IFNAMSIZ];   /* if_name, e.g. "wi0" */
+    int        i_wepon;            /* wep enabled flag */
+    int        i_defkid;           /* default encrypt key id */
     struct {
         int        i_keylen;
         uint8_t    *i_keydat;
     }        i_key[IEEE80211_WEP_NKID];
 };
 
-#define IEEE80211_NWKEY_OPEN    0        /* No privacy */
-#define IEEE80211_NWKEY_WEP    1        /* WEP enabled */
-#define IEEE80211_NWKEY_EAP    2        /* EAP enabled */
-#define IEEE80211_NWKEY_PERSIST    0x100        /* designate persist keyset */
+#define IEEE80211_NWKEY_OPEN       0        /* No privacy */
+#define IEEE80211_NWKEY_WEP        1        /* WEP enabled */
+#define IEEE80211_NWKEY_EAP        2        /* EAP enabled */
+#define IEEE80211_NWKEY_PERSIST    0x100    /* designate persist keyset */
 
 #define SIOCS80211NWKEY         _IOW('i', 232, struct ieee80211_nwkey)
 #define SIOCG80211NWKEY        _IOWR('i', 233, struct ieee80211_nwkey)
 
 /* power management parameters */
 struct ieee80211_power {
-    char        i_name[IFNAMSIZ];    /* if_name, e.g. "wi0" */
-    int        i_enabled;        /* 1 == on, 0 == off */
-    int        i_maxsleep;        /* max sleep in ms */
+    char       i_name[IFNAMSIZ];    /* if_name, e.g. "wi0" */
+    int        i_enabled;           /* 1 == on, 0 == off */
+    int        i_maxsleep;          /* max sleep in ms */
 };
-#define SIOCS80211POWER         _IOW('i', 234, struct ieee80211_power)
+#define SIOCS80211POWER        _IOW('i', 234, struct ieee80211_power)
 #define SIOCG80211POWER        _IOWR('i', 235, struct ieee80211_power)
 
 /* authentication type */
@@ -144,9 +144,9 @@ struct ieee80211_auth {
 
 #define IEEE80211_AUTH_NONE    0
 #define IEEE80211_AUTH_OPEN    1
-#define IEEE80211_AUTH_SHARED    2
+#define IEEE80211_AUTH_SHARED  2
 
-#define SIOCS80211AUTH         _IOW('i', 236, struct ieee80211_auth)
+#define SIOCS80211AUTH        _IOW('i', 236, struct ieee80211_auth)
 #define SIOCG80211AUTH        _IOWR('i', 237, struct ieee80211_auth)
 
 /* channel request */
@@ -167,9 +167,9 @@ struct ieee80211_chanreq_all
 # define IEEE80211_CHAN_ANY    0xffff
 #endif
 
-#define SIOCS80211CHANNEL     _IOW('i', 238, struct ieee80211chanreq)
+#define SIOCS80211CHANNEL    _IOW('i', 238, struct ieee80211chanreq)
 #define SIOCG80211CHANNEL    _IOWR('i', 239, struct ieee80211chanreq)
-#define SIOCG80211ALLCHANS    _IOWR('i', 215, struct ieee80211_chanreq_all)
+#define SIOCG80211ALLCHANS   _IOWR('i', 215, struct ieee80211_chanreq_all)
 
 /* BSS identifier */
 struct ieee80211_bssid {
@@ -183,14 +183,14 @@ struct ieee80211_bssid {
 /* transmit power */
 struct ieee80211_txpower {
     char        i_name[IFNAMSIZ];    /* if_name, e.g. "wi0" */
-    int        i_mode;            /* auto, manual */
+    int        i_mode;               /* auto, manual */
     int16_t        i_val;            /* dBm */
 };
 
-#define SIOCS80211TXPOWER     _IOW('i', 243, struct ieee80211_txpower)
+#define SIOCS80211TXPOWER    _IOW('i', 243, struct ieee80211_txpower)
 #define SIOCG80211TXPOWER    _IOWR('i', 244, struct ieee80211_txpower)
 
-#define IEEE80211_TXPOWER_MODE_FIXED    0    /* fixed tx power value */
+#define IEEE80211_TXPOWER_MODE_FIXED   0    /* fixed tx power value */
 #define IEEE80211_TXPOWER_MODE_AUTO    1    /* auto level control */
 
 struct ieee80211_wpapsk {
@@ -199,22 +199,22 @@ struct ieee80211_wpapsk {
     uint8_t    i_psk[32];
 };
 
-#define SIOCS80211WPAPSK     _IOW('i', 245, struct ieee80211_wpapsk)
+#define SIOCS80211WPAPSK    _IOW('i', 245, struct ieee80211_wpapsk)
 #define SIOCG80211WPAPSK    _IOWR('i', 246, struct ieee80211_wpapsk)
 
 #define IEEE80211_WPA_PROTO_WPA1    0x01
 #define IEEE80211_WPA_PROTO_WPA2    0x02
 
-#define IEEE80211_WPA_CIPHER_NONE    0x00
+#define IEEE80211_WPA_CIPHER_NONE        0x00
 #define IEEE80211_WPA_CIPHER_USEGROUP    0x01
-#define IEEE80211_WPA_CIPHER_WEP40    0x02
-#define IEEE80211_WPA_CIPHER_TKIP    0x04
-#define IEEE80211_WPA_CIPHER_CCMP    0x08
-#define IEEE80211_WPA_CIPHER_WEP104    0x10
+#define IEEE80211_WPA_CIPHER_WEP40       0x02
+#define IEEE80211_WPA_CIPHER_TKIP        0x04
+#define IEEE80211_WPA_CIPHER_CCMP        0x08
+#define IEEE80211_WPA_CIPHER_WEP104      0x10
 
-#define IEEE80211_WPA_AKM_PSK        0x01
-#define IEEE80211_WPA_AKM_8021X        0x02
-#define IEEE80211_WPA_AKM_SHA256_PSK    0x04
+#define IEEE80211_WPA_AKM_PSK             0x01
+#define IEEE80211_WPA_AKM_8021X           0x02
+#define IEEE80211_WPA_AKM_SHA256_PSK      0x04
 #define IEEE80211_WPA_AKM_SHA256_8021X    0x08
 
 struct ieee80211_wpaparams {
@@ -250,8 +250,8 @@ struct ieee80211_keyrun {
     uint8_t    i_macaddr[IEEE80211_ADDR_LEN];
 };
 
-#define SIOCS80211KEYAVAIL     _IOW('i', 251, struct ieee80211_keyavail)
-#define SIOCS80211KEYRUN     _IOW('i', 252, struct ieee80211_keyrun)
+#define SIOCS80211KEYAVAIL    _IOW('i', 251, struct ieee80211_keyavail)
+#define SIOCS80211KEYRUN      _IOW('i', 252, struct ieee80211_keyrun)
 
 /* scan request (will block) */
 #define IEEE80211_SCAN_TIMEOUT    30    /* timeout in seconds */
@@ -264,14 +264,14 @@ struct ieee80211_nodereq {
 
     /* Node address and name information */
     uint8_t    nr_macaddr[IEEE80211_ADDR_LEN];    /* node lladdr */
-    uint8_t    nr_bssid[IEEE80211_ADDR_LEN];    /* bssid */
-    uint8_t    nr_nwid_len;            /* ESSID length */
-    uint8_t    nr_nwid[IEEE80211_NWID_LEN];    /* ESSID */
+    uint8_t    nr_bssid[IEEE80211_ADDR_LEN];      /* bssid */
+    uint8_t    nr_nwid_len;                       /* ESSID length */
+    uint8_t    nr_nwid[IEEE80211_NWID_LEN];       /* ESSID */
 
     /* Channel and rates */
-    uint16_t    nr_channel;            /* last channel */
+    uint16_t    nr_channel;               /* last channel */
     uint16_t    nr_chan_flags;            /* channel flags */
-    uint8_t    nr_nrates;            /* rate count */
+    uint8_t    nr_nrates;                 /* rate count */
     uint8_t    nr_rates[IEEE80211_RATE_MAXSIZE];    /* rate set */
 
     /* Node status information */
@@ -306,21 +306,21 @@ struct ieee80211_nodereq {
     ((unsigned int)(((float)(_nr)->nr_rssi / (_nr)->nr_max_rssi) * 100))
 
 #define IEEE80211_NODEREQ_STA        0x00    /* station */
-#define IEEE80211_NODEREQ_AP        0x01    /* access point */
-#define IEEE80211_NODEREQ_AP_BSS    0x02    /* current bss access point */
-#define IEEE80211_NODEREQ_COPY        0x04    /* add node with flags */
+#define IEEE80211_NODEREQ_AP         0x01    /* access point */
+#define IEEE80211_NODEREQ_AP_BSS     0x02    /* current bss access point */
+#define IEEE80211_NODEREQ_COPY       0x04    /* add node with flags */
 
 #define SIOCG80211NODE        _IOWR('i', 211, struct ieee80211_nodereq)
-#define SIOCS80211NODE         _IOW('i', 212, struct ieee80211_nodereq)
+#define SIOCS80211NODE        _IOW('i', 212, struct ieee80211_nodereq)
 #define SIOCS80211DELNODE     _IOW('i', 213, struct ieee80211_nodereq)
 
 /* get the entire node cache */
 struct ieee80211_nodereq_all {
-    char                na_ifname[IFNAMSIZ];    /* e.g. "ath0" */
+    char               na_ifname[IFNAMSIZ];    /* e.g. "ath0" */
 
-    int                na_nodes;    /* returned count */
-    size_t                na_size;    /* size of node buffer */
-    struct ieee80211_nodereq    *na_node;    /* allocated node buffer */
+    int                na_nodes;               /* returned count */
+    size_t             na_size;                /* size of node buffer */
+    struct ieee80211_nodereq    *na_node;      /* allocated node buffer */
 
     /* Match nodes by flag */
     uint8_t            na_flags;    /* IEEE80211_NODEREQ_* */
@@ -331,8 +331,8 @@ struct ieee80211_nodereq_all {
 /* net80211 specific interface flags */
 #define IEEE80211_F_HIDENWID    0x10000000    /* CONF: hidden ssid mode */
 #define IEEE80211_F_NOBRIDGE    0x20000000    /* CONF: no internal bridging */
-#define IEEE80211_F_HOSTAPMASK    0x30000000
-#define IEEE80211_F_USERSHIFT    28
+#define IEEE80211_F_HOSTAPMASK  0x30000000
+#define IEEE80211_F_USERSHIFT   28
 #define IEEE80211_F_USERBITS    "\20\01HIDENWID\02NOBRIDGE"
 
 struct ieee80211_flags {
@@ -346,6 +346,6 @@ struct ieee80211_flags {
 }
 
 #define SIOCG80211FLAGS        _IOWR('i', 216, struct ifreq)
-#define SIOCS80211FLAGS         _IOW('i', 217, struct ifreq)
+#define SIOCS80211FLAGS        _IOW('i', 217, struct ifreq)
 
 #endif /* _NET80211_IEEE80211_IOCTL_H_ */

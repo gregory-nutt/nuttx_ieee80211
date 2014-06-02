@@ -77,10 +77,10 @@ struct ieee80211_rssadapt {
 
 /* Properties of a Tx packet, for link adaptation. */
 struct ieee80211_rssdesc {
-	unsigned int			 id_len;	/* Tx packet length */
-	unsigned int			 id_rateidx;	/* index into ni->ni_rates */
+	unsigned int		id_len; 	/* Tx packet length */
+	unsigned int		id_rateidx;	/* index into ni->ni_rates */
 	struct ieee80211_node	*id_node;	/* destination STA MAC */
-	uint8_t		 id_rssi;	/* destination STA avg RSS @
+	uint8_t		        id_rssi;	/* destination STA avg RSS @
 						 * Tx time
 						 */
 };

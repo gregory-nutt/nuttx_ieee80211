@@ -46,8 +46,8 @@
      4 * 4 +    /* AKM Suite List (max 4) */            \
      2 +        /* RSN Capabilities */                \
      2 +        /* PMKID Count */                \
-     16 * 1 +    /* PMKID List (max 1) */            \
-     4)        /* 11w: Group Integrity Cipher Suite */
+     16 * 1 +   /* PMKID List (max 1) */            \
+     4)         /* 11w: Group Integrity Cipher Suite */
 
 #define IEEE80211_WPAIE_MAXLEN                        \
     (4 +        /* MICROSOFT_OUI */                \
@@ -56,7 +56,7 @@
      2 +        /* Pairwise Cipher Suite Count */        \
      4 * 2 +    /* Pairwise Cipher Suite List (max 2) */    \
      2 +        /* AKM Suite List Count */            \
-     4 * 2)        /* AKM Suite List (max 2) */
+     4 * 2)     /* AKM Suite List (max 2) */
 
 struct ieee80211_rsnparams {
     uint16_t        rsn_nakms;
@@ -66,8 +66,8 @@ struct ieee80211_rsnparams {
     enum ieee80211_cipher    rsn_groupcipher;
     enum ieee80211_cipher    rsn_groupmgmtcipher;
     uint16_t        rsn_caps;
-    uint8_t        rsn_npmkids;
-    const uint8_t        *rsn_pmkids;
+    uint8_t         rsn_npmkids;
+    const uint8_t   *rsn_pmkids;
 };
 
 /* unaligned big endian access */
