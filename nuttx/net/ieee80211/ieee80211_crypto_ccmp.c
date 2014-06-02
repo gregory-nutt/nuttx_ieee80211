@@ -1,5 +1,3 @@
-/*    $OpenBSD: ieee80211_crypto_ccmp.c,v 1.13 2013/11/21 16:16:08 mpi Exp $    */
-
 /****************************************************************************
  * net/ieee80211/ieee80211_crypto-ccmp.c
  *
@@ -198,15 +196,17 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct
     if (next0->m_len > next0->m_pktlen)
         next0->m_len = next0->m_pktlen;
 
-    /* copy 802.11 header */
-    wh = mtod(m0, struct ieee80211_frame *);
+    /* Copy 802.11 header */
+
+    wh = (FAR struct ieee80211_frame *)m0->m_data;
     hdrlen = ieee80211_get_hdrlen(wh);
-    memcpy(mtod(next0, void *), wh, hdrlen);
+    memcpy(next0->m_data, wh, hdrlen);
 
     k->k_tsc++;    /* increment the 48-bit PN */
 
     /* construct CCMP header */
-    ivp = mtod(next0, uint8_t *) + hdrlen;
+
+    ivp = (FAR uint8_t *)next0->m_data + hdrlen;
     ivp[0] = k->k_tsc;        /* PN0 */
     ivp[1] = k->k_tsc >> 8;        /* PN1 */
     ivp[2] = 0;            /* Rsvd */
@@ -273,27 +273,33 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct
               }
 
             noff = 0;
-        }
+          }
+
         len = min(iob->m_len - moff, next->m_len - noff);
 
-        src = mtod(iob, uint8_t *) + moff;
-        dst = mtod(next, uint8_t *) + noff;
-        for (i = 0; i < len; i++) {
+        src = (FAR uint8_t *)iob->m_data + moff;
+        dst = (FAR uint8_t *)next->m_data + noff;
+
+        for (i = 0; i < len; i++)
+          {
             /* update MIC with clear text */
             b[j] ^= src[i];
+
             /* encrypt message */
             dst[i] = src[i] ^ s[j];
             if (++j < 16)
                 continue;
+
             /* we have a full block, encrypt MIC */
             rijndael_encrypt(&ctx->rijndael, b, b);
+
             /* construct a new S_ctr block */
             ctr++;
             a[14] = ctr >> 8;
             a[15] = ctr & 0xff;
             rijndael_encrypt(&ctx->rijndael, a, s);
             j = 0;
-        }
+          }
 
         moff += len;
         noff += len;
@@ -319,15 +325,20 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct
         next->m_len = 0;
       }
 
-    /* finalize MIC, U := T XOR first-M-bytes( S_0 ) */
-    mic = mtod(next, uint8_t *) + next->m_len;
+    /* Finalize MIC, U := T XOR first-M-bytes( S_0 ) */
+
+    mic = (FAR uint8_t *)next->m_data + next->m_len;
     for (i = 0; i < IEEE80211_CCMP_MICLEN; i++)
+      {
         mic[i] = b[i] ^ s0[i];
+      }
+
     next->m_len += IEEE80211_CCMP_MICLEN;
     next0->m_pktlen += IEEE80211_CCMP_MICLEN;
 
     ieee80211_iofree(m0);
     return next0;
+
  nospace:
     ic->ic_stats.is_tx_nombuf++;
     ieee80211_iofree(m0);
@@ -362,7 +373,7 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct
     int i;
     int j;
 
-    wh = mtod(m0, struct ieee80211_frame *);
+    wh = (FAR struct ieee80211_frame *)m0->m_data;
     hdrlen = ieee80211_get_hdrlen(wh);
     ivp = (uint8_t *)wh + hdrlen;
 
@@ -430,13 +441,15 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct
     if (next0->m_len > next0->m_pktlen)
         next0->m_len = next0->m_pktlen;
 
-    /* construct initial B, A and S_0 blocks */
+    /* Construct initial B, A and S_0 blocks */
+
     ieee80211_ccmp_phase1(&ctx->rijndael, wh, pn,
         next0->m_pktlen - hdrlen, b, a, s0);
 
-    /* copy 802.11 header and clear protected bit */
-    memcpy(mtod(next0, void *), wh, hdrlen);
-    wh = mtod(next0, struct ieee80211_frame *);
+    /* Copy 802.11 header and clear protected bit */
+
+    memcpy(next0->m_data, wh, hdrlen);
+    wh = (FAR struct ieee80211_frame *)next0->m_data;
     wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 
     /* construct S_1 */
@@ -492,27 +505,36 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct
               }
 
             noff = 0;
-        }
+          }
+
         len = min(iob->m_len - moff, next->m_len - noff);
 
-        src = mtod(iob, uint8_t *) + moff;
-        dst = mtod(next, uint8_t *) + noff;
-        for (i = 0; i < len; i++) {
+        src = (FAR uint8_t *)iob->m_data + moff;
+        dst = (FAR uint8_t *)next->m_data + noff;
+
+        for (i = 0; i < len; i++)
+          {
             /* decrypt message */
+
             dst[i] = src[i] ^ s[j];
+
             /* update MIC with clear text */
+
             b[j] ^= dst[i];
             if (++j < 16)
                 continue;
             /* we have a full block, encrypt MIC */
+
             rijndael_encrypt(&ctx->rijndael, b, b);
+
             /* construct a new S_ctr block */
+
             ctr++;
             a[14] = ctr >> 8;
             a[15] = ctr & 0xff;
             rijndael_encrypt(&ctx->rijndael, a, s);
             j = 0;
-        }
+          }
 
         moff += len;
         noff += len;

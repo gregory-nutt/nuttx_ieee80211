@@ -1530,9 +1530,9 @@ void ieee80211_node_leave_ht(struct ieee80211com *ic, struct ieee80211_node *ni)
         {
           for (i = 0; i < IEEE80211_BA_MAX_WINSZ; i++)
             {
-              if (ba->ba_buf[i].m != NULL)
+              if (ba->ba_buf[i].iob != NULL)
                 {
-                  ieee80211_iofree(ba->ba_buf[i].m);
+                  ieee80211_iofree(ba->ba_buf[i].iob);
                 }
             }
 
@@ -1839,14 +1839,14 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
   /* NB: group addressed MSDUs are buffered in ic_bss */
   struct ieee80211_node *ni = ic->ic_bss;
   struct ieee80211_frame *wh;
-  struct ieee80211_iobuf_s *m;
+  struct ieee80211_iobuf_s *iob;
 
   DEBUGASSERT(ic->ic_opmode == IEEE80211_M_HOSTAP);
 
   for (;;)
     {
-      m = (struct ieee80211_iobuf_s *)sq_remfirst(&ni->ni_savedq);
-      if (m == NULL)
+      iob = (struct ieee80211_iobuf_s *)sq_remfirst(&ni->ni_savedq);
+      if (iob == NULL)
         {
           break;
         }
@@ -1855,11 +1855,11 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
         {
           /* more queued frames, set the more data bit */
 
-          wh = mtod(m, struct ieee80211_frame *);
+          wh = (FAR struct ieee80211_frame *)iob->m_data;
           wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
         }
 
-      sq_addlast((sq_entry_t *)m, &ic->ic_pwrsaveq);
+      sq_addlast((sq_entry_t *)iob, &ic->ic_pwrsaveq);
       ieee80211_ifstart();
     }
 

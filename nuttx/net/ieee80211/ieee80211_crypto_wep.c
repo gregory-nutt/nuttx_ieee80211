@@ -114,18 +114,25 @@ struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct 
     if (next0->m_len > next0->m_pktlen)
         next0->m_len = next0->m_pktlen;
 
-    /* copy 802.11 header */
-    wh = mtod(m0, struct ieee80211_frame *);
-    hdrlen = ieee80211_get_hdrlen(wh);
-    memcpy(mtod(next0, void *), wh, hdrlen);
+    /* Copy 802.11 header */
 
-    /* select a new IV for every MPDU */
+    wh = (FAR struct ieee80211_frame *)m0->m_data;
+    hdrlen = ieee80211_get_hdrlen(wh);
+    memcpy(next0->m_data, wh, hdrlen);
+
+    /* Select a new IV for every MPDU */
+
     iv = (ctx->iv != 0) ? ctx->iv : arc4random();
-    /* skip weak IVs from Fluhrer/Mantin/Shamir */
+
+    /* Skip weak IVs from Fluhrer/Mantin/Shamir */
+
     if (iv >= 0x03ff00 && (iv & 0xf8ff00) == 0x00ff00)
+      {
         iv += 0x000100;
+      }
+
     ctx->iv = iv + 1;
-    ivp = mtod(next0, uint8_t *) + hdrlen;
+    ivp = (FAR uint8_t *)next0->m_data + hdrlen;
     ivp[0] = iv;
     ivp[1] = iv >> 8;
     ivp[2] = iv >> 16;
@@ -184,12 +191,12 @@ struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct 
               }
 
             noff = 0;
-        }
+          }
+
         len = min(iob->m_len - moff, next->m_len - noff);
 
-        crc = ether_crc32_le_update(crc, mtod(iob, void *) + moff, len);
-        rc4_crypt(&ctx->rc4, mtod(iob, void *) + moff,
-            mtod(next, void *) + noff, len);
+        crc = ether_crc32_le_update(crc, iob->m_data + moff, len);
+        rc4_crypt(&ctx->rc4, iob->m_data + moff, next->m_data + noff, len);
 
         moff += len;
         noff += len;
@@ -215,8 +222,8 @@ struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct 
 
     /* Finalize WEP ICV */
 
-    icvp = mtod(next, void *) + next->m_len;
-    crc = ~crc;
+    icvp    = (FAR void *)next->m_data + next->m_len;
+    crc     = ~crc;
     icvp[0] = crc;
     icvp[1] = crc >> 8;
     icvp[2] = crc >> 16;
@@ -246,15 +253,17 @@ struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct 
     struct ieee80211_iobuf_s *next0, *iob, *next;
     int hdrlen, left, moff, noff, len;
 
-    wh = mtod(m0, struct ieee80211_frame *);
+    wh = (FAR struct ieee80211_frame *)m0->m_data;
     hdrlen = ieee80211_get_hdrlen(wh);
 
-    if (m0->m_pktlen < hdrlen + IEEE80211_WEP_TOTLEN) {
+    if (m0->m_pktlen < hdrlen + IEEE80211_WEP_TOTLEN)
+      {
         ieee80211_iofree(m0);
         return NULL;
-    }
+      }
 
-    /* concatenate IV and WEP Key */
+    /* Concatenate IV and WEP Key */
+
     ivp = (uint8_t *)wh + hdrlen;
     memcpy(wepseed, ivp, IEEE80211_WEP_IVLEN);
     memcpy(wepseed + IEEE80211_WEP_IVLEN, k->k_key, k->k_len);
@@ -283,8 +292,8 @@ struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct 
 
     /* Copy 802.11 header and clear protected bit */
 
-    memcpy(mtod(next0, void *), wh, hdrlen);
-    wh = mtod(next0, struct ieee80211_frame *);
+    memcpy(next0->m_data, wh, hdrlen);
+    wh = (FAR struct ieee80211_frame *)next0->m_data;
     wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 
     /* Decrypt frame body and compute WEP ICV */
@@ -339,9 +348,8 @@ struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct 
         }
         len = min(iob->m_len - moff, next->m_len - noff);
 
-        rc4_crypt(&ctx->rc4, mtod(iob, void *) + moff,
-            mtod(next, void *) + noff, len);
-        crc = ether_crc32_le_update(crc, mtod(next, void *) + noff, len);
+        rc4_crypt(&ctx->rc4, iob->m_data + moff, next->m_data + noff, len);
+        crc = ether_crc32_le_update(crc, next->m_data + noff, len);
 
         moff += len;
         noff += len;

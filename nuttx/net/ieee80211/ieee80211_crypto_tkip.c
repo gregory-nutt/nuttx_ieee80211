@@ -134,11 +134,14 @@ ieee80211_tkip_mic(struct ieee80211_iobuf_s *m0, int off, const uint8_t *key,
     void *pos;
     int len;
 
-    /* assumes 802.11 header is contiguous */
-    wh = mtod(m0, struct ieee80211_frame *);
+    /* Assumes 802.11 header is contiguous */
 
-    /* construct pseudo-header for TKIP MIC computation */
-    switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK) {
+    wh = (FAR struct ieee80211_frame *)m0->m_data;
+
+    /* Construct pseudo-header for TKIP MIC computation */
+
+    switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK)
+      {
     case IEEE80211_FC1_DIR_NODS:
         IEEE80211_ADDR_COPY(wht.i_da, wh->i_addr1);
         IEEE80211_ADDR_COPY(wht.i_sa, wh->i_addr2);
@@ -169,8 +172,10 @@ ieee80211_tkip_mic(struct ieee80211_iobuf_s *m0, int off, const uint8_t *key,
     michael_update(&ctx, (void *)&wht, sizeof(wht));
 
     iob = m0;
-    /* assumes the first "off" bytes are contiguous */
-    pos = mtod(iob, void *) + off;
+
+    /* Assumes the first "off" bytes are contiguous */
+
+    pos = (FAR void *)iob->m_data + off;
     len = iob->m_len - off;
     for (;;)
       {
@@ -180,7 +185,7 @@ ieee80211_tkip_mic(struct ieee80211_iobuf_s *m0, int off, const uint8_t *key,
             break;
           }
 
-        pos = mtod(iob, void *);
+        pos = (FAR void *)iob->m_data;
         len = iob->m_len;
       }
 
@@ -225,17 +230,21 @@ struct ieee80211_iobuf_s *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct
     if (next0->m_len > next0->m_pktlen)
         next0->m_len = next0->m_pktlen;
 
-    /* copy 802.11 header */
-    wh = mtod(m0, struct ieee80211_frame *);
+    /* Copy 802.11 header */
+
+    wh = (FAR struct ieee80211_frame *)m0->m_data;
     hdrlen = ieee80211_get_hdrlen(wh);
-    memcpy(mtod(next0, void *), wh, hdrlen);
+    memcpy(next0->m_data, wh, hdrlen);
 
     k->k_tsc++;    /* increment the 48-bit TSC */
 
-    /* construct TKIP header */
-    ivp = mtod(next0, uint8_t *) + hdrlen;
+    /* Construct TKIP header */
+
+    ivp = (FAR uint8_t *)next0->m_data + hdrlen;
     ivp[0] = k->k_tsc >> 8;        /* TSC1 */
+
     /* WEP Seed = (TSC1 | 0x20) & 0x7f (see 8.3.2.2) */
+
     ivp[1] = (ivp[0] | 0x20) & 0x7f;
     ivp[2] = k->k_tsc;        /* TSC0 */
     ivp[3] = k->k_id << 6 | IEEE80211_WEP_EXTIV;    /* KeyID | ExtIV */
@@ -303,9 +312,8 @@ struct ieee80211_iobuf_s *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct
         }
         len = min(iob->m_len - moff, next->m_len - noff);
 
-        crc = ether_crc32_le_update(crc, mtod(iob, void *) + moff, len);
-        rc4_crypt(&ctx->rc4, mtod(iob, void *) + moff,
-            mtod(next, void *) + noff, len);
+        crc = ether_crc32_le_update(crc, iob->m_data + moff, len);
+        rc4_crypt(&ctx->rc4, iob->m_data + moff,  next->m_data + noff, len);
 
         moff += len;
         noff += len;
@@ -329,16 +337,18 @@ struct ieee80211_iobuf_s *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct
         next->m_len = 0;
       }
 
-    /* compute TKIP MIC over clear text */
-    mic = mtod(next, void *) + next->m_len;
+    /* Compute TKIP MIC over clear text */
+
+    mic = (FAR void *)next->m_data + next->m_len;
     ieee80211_tkip_mic(m0, hdrlen, ctx->txmic, mic);
     crc = ether_crc32_le_update(crc, mic, IEEE80211_TKIP_MICLEN);
     rc4_crypt(&ctx->rc4, mic, mic, IEEE80211_TKIP_MICLEN);
     next->m_len += IEEE80211_TKIP_MICLEN;
 
-    /* finalize WEP ICV */
-    icvp = mtod(next, void *) + next->m_len;
-    crc = ~crc;
+    /* Finalize WEP ICV */
+
+    icvp    = (FAR void *)next->m_data + next->m_len;
+    crc     = ~crc;
     icvp[0] = crc;
     icvp[1] = crc >> 8;
     icvp[2] = crc >> 16;
@@ -373,20 +383,24 @@ struct ieee80211_iobuf_s *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct
     struct ieee80211_iobuf_s *next0, *iob, *next;
     int hdrlen, left, moff, noff, len;
 
-    wh = mtod(m0, struct ieee80211_frame *);
+    wh = (FAR struct ieee80211_frame *)m0->m_data;
     hdrlen = ieee80211_get_hdrlen(wh);
 
-    if (m0->m_pktlen < hdrlen + IEEE80211_TKIP_OVHD) {
+    if (m0->m_pktlen < hdrlen + IEEE80211_TKIP_OVHD)
+      {
         ieee80211_iofree(m0);
         return NULL;
-    }
+      }
 
     ivp = (uint8_t *)wh + hdrlen;
+
     /* check that ExtIV bit is set */
-    if (!(ivp[3] & IEEE80211_WEP_EXTIV)) {
+
+    if (!(ivp[3] & IEEE80211_WEP_EXTIV))
+      {
         ieee80211_iofree(m0);
         return NULL;
-    }
+      }
 
     /* retrieve last seen packet number for this frame priority */
     tid = ieee80211_has_qos(wh) ?
@@ -428,9 +442,10 @@ struct ieee80211_iobuf_s *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct
     if (next0->m_len > next0->m_pktlen)
         next0->m_len = next0->m_pktlen;
 
-    /* copy 802.11 header and clear protected bit */
-    memcpy(mtod(next0, void *), wh, hdrlen);
-    wh = mtod(next0, struct ieee80211_frame *);
+    /* Copy 802.11 header and clear protected bit */
+
+    memcpy(next0->m_data, wh, hdrlen);
+    wh = (FAR struct ieee80211_frame *)next0->m_data;
     wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 
     /* compute WEP seed */
@@ -491,9 +506,8 @@ struct ieee80211_iobuf_s *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct
         }
         len = min(iob->m_len - moff, next->m_len - noff);
 
-        rc4_crypt(&ctx->rc4, mtod(iob, void *) + moff,
-            mtod(next, void *) + noff, len);
-        crc = ether_crc32_le_update(crc, mtod(next, void *) + noff, len);
+        rc4_crypt(&ctx->rc4, iob->m_data + moff, next->m_data + noff, len);
+        crc = ether_crc32_le_update(crc, next->m_data + noff, len);
 
         moff += len;
         noff += len;

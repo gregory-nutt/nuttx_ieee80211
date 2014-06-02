@@ -207,32 +207,41 @@ struct ieee80211_iobuf_s *ieee80211_encrypt(struct ieee80211com *ic, struct ieee
     return m0;
 }
 
-struct ieee80211_iobuf_s *ieee80211_decrypt(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
-    struct ieee80211_node *ni)
+struct ieee80211_iobuf_s *ieee80211_decrypt(FAR struct ieee80211com *ic, FAR struct ieee80211_iobuf_s *m0, struct ieee80211_node *ni)
 {
-    struct ieee80211_frame *wh;
-    struct ieee80211_key *k;
-    uint8_t *ivp, *mmie;
+    FAR struct ieee80211_frame *wh;
+    FAR struct ieee80211_key *k;
+    FAR uint8_t *ivp;
+    FAR uint8_t *mmie;
     uint16_t kid;
     int hdrlen;
 
-    /* find key for decryption */
-    wh = mtod(m0, struct ieee80211_frame *);
+    /* Find key for decryption */
+
+    
+    wh = (FAR struct ieee80211_frame *)m0->m_data;
     if ((ic->ic_flags & IEEE80211_F_RSNON) &&
         !IEEE80211_IS_MULTICAST(wh->i_addr1) &&
-        ni->ni_rsncipher != IEEE80211_CIPHER_USEGROUP) {
+        ni->ni_rsncipher != IEEE80211_CIPHER_USEGROUP)
+      {
         k = &ni->ni_pairwise_key;
 
-    } else if (!IEEE80211_IS_MULTICAST(wh->i_addr1) ||
-        (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) !=
-        IEEE80211_FC0_TYPE_MGT) {
-        /* retrieve group data key id from IV field */
+      }
+    else if (!IEEE80211_IS_MULTICAST(wh->i_addr1) ||
+            (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) != IEEE80211_FC0_TYPE_MGT)
+      {
+        /* Retrieve group data key id from IV field */
+
         hdrlen = ieee80211_get_hdrlen(wh);
-        /* check that IV field is present */
-        if (m0->m_len < hdrlen + 4) {
+
+        /* Check that IV field is present */
+
+        if (m0->m_len < hdrlen + 4)
+          {
             ieee80211_iofree(m0);
             return NULL;
-        }
+          }
+
         ivp = (uint8_t *)wh + hdrlen;
         kid = ivp[3] >> 6;
         k = &ic->ic_nw_keys[kid];

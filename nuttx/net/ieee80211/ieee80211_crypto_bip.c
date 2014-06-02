@@ -98,9 +98,8 @@ struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ie
     uint8_t *mmie, mic[AES_CMAC_DIGEST_LENGTH];
     struct ieee80211_iobuf_s *iob;
 
-    wh = mtod(m0, struct ieee80211_frame *);
-    DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
-        IEEE80211_FC0_TYPE_MGT);
+    wh = (FAR struct ieee80211_frame *)m0->m_data;
+    DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_MGT);
 
     /* Clear Protected bit from group management frames */
 
@@ -143,7 +142,8 @@ struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ie
       }
 
     /* construct Management MIC IE */
-    mmie = mtod(iob, uint8_t *) + iob->m_len;
+
+    mmie    = (FAR uint8_t *)iob->m_data + iob->m_len;
     mmie[0] = IEEE80211_ELEMID_MMIE;
     mmie[1] = 16;
     LE_WRITE_2(&mmie[2], k->k_id);
@@ -176,9 +176,8 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
     uint8_t *mmie, mic0[8], mic[AES_CMAC_DIGEST_LENGTH];
     uint64_t ipn;
 
-    wh = mtod(m0, struct ieee80211_frame *);
-    DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) ==
-        IEEE80211_FC0_TYPE_MGT);
+    wh = (FAR struct ieee80211_frame *)m0->m_data;
+    DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_MGT);
 
     /* It is assumed that management frames are contiguous and that
      * the buffer length has already been checked to contain at least
@@ -186,21 +185,25 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
      */
 
     DEBUGASSERT(m0->m_len >= sizeof(*wh) + IEEE80211_MMIE_LEN);
-    mmie = mtod(m0, uint8_t *) + m0->m_len - IEEE80211_MMIE_LEN;
+    mmie = (FAR uint8_t *)m0->m_data + m0->m_len - IEEE80211_MMIE_LEN;
 
     ipn = LE_READ_6(&mmie[4]);
-    if (ipn <= k->k_mgmt_rsc) {
-        /* replayed frame, discard */
+    if (ipn <= k->k_mgmt_rsc)
+      {
+        /* Replayed frame, discard */
+
         ic->ic_stats.is_cmac_replays++;
         ieee80211_iofree(m0);
         return NULL;
-    }
+      }
 
-    /* save and mask MMIE MIC field to 0 */
+    /* Save and mask MMIE MIC field to 0 */
+
     memcpy(mic0, &mmie[10], 8);
     memset(&mmie[10], 0, 8);
 
-    /* construct AAD (additional authenticated data) */
+    /* Construct AAD (additional authenticated data) */
+
     aad.i_fc[0] = wh->i_fc[0];
     aad.i_fc[1] = wh->i_fc[1] & ~(IEEE80211_FC1_RETRY |
         IEEE80211_FC1_PWR_MGT | IEEE80211_FC1_MORE_DATA);

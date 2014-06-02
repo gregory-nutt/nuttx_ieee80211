@@ -76,116 +76,167 @@ void    ieee80211_recv_eapol_key_req(struct ieee80211com *,
  * EAPOL-Key frames with an IEEE 802.11 or WPA descriptor type.
  */
 
-void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *m,
+void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
     struct ieee80211_node *ni)
 {
-    struct ether_header *eh;
-    struct ieee80211_eapol_key *key;
-    uint16_t info, desc;
-    int totlen;
+  struct ether_header *eh;
+  struct ieee80211_eapol_key *key;
+  uint16_t info, desc;
+  int totlen;
 
-    eh = mtod(m, struct ether_header *);
-    if (IEEE80211_IS_MULTICAST(eh->ether_dhost))
-      {
-        goto done;
-      }
-
-    m_adj(m, sizeof(*eh));
-
-    if (m->m_pktlen < sizeof(*key))
-        goto done;
-    if (m->m_len < sizeof(*key) &&
-        (m = m_pullup(m, sizeof(*key))) == NULL) {
-        ic->ic_stats.is_rx_nombuf++;
-        goto done;
-    }
-    key = mtod(m, struct ieee80211_eapol_key *);
-
-    if (key->type != EAPOL_KEY)
-        goto done;
-    ic->ic_stats.is_rx_eapol_key++;
-
-    if ((ni->ni_rsnprotos == IEEE80211_PROTO_RSN &&
-         key->desc != EAPOL_KEY_DESC_IEEE80211) ||
-        (ni->ni_rsnprotos == IEEE80211_PROTO_WPA &&
-         key->desc != EAPOL_KEY_DESC_WPA))
-        goto done;
-
-    /* check packet body length */
-    if (m->m_pktlen < 4 + BE_READ_2(key->len))
-        goto done;
-
-    /* check key data length */
-    totlen = sizeof(*key) + BE_READ_2(key->paylen);
-    if (m->m_pktlen < totlen || totlen > MCLBYTES)
-        goto done;
-
-    info = BE_READ_2(key->info);
-
-    /* discard EAPOL-Key frames with an unknown descriptor version */
-    desc = info & EAPOL_KEY_VERSION_MASK;
-    if (desc < EAPOL_KEY_DESC_V1 || desc > EAPOL_KEY_DESC_V3)
-        goto done;
-
-    if (ieee80211_is_sha256_akm(ni->ni_rsnakms)) {
-        if (desc != EAPOL_KEY_DESC_V3)
-            goto done;
-    } else if (ni->ni_rsncipher == IEEE80211_CIPHER_CCMP ||
-         ni->ni_rsngroupcipher == IEEE80211_CIPHER_CCMP) {
-        if (desc != EAPOL_KEY_DESC_V2)
-            goto done;
+  eh = (FAR struct ether_header *)iob->m_data;
+  if (IEEE80211_IS_MULTICAST(eh->ether_dhost))
+    {
+      goto done;
     }
 
-    /* make sure the key data field is contiguous */
-    if (m->m_len < totlen && (m = m_pullup(m, totlen)) == NULL) {
-        ic->ic_stats.is_rx_nombuf++;
-        goto done;
-    }
-    key = mtod(m, struct ieee80211_eapol_key *);
+  m_adj(iob, sizeof(*eh));
 
-    /* determine message type (see 8.5.3.7) */
-    if (info & EAPOL_KEY_REQUEST) {
-#ifdef CONFIG_IEEE80211_AP
-        /* EAPOL-Key Request frame */
-        ieee80211_recv_eapol_key_req(ic, key, ni);
-#endif
-    } else if (info & EAPOL_KEY_PAIRWISE) {
-        /* 4-Way Handshake */
-        if (info & EAPOL_KEY_KEYMIC) {
-            if (info & EAPOL_KEY_KEYACK)
-                ieee80211_recv_4way_msg3(ic, key, ni);
-#ifdef CONFIG_IEEE80211_AP
-            else
-                ieee80211_recv_4way_msg2or4(ic, key, ni);
-#endif
-        } else if (info & EAPOL_KEY_KEYACK)
-            ieee80211_recv_4way_msg1(ic, key, ni);
-    } else {
-        /* Group Key Handshake */
-        if (!(info & EAPOL_KEY_KEYMIC))
-            goto done;
-        if (info & EAPOL_KEY_KEYACK) {
-            if (key->desc == EAPOL_KEY_DESC_WPA)
-                ieee80211_recv_wpa_group_msg1(ic, key, ni);
-            else
-                ieee80211_recv_rsn_group_msg1(ic, key, ni);
+  if (iob->m_pktlen < sizeof(*key))
+    {
+      goto done;
+  if (iob->m_len < sizeof(*key) &&
+      (iob = m_pullup(iob, sizeof(*key))) == NULL)
+    {
+      ic->ic_stats.is_rx_nombuf++;
+      goto done;
+    }
+
+  key = (FAR struct ieee80211_eapol_key *)iob->m_data;
+  if (key->type != EAPOL_KEY)
+    {
+      goto done;
+    }
+
+  ic->ic_stats.is_rx_eapol_key++;
+
+  if ((ni->ni_rsnprotos == IEEE80211_PROTO_RSN &&
+       key->desc != EAPOL_KEY_DESC_IEEE80211) ||
+      (ni->ni_rsnprotos == IEEE80211_PROTO_WPA &&
+       key->desc != EAPOL_KEY_DESC_WPA))
+      goto done;
+
+  /* Check packet body length */
+
+  if (iob->m_pktlen < 4 + BE_READ_2(key->len))
+    {
+      goto done;
+    }
+
+  /* Check key data length */
+
+  totlen = sizeof(*key) + BE_READ_2(key->paylen);
+  if (iob->m_pktlen < totlen || totlen > MCLBYTES)
+    {
+      goto done;
+    }
+
+  info = BE_READ_2(key->info);
+
+  /* Discard EAPOL-Key frames with an unknown descriptor version */
+
+  desc = info & EAPOL_KEY_VERSION_MASK;
+  if (desc < EAPOL_KEY_DESC_V1 || desc > EAPOL_KEY_DESC_V3)
+    {
+      goto done;
+    }
+
+  if (ieee80211_is_sha256_akm(ni->ni_rsnakms))
+    {
+      if (desc != EAPOL_KEY_DESC_V3)
+        {
+          goto done;
         }
+    }
+  else if (ni->ni_rsncipher == IEEE80211_CIPHER_CCMP ||
+           ni->ni_rsngroupcipher == IEEE80211_CIPHER_CCMP)
+    {
+      if (desc != EAPOL_KEY_DESC_V2)
+        {
+          goto done;
+        }
+    }
+
+  /* Make sure the key data field is contiguous */
+
+  if (iob->m_len < totlen && (iob = m_pullup(iob, totlen)) == NULL)
+    {
+      ic->ic_stats.is_rx_nombuf++;
+      goto done;
+    }
+
+  key = (FAR struct ieee80211_eapol_key *)iob->m_data;
+
+  /* Determine message type (see 8.5.3.7) */
+
+  if (info & EAPOL_KEY_REQUEST)
+    {
 #ifdef CONFIG_IEEE80211_AP
-        else
-            ieee80211_recv_group_msg2(ic, key, ni);
+      /* EAPOL-Key Request frame */
+
+      ieee80211_recv_eapol_key_req(ic, key, ni);
+#endif
+    }
+  else if (info & EAPOL_KEY_PAIRWISE)
+    {
+      /* 4-Way Handshake */
+
+      if (info & EAPOL_KEY_KEYMIC)
+        {
+          if (info & EAPOL_KEY_KEYACK)
+            {
+              ieee80211_recv_4way_msg3(ic, key, ni);
+            }
+#ifdef CONFIG_IEEE80211_AP
+          else
+            {
+              ieee80211_recv_4way_msg2or4(ic, key, ni);
+            }
+#endif
+        }
+      else if (info & EAPOL_KEY_KEYACK)
+        {
+          ieee80211_recv_4way_msg1(ic, key, ni);
+        }
+    }
+  else
+    {
+      /* Group Key Handshake */
+
+      if (!(info & EAPOL_KEY_KEYMIC))
+        {
+          goto done;
+        }
+
+      if (info & EAPOL_KEY_KEYACK)
+        {
+          if (key->desc == EAPOL_KEY_DESC_WPA)
+            {
+              ieee80211_recv_wpa_group_msg1(ic, key, ni);
+            }
+          else
+            {
+              ieee80211_recv_rsn_group_msg1(ic, key, ni);
+            }
+        }
+
+#ifdef CONFIG_IEEE80211_AP
+      else
+        {
+          ieee80211_recv_group_msg2(ic, key, ni);
+        }
 #endif
     }
  done:
-    if (m != NULL)
-        ieee80211_iofree(m);
+  if (iob != NULL)
+    {
+      ieee80211_iofree(iob);
+    }
 }
 
-/*
- * Process Message 1 of the 4-Way Handshake (sent by Authenticator).
- */
-void
-ieee80211_recv_4way_msg1(struct ieee80211com *ic,
-    struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
+/* Process Message 1 of the 4-Way Handshake (sent by Authenticator) */
+
+void ieee80211_recv_4way_msg1(struct ieee80211com *ic, struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
 {
     struct ieee80211_ptk tptk;
     struct ieee80211_pmk *pmk;
