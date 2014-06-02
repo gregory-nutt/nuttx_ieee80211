@@ -41,6 +41,7 @@
 #include <string.h>
 #include <wdog.h>
 #include <errno.h>
+#include <assert.h>
 #include <debug.h>
 
 #include <net/if.h>
@@ -191,31 +192,29 @@ fallback:
     return (error);
 }
 
-/*
- * Send a management frame to the specified node.  The node pointer
+/* Send a management frame to the specified node.  The node pointer
  * must have a reference as the pointer will be passed to the driver
  * and potentially held for a long time.  If the frame is successfully
  * dispatched to the driver, then it is responsible for freeing the
  * reference (and potentially free'ing up any associated storage).
  */
-int
-ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
+
+int ieee80211_mgmt_output(struct ifnet *ifp, struct ieee80211_node *ni,
     struct ieee80211_iobuf *m, int type)
 {
     struct ieee80211com *ic = (void *)ifp;
     struct ieee80211_frame *wh;
 
-    if (ni == NULL)
-        panic("null node");
+    DEBUGASSERT(ni != NULL);
     ni->ni_inact = 0;
 
-    /*
-     * We want to pass the node down to the driver's start
+    /* We want to pass the node down to the driver's start
      * routine.  We could stick this in an m_tag and tack that
      * on to the buffer.  However that's rather expensive to do
      * for every frame so instead we stuff it in a special pkthdr
      * field.
      */
+
     M_PREPEND(m, sizeof(struct ieee80211_frame), M_DONTWAIT);
     if (m == NULL)
         return ENOMEM;
@@ -897,8 +896,10 @@ ieee80211_add_rsn_body(uint8_t *frm, struct ieee80211com *ic,
         *frm++ = 5;
         break;
     default:
-        /* can't get there */
-        panic("invalid group data cipher!");
+        /* Can't get there */
+
+        ndbg("ERROR: invalid group data cipher!\n");
+        PANIC();
     }
 
     pcount = frm; frm += 2;
@@ -975,8 +976,9 @@ ieee80211_add_rsn_body(uint8_t *frm, struct ieee80211com *ic,
         *frm++ = 6;
         break;
     default:
-        /* can't get there */
-        panic("invalid integrity group cipher!");
+        /* Can't get there */
+        ndbg("ERROR: invalid integrity group cipher!");
+        PANIC();
     }
     return frm;
 }
@@ -1606,28 +1608,26 @@ struct ieee80211_iobuf *ieee80211_get_action(struct ieee80211com *ic, struct iee
     return m;
 }
 
-/*
- * Send a management frame.  The node is for the destination (or ic_bss
+/* Send a management frame.  The node is for the destination (or ic_bss
  * when in station mode).  Nodes other than ic_bss have their reference
  * count bumped to reflect our use for an indeterminant time.
  */
-int
-ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
+
+int ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
     int type, int arg1, int arg2)
 {
-#define    senderr(_x, _v)    do { ic->ic_stats._v++; ret = _x; goto bad; } while (0)
+#define senderr(_x, _v)    do { ic->ic_stats._v++; ret = _x; goto bad; } while (0)
     struct ifnet *ifp = &ic->ic_if;
     struct ieee80211_iobuf *m;
     int ret, timer;
 
-    if (ni == NULL)
-        panic("null node");
+    DEBUGASSERT(ni != NULL);
 
-    /*
-     * Hold a reference on the node so it doesn't go away until after
+    /* Hold a reference on the node so it doesn't go away until after
      * the xmit is complete all the way in the driver.  On error we
      * will remove our reference.
      */
+
     ieee80211_ref_node(ni);
     timer = 0;
     switch (type) {

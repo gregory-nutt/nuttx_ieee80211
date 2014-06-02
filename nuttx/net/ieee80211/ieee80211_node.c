@@ -192,8 +192,8 @@ ieee80211_node_lateattach(struct ifnet *ifp)
     struct ieee80211_node *ni;
 
     ni = ieee80211_alloc_node_helper(ic);
-    if (ni == NULL)
-        panic("unable to setup inital BSS node");
+    DEBUGASSERT(ni != NULL);
+
     ni->ni_chan = IEEE80211_CHAN_ANYC;
     ic->ic_bss = ieee80211_ref_node(ni);
     ic->ic_txpower = IEEE80211_TXPOWER_MAX;
@@ -1059,32 +1059,33 @@ ieee80211_find_node_for_beacon(struct ieee80211com *ic,
     return (keep);
 }
 
-void
-ieee80211_free_node(struct ieee80211com *ic, struct ieee80211_node *ni)
+void ieee80211_free_node(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
-    if (ni == ic->ic_bss)
-        panic("freeing bss node");
+  DEBUGASSERT(ni != ic->ic_bss);
+  splassert(IPL_NET);
 
-    splassert(IPL_NET);
+  nvdbg("%s\n", ieee80211_addr2str(ni->ni_macaddr));
+#ifdef CONFIG_IEEE80211_AP
+  wd_cancel(ni->ni_eapol_to);
+  wd_cancel(ni->ni_sa_query_to);
+  IEEE80211_AID_CLR(ni->ni_associd, ic->ic_aid_bitmap);
+#endif
+  RB_REMOVE(ieee80211_tree, &ic->ic_tree, ni);
+  ic->ic_nnodes--;
+#ifdef CONFIG_IEEE80211_AP
+  if (!sq_empty(&ni->ni_savedq))
+    {
+      ieee80211_ifpurge(&ni->ni_savedq);
+      if (ic->ic_set_tim != NULL)
+        {
+          (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
+        }
+    }
+#endif
 
-    nvdbg("%s\n", ieee80211_addr2str(ni->ni_macaddr));
-#ifdef CONFIG_IEEE80211_AP
-    wd_cancel(ni->ni_eapol_to);
-    wd_cancel(ni->ni_sa_query_to);
-    IEEE80211_AID_CLR(ni->ni_associd, ic->ic_aid_bitmap);
-#endif
-    RB_REMOVE(ieee80211_tree, &ic->ic_tree, ni);
-    ic->ic_nnodes--;
-#ifdef CONFIG_IEEE80211_AP
-    if (!sq_empty(&ni->ni_savedq))
-      {
-        ieee80211_ifpurge(&ni->ni_savedq);
-        if (ic->ic_set_tim != NULL)
-            (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
-      }
-#endif
-    (*ic->ic_node_free)(ic, ni);
-    /* TBD indicate to drivers that a new node can be allocated */
+  (*ic->ic_node_free)(ic, ni);
+
+  /* TBD indicate to drivers that a new node can be allocated */
 }
 
 void
@@ -1582,57 +1583,68 @@ ieee80211_node_leave_11g(struct ieee80211com *ic, struct ieee80211_node *ni)
 
 void ieee80211_node_leave(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
-    if (ic->ic_opmode != IEEE80211_M_HOSTAP)
-        panic("not in ap mode, mode %u", ic->ic_opmode);
-    /*
-     * If node wasn't previously associated all we need to do is
-     * reclaim the reference.
-     */
-    if (ni->ni_associd == 0) {
-        ieee80211_node_newstate(ni, IEEE80211_STA_COLLECT);
-        return;
+  DEBUGASSERT(ic->ic_opmode == IEEE80211_M_HOSTAP);
+
+  /* If node wasn't previously associated all we need to do is
+   * reclaim the reference.
+   */
+
+   if (ni->ni_associd == 0)
+     {
+       ieee80211_node_newstate(ni, IEEE80211_STA_COLLECT);
+       return;
+     }
+
+  if (ni->ni_pwrsave == IEEE80211_PS_DOZE)
+    {
+      ic->ic_pssta--;
+      ni->ni_pwrsave = IEEE80211_PS_AWAKE;
     }
 
-    if (ni->ni_pwrsave == IEEE80211_PS_DOZE) {
-        ic->ic_pssta--;
-        ni->ni_pwrsave = IEEE80211_PS_AWAKE;
+  if (!sq_empty(&ni->ni_savedq))
+    {
+      ieee80211_ifpurge(&ni->ni_savedq);
+      if (ic->ic_set_tim != NULL)
+        {
+          (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
+        }
     }
 
-    if (!sq_empty(&ni->ni_savedq))
-      {
-        ieee80211_ifpurge(&ni->ni_savedq);
-        if (ic->ic_set_tim != NULL)
-          {
-            (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
-          }
-      }
+  if (ic->ic_flags & IEEE80211_F_RSNON)
+    {
+      ieee80211_node_leave_rsn(ic, ni);
+    }
 
-    if (ic->ic_flags & IEEE80211_F_RSNON)
-        ieee80211_node_leave_rsn(ic, ni);
-
-    if (ic->ic_curmode == IEEE80211_MODE_11G)
-        ieee80211_node_leave_11g(ic, ni);
+  if (ic->ic_curmode == IEEE80211_MODE_11G)
+    {
+      ieee80211_node_leave_11g(ic, ni);
+    }
 
 #ifdef CONFIG_IEEE80211_HT
-    if (ni->ni_flags & IEEE80211_NODE_HT)
-        ieee80211_node_leave_ht(ic, ni);
+  if (ni->ni_flags & IEEE80211_NODE_HT)
+    {
+      ieee80211_node_leave_ht(ic, ni);
+    }
 #endif
 
-    if (ic->ic_node_leave != NULL)
-        (*ic->ic_node_leave)(ic, ni);
+  if (ic->ic_node_leave != NULL)
+    {
+      (*ic->ic_node_leave)(ic, ni);
+    }
 
-    IEEE80211_AID_CLR(ni->ni_associd, ic->ic_aid_bitmap);
-    ni->ni_associd = 0;
-    ieee80211_node_newstate(ni, IEEE80211_STA_COLLECT);
+  IEEE80211_AID_CLR(ni->ni_associd, ic->ic_aid_bitmap);
+  ni->ni_associd = 0;
+  ieee80211_node_newstate(ni, IEEE80211_STA_COLLECT);
 
 #ifdef CONFIG_IEEE80211_BRIDGEPORT
-    /*
-     * If the parent interface is a bridgeport, delete
-     * any dynamically learned address for this node.
-     */
-    if (ic->ic_if.if_bridgeport != NULL)
-        bridge_update(&ic->ic_if,
-            (struct ether_addr *)ni->ni_macaddr, 1);
+  /* If the parent interface is a bridgeport, delete
+   * any dynamically learned address for this node.
+   */
+
+  if (ic->ic_if.if_bridgeport != NULL)
+    {
+      bridge_update(&ic->ic_if, (struct ether_addr *)ni->ni_macaddr, 1);
+    }
 #endif
 }
 

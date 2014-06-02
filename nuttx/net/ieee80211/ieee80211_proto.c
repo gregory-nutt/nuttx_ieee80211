@@ -42,6 +42,7 @@
 #include <string.h>
 #include <wdog.h>
 #include <errno.h>
+#include <assert.h>
 #include <debug.h>
 
 #include <net/if.h>
@@ -1004,9 +1005,7 @@ justcleanup:
             break;
         case IEEE80211_S_SCAN:        /* adhoc/hostap mode */
         case IEEE80211_S_ASSOC:        /* infra mode */
-            if (ni->ni_txrate >= ni->ni_rates.rs_nrates)
-                panic("%s: bogus xmit rate %u setup",
-                    __func__, ni->ni_txrate);
+            DEBUGASSERT(ni->ni_txrate < ni->ni_rates.rs_nrates);
 
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
             nvdbg("%s: %s with %s ssid ",

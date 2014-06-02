@@ -40,6 +40,7 @@
 #include <string.h>
 #include <queue.h>
 #include <errno.h>
+#include <assert.h>
 #include <debug.h>
 
 #include <net/if.h>
@@ -648,12 +649,12 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
         return EINVAL;
     }
 
-    /*
-     * Verify at least one channel is present in the available
+    /* Verify at least one channel is present in the available
      * channel list before committing to the new mode.
      */
-    if (mode >= N(chanflags))
-        panic("Unexpected mode %u", mode);
+
+    DEBUGASSERT(mode < N(chanflags));
+
     modeflags = chanflags[mode];
     for (i = 0; i <= IEEE80211_CHAN_MAX; i++) {
         c = &ic->ic_channels[i];
@@ -692,18 +693,26 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
      * available channel from the active list.  This is likely
      * not the right one.
      */
-    if (ic->ic_ibss_chan == NULL || isclr(ic->ic_chan_active,
-        ieee80211_chan2ieee(ic, ic->ic_ibss_chan))) {
+    if (ic->ic_ibss_chan == NULL ||
+        isclr(ic->ic_chan_active, ieee80211_chan2ieee(ic, ic->ic_ibss_chan)))
+      {
         for (i = 0; i <= IEEE80211_CHAN_MAX; i++)
-            if (isset(ic->ic_chan_active, i)) {
+          {
+            if (isset(ic->ic_chan_active, i))
+              {
                 ic->ic_ibss_chan = &ic->ic_channels[i];
                 break;
-            }
-        if ((ic->ic_ibss_chan == NULL) || isclr(ic->ic_chan_active,
-            ieee80211_chan2ieee(ic, ic->ic_ibss_chan)))
-            panic("Bad IBSS channel %u",
-                ieee80211_chan2ieee(ic, ic->ic_ibss_chan));
-    }
+              }
+          }
+
+        if ((ic->ic_ibss_chan == NULL) ||
+            isclr(ic->ic_chan_active, ieee80211_chan2ieee(ic, ic->ic_ibss_chan)))
+          {
+            ndbg("ERROR: Bad IBSS channel %u",
+                 ieee80211_chan2ieee(ic, ic->ic_ibss_chan));
+            PANIC();
+          }
+      }
 
     /*
      * Reset the scan state for the new mode. This avoids scanning
@@ -887,66 +896,116 @@ int ieee80211_media2rate(int mword)
 
 uint8_t ieee80211_rate2plcp(uint8_t rate, enum ieee80211_phymode mode)
 {
-    rate &= IEEE80211_RATE_VAL;
+  rate &= IEEE80211_RATE_VAL;
 
-    if (mode == IEEE80211_MODE_11B) {
-        /* IEEE Std 802.11b-1999 page 15, subclause 18.2.3.3 */
-        switch (rate) {
-        case 2:        return 10;
-        case 4:        return 20;
-        case 11:    return 55;
-        case 22:    return 110;
+  if (mode == IEEE80211_MODE_11B)
+    {
+      /* IEEE Std 802.11b-1999 page 15, subclause 18.2.3.3 */
+
+      switch (rate)
+        {
+        case 2:
+          return 10;
+        case 4:
+          return 20;
+        case 11:
+          return 55;
+        case 22:
+          return 110;
+
         /* IEEE Std 802.11g-2003 page 19, subclause 19.3.2.1 */
-        case 44:    return 220;
-        }
-    } else if (mode == IEEE80211_MODE_11G || mode == IEEE80211_MODE_11A) {
-        /* IEEE Std 802.11a-1999 page 14, subclause 17.3.4.1 */
-        switch (rate) {
-        case 12:    return 0x0b;
-        case 18:    return 0x0f;
-        case 24:    return 0x0a;
-        case 36:    return 0x0e;
-        case 48:    return 0x09;
-        case 72:    return 0x0d;
-        case 96:    return 0x08;
-        case 108:    return 0x0c;
-        }
-        } else
-        panic("Unexpected mode %u", mode);
+ 
+        case 44:
+          return 220;
+      }
+    }
+  else if (mode == IEEE80211_MODE_11G || mode == IEEE80211_MODE_11A)
+    {
+      /* IEEE Std 802.11a-1999 page 14, subclause 17.3.4.1 */
 
-    ndbg("ERROR: unsupported rate %u\n", rate);
+      switch (rate)
+        {
+        case 12:
+          return 0x0b;
+        case 18:
+          return 0x0f;
+        case 24:
+          return 0x0a;
+        case 36:
+          return 0x0e;
+        case 48:
+          return 0x09;
+        case 72:
+          return 0x0d;
+        case 96:
+          return 0x08;
+        case 108:
+          return 0x0c;
+        }
+    }
+  else
+    {
+      ndbg("ERROR: Unexpected mode %u", mode);
+      PANIC();
+    }
 
-    return 0;
+  ndbg("ERROR: unsupported rate %u\n", rate);
+  return 0;
 }
 
 uint8_t ieee80211_plcp2rate(uint8_t plcp, enum ieee80211_phymode mode)
 {
-    if (mode == IEEE80211_MODE_11B) {
-        /* IEEE Std 802.11g-2003 page 19, subclause 19.3.2.1 */
-        switch (plcp) {
-        case 10:    return 2;
-        case 20:    return 4;
-        case 55:    return 11;
-        case 110:    return 22;
-        /* IEEE Std 802.11g-2003 page 19, subclause 19.3.2.1 */
-        case 220:    return 44;
-        }
-    } else if (mode == IEEE80211_MODE_11G || mode == IEEE80211_MODE_11A) {
-        /* IEEE Std 802.11a-1999 page 14, subclause 17.3.4.1 */
-        switch (plcp) {
-        case 0x0b:    return 12;
-        case 0x0f:    return 18;
-        case 0x0a:    return 24;
-        case 0x0e:    return 36;
-        case 0x09:    return 48;
-        case 0x0d:    return 72;
-        case 0x08:    return 96;
-        case 0x0c:    return 108;
-        }
-    } else
-        panic("unexpected mode %u", mode);
+  if (mode == IEEE80211_MODE_11B)
+    {
+      /* IEEE Std 802.11g-2003 page 19, subclause 19.3.2.1 */
 
-    ndbg("ERROR: unsupported plcp %u\n", plcp);
+      switch (plcp)
+        {
+        case 10:
+          return 2;
+        case 20:
+          return 4;
+        case 55:
+          return 11;
+        case 110:
+          return 22;
 
-    return 0;
+        /* IEEE Std 802.11g-2003 page 19, subclause 19.3.2.1 */
+
+        case 220:
+          return 44;
+        }
+    }
+  else if (mode == IEEE80211_MODE_11G || mode == IEEE80211_MODE_11A)
+    {
+      /* IEEE Std 802.11a-1999 page 14, subclause 17.3.4.1 */
+
+      switch (plcp)
+        {
+        case 0x0b:
+          return 12;
+        case 0x0f:
+          return 18;
+        case 0x0a:
+          return 24;
+        case 0x0e:
+          return 36;
+        case 0x09:
+          return 48;
+        case 0x0d:
+          return 72;
+        case 0x08:
+          return 96;
+        case 0x0c:
+          return 108;
+        }
+    }
+  else
+    {
+      ndbg("ERROR: Unexpected mode %u", mode);
+      PANIC();
+    }
+
+  ndbg("ERROR: unsupported plcp %u\n", plcp);
+  return 0;
 }
