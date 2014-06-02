@@ -77,7 +77,7 @@ void ieee80211_proto_detach(struct ifnet *);
 struct ieee80211_node;
 struct ieee80211_rxinfo;
 struct ieee80211_rsnparams;
-void ieee80211_set_link_state(struct ieee80211com *, int);
+void ieee80211_set_link_state(struct ieee80211com *ic, enum ieee80211_linkstate_e linkstate);
 unsigned int ieee80211_get_hdrlen(const struct ieee80211_frame *);
 void ieee80211_input(struct ifnet *, struct ieee80211_iobuf_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);

@@ -53,7 +53,6 @@
 #warning This structure is going away soon
 struct ifnet
 {
-  uint8_t if_link_state;          /* current link state */
   uint16_t if_flags;              /* up/down, broadcast, etc. */
 #define IFF_OACTIVE 0x01
 #define IFF_SIMPLEX 0x02

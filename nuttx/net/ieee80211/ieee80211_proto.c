@@ -798,9 +798,7 @@ ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
     }
 }
 
-int
-ieee80211_newstate(struct ieee80211com *ic, enum ieee80211_state nstate,
-    int mgt)
+int ieee80211_newstate(struct ieee80211com *ic, enum ieee80211_state nstate, int mgt)
 {
     struct ifnet *ifp = &ic->ic_if;
     struct ieee80211_node *ni;
@@ -816,8 +814,12 @@ ieee80211_newstate(struct ieee80211com *ic, enum ieee80211_state nstate,
     ic->ic_state = nstate;            /* state transition */
     ni = ic->ic_bss;            /* NB: no reference held */
     if (ostate == IEEE80211_S_RUN)
-        ieee80211_set_link_state(ic, LINK_STATE_DOWN);
-    switch (nstate) {
+      {
+        ieee80211_set_link_state(ic, LINKSTATE_DOWN);
+      }
+
+    switch (nstate)
+      {
     case IEEE80211_S_INIT:
         /*
          * If mgt = -1, driver is already partway down, so do
@@ -1022,13 +1024,15 @@ justcleanup:
                   (ic->ic_flags & IEEE80211_F_USEPROT) ? " protection enabled" : "");
 #endif
 
-            if (!(ic->ic_flags & IEEE80211_F_RSNON)) {
-                /*
-                 * NB: When RSN is enabled, we defer setting
+            if (!(ic->ic_flags & IEEE80211_F_RSNON))
+              {
+                /* NB: When RSN is enabled, we defer setting
                  * the link up until the port is valid.
                  */
-                ieee80211_set_link_state(ic, LINK_STATE_UP);
-            }
+
+                ieee80211_set_link_state(ic, LINKSTATE_UP);
+              }
+
             ic->ic_mgt_timer = 0;
             ieee80211_ifstart();
             break;
@@ -1038,26 +1042,23 @@ justcleanup:
     return 0;
 }
 
-void
-ieee80211_set_link_state(struct ieee80211com *ic, int nstate)
+void ieee80211_set_link_state(struct ieee80211com *ic, enum ieee80211_linkstate_e linkstate)
 {
-    struct ifnet *ifp = &ic->ic_if;
-
-    switch (ic->ic_opmode) {
+  switch (ic->ic_opmode)
+    {
 #ifdef CONFIG_IEEE80211_AP
     case IEEE80211_M_IBSS:
     case IEEE80211_M_HOSTAP:
-        nstate = LINK_STATE_UNKNOWN;
-        break;
+      linkstate = LINKSTATE_UNKNOWN;
+      break;
 #endif
     case IEEE80211_M_MONITOR:
-        nstate = LINK_STATE_DOWN;
-        break;
+      linkstate = LINKSTATE_DOWN;
+      break;
+
     default:
         break;
     }
-    if (nstate != ifp->if_link_state) {
-        ifp->if_link_state = nstate;
-        if_link_state_change(ifp);
-    }
+
+  ic->ic_linkstate = linkstate;
 }

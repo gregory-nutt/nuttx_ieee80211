@@ -132,8 +132,6 @@ void ieee80211_ifattach(struct ifnet *ifp)
     dq_addfirst((FAR dq_entry_t *)ic, &ieee80211com_head);
     ieee80211_node_attach(ifp);
     ieee80211_proto_attach(ifp);
-
-    if_addgroup(ifp, "wlan");
 }
 
 void ieee80211_ifdetach(struct ifnet *ifp)

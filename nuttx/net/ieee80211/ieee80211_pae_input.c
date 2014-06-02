@@ -593,7 +593,7 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
         {
             ndbg("ERROR: marking port %s valid\n", ieee80211_addr2str(ni->ni_macaddr));
             ni->ni_port_valid = 1;
-            ieee80211_set_link_state(ic, LINK_STATE_UP);
+            ieee80211_set_link_state(ic, LINKSTATE_UP);
         }
     }
  deauth:
@@ -849,7 +849,7 @@ ieee80211_recv_rsn_group_msg1(struct ieee80211com *ic,
         {
             nvdbg("marking port %s valid\n", ieee80211_addr2str(ni->ni_macaddr));
             ni->ni_port_valid = 1;
-            ieee80211_set_link_state(ic, LINK_STATE_UP);
+            ieee80211_set_link_state(ic, LINKSTATE_UP);
         }
     }
 
@@ -943,7 +943,7 @@ void ieee80211_recv_wpa_group_msg1(struct ieee80211com *ic,
         {
             nvdbg("marking port %s valid\n",  ieee80211_addr2str(ni->ni_macaddr));
             ni->ni_port_valid = 1;
-            ieee80211_set_link_state(ic, LINK_STATE_UP);
+            ieee80211_set_link_state(ic, LINKSTATE_UP);
         }
     }
 

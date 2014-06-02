@@ -110,6 +110,15 @@ enum ieee80211_protmode
   IEEE80211_PROT_RTSCTS    = 2    /* RTS-CTS */
 };
 
+/* Link status */
+
+enum ieee80211_linkstate_e
+{
+  LINKSTATE_UNKNOWN        = 0,
+  LINKSTATE_DOWN,
+  LINKSTATE_UP
+};
+
 /* Channels are specified by frequency and attributes */
 
 struct ieee80211_channel
@@ -207,9 +216,7 @@ struct ieee80211_defrag
 struct ieee80211com
 {
   dq_entry_t      ic_list;             /* Chain of all ieee80211com */
-#warning REVISIT: ic_if represents the device interface and needs to go away
-  struct ifnet ic_if;
-  char            ic_ifname[IFNAMSIZ];  /* Network interface name */
+
   void            (*ic_recv_mgmt)(struct ieee80211com *,
                   struct ieee80211_iobuf_s *, struct ieee80211_node *,
                   struct ieee80211_rxinfo *, int);
@@ -238,7 +245,12 @@ struct ieee80211com
                   struct ieee80211_node *, uint8_t);
   void            (*ic_ampdu_rx_stop)(struct ieee80211com *,
                   struct ieee80211_node *, uint8_t);
+
+#warning REVISIT: ic_if represents the device interface and needs to go away
+  struct ifnet    ic_if;
+  char            ic_ifname[IFNAMSIZ];  /* Network interface name */
   uint8_t         ic_myaddr[IEEE80211_ADDR_LEN];
+  uint8_t         ic_linkstate;        /* See enum ieee80211_linkstate_e */
   struct ieee80211_rateset ic_sup_rates[IEEE80211_MODE_MAX];
   struct ieee80211_channel ic_channels[IEEE80211_CHAN_MAX+1];
   uint8_t         ic_chan_avail[howmany(IEEE80211_CHAN_MAX, 8)];
