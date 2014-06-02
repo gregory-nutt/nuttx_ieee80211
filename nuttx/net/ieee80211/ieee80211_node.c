@@ -38,7 +38,6 @@
 
 #include <sys/socket.h>
 
-#include <stdlib.h>
 #include <string.h>
 #include <wdog.h>
 #include <assert.h>
@@ -56,7 +55,9 @@
 #  include <net/if_bridge.h>
 #endif
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/tree.h>
+
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
@@ -143,21 +144,28 @@ ieee80211_node_attach(struct ifnet *ifp)
         ic->ic_max_aid = IEEE80211_AID_MAX;
 #ifdef CONFIG_IEEE80211_AP
     size = howmany(ic->ic_max_aid, 32) * sizeof(uint32_t);
-    ic->ic_aid_bitmap = malloc(size, M_DEVBUF, M_NOWAIT | M_ZERO);
-    if (ic->ic_aid_bitmap == NULL) {
+    ic->ic_aid_bitmap = kmalloc(size);
+    if (ic->ic_aid_bitmap == NULL)
+      {
         /* XXX no way to recover */
+
         nvdbg("%s: no memory for AID bitmap!\n", __func__);
         ic->ic_max_aid = 0;
-    }
+      }
+
     if (ic->ic_caps & (IEEE80211_C_HOSTAP | IEEE80211_C_IBSS)) {
         ic->ic_tim_len = howmany(ic->ic_max_aid, 8);
-        ic->ic_tim_bitmap = malloc(ic->ic_tim_len, M_DEVBUF,
-            M_NOWAIT | M_ZERO);
-        if (ic->ic_tim_bitmap == NULL) {
+        ic->ic_tim_bitmap = kmalloc(ic->ic_tim_len);
+        if (ic->ic_tim_bitmap == NULL)
+          {
             nvdbg("%s: no memory for TIM bitmap!\n", __func__);
             ic->ic_tim_len = 0;
-        } else
+          }
+        else
+          {
             ic->ic_set_tim = ieee80211_set_tim;
+          }
+
         ic->ic_rsn_timeout = wd_create();
         ic->ic_inact_timeout = wd_create();
         ic->ic_node_cache_timeout = wd_create();
@@ -194,20 +202,29 @@ ieee80211_node_lateattach(struct ifnet *ifp)
 void
 ieee80211_node_detach(struct ifnet *ifp)
 {
-    struct ieee80211com *ic = (void *)ifp;
+  struct ieee80211com *ic = (void *)ifp;
 
-    if (ic->ic_bss != NULL) {
-        (*ic->ic_node_free)(ic, ic->ic_bss);
-        ic->ic_bss = NULL;
+  if (ic->ic_bss != NULL)
+    {
+      (*ic->ic_node_free)(ic, ic->ic_bss);
+      ic->ic_bss = NULL;
     }
-    ieee80211_free_allnodes(ic);
+
+  ieee80211_free_allnodes(ic);
+
 #ifdef CONFIG_IEEE80211_AP
-    if (ic->ic_aid_bitmap != NULL)
-        free(ic->ic_aid_bitmap, M_DEVBUF);
-    if (ic->ic_tim_bitmap != NULL)
-        free(ic->ic_tim_bitmap, M_DEVBUF);
-    wd_cancel(ic->ic_inact_timeout);
-    wd_cancel(ic->ic_node_cache_timeout);
+  if (ic->ic_aid_bitmap != NULL)
+    {
+      kfree(ic->ic_aid_bitmap);
+    }
+
+  if (ic->ic_tim_bitmap != NULL)
+    {
+      kfree(ic->ic_tim_bitmap);
+    }
+
+  wd_cancel(ic->ic_inact_timeout);
+  wd_cancel(ic->ic_node_cache_timeout);
 #endif
     wd_cancel(ic->ic_rsn_timeout);
 }
@@ -725,31 +742,27 @@ ieee80211_get_rate(struct ieee80211com *ic)
     return rate & IEEE80211_RATE_VAL;
 }
 
-struct ieee80211_node *
-ieee80211_node_alloc(struct ieee80211com *ic)
+struct ieee80211_node *ieee80211_node_alloc(struct ieee80211com *ic)
 {
-    return malloc(sizeof(struct ieee80211_node), M_DEVBUF,
-        M_NOWAIT | M_ZERO);
+  return kmalloc(sizeof(struct ieee80211_node));
 }
 
-void
-ieee80211_node_cleanup(struct ieee80211com *ic, struct ieee80211_node *ni)
+void ieee80211_node_cleanup(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
-    if (ni->ni_rsnie != NULL) {
-        free(ni->ni_rsnie, M_DEVBUF);
-        ni->ni_rsnie = NULL;
+  if (ni->ni_rsnie != NULL)
+    {
+      kfree(ni->ni_rsnie);
+      ni->ni_rsnie = NULL;
     }
 }
 
-void
-ieee80211_node_free(struct ieee80211com *ic, struct ieee80211_node *ni)
+void ieee80211_node_free(struct ieee80211com *ic, struct ieee80211_node *ni)
 {
-    ieee80211_node_cleanup(ic, ni);
-    free(ni, M_DEVBUF);
+  ieee80211_node_cleanup(ic, ni);
+  kfree(ni);
 }
 
-void
-ieee80211_node_copy(struct ieee80211com *ic,
+void ieee80211_node_copy(struct ieee80211com *ic,
     struct ieee80211_node *dst, const struct ieee80211_node *src)
 {
     ieee80211_node_cleanup(ic, dst);
@@ -1451,25 +1464,31 @@ ieee80211_node_join(struct ieee80211com *ic, struct ieee80211_node *ni,
 }
 
 #ifdef CONFIG_IEEE80211_HT
-/*
- * Handle an HT STA leaving an HT network.
- */
-void
-ieee80211_node_leave_ht(struct ieee80211com *ic, struct ieee80211_node *ni)
-{
-    struct ieee80211_rx_ba *ba;
-    uint8_t tid;
-    int i;
+/* Handle an HT STA leaving an HT network */
 
-    /* free all Block Ack records */
-    for (tid = 0; tid < IEEE80211_NUM_TID; tid++) {
-        ba = &ni->ni_rx_ba[tid];
-        if (ba->ba_buf != NULL) {
-            for (i = 0; i < IEEE80211_BA_MAX_WINSZ; i++)
-                if (ba->ba_buf[i].m != NULL)
-                    ieee80211_iofree(ba->ba_buf[i].m);
-            free(ba->ba_buf, M_DEVBUF);
-            ba->ba_buf = NULL;
+void ieee80211_node_leave_ht(struct ieee80211com *ic, struct ieee80211_node *ni)
+{
+  struct ieee80211_rx_ba *ba;
+  uint8_t tid;
+  int i;
+
+  /* Free all Block Ack records */
+
+  for (tid = 0; tid < IEEE80211_NUM_TID; tid++)
+    {
+      ba = &ni->ni_rx_ba[tid];
+      if (ba->ba_buf != NULL)
+        {
+          for (i = 0; i < IEEE80211_BA_MAX_WINSZ; i++)
+            {
+              if (ba->ba_buf[i].m != NULL)
+                {
+                  ieee80211_iofree(ba->ba_buf[i].m);
+                }
+            }
+
+          kfree(ba->ba_buf);
+          ba->ba_buf = NULL;
         }
     }
 }

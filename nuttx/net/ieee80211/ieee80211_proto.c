@@ -53,6 +53,7 @@
 
 #include <nuttx/tree.h>
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
@@ -679,15 +680,23 @@ ieee80211_delba_request(struct ieee80211com *ic, struct ieee80211_node *ni,
         /* stop Block Ack inactivity timer */
         wd_cancel(ba->ba_to);
 
-        if (ba->ba_buf != NULL) {
-            /* free all MSDUs stored in reordering buffer */
+        if (ba->ba_buf != NULL)
+          {
+            /* Free all MSDUs stored in reordering buffer */
+
             for (i = 0; i < IEEE80211_BA_MAX_WINSZ; i++)
+              {
                 if (ba->ba_buf[i].m != NULL)
+                  {
                     ieee80211_iofree(ba->ba_buf[i].m);
-            /* free reordering buffer */
-            free(ba->ba_buf, M_DEVBUF);
+                  }
+              }
+
+            /* Free reordering buffer */
+
+            kfree(ba->ba_buf);
             ba->ba_buf = NULL;
-        }
+          }
     }
 }
 #endif /* !CONFIG_IEEE80211_HT */

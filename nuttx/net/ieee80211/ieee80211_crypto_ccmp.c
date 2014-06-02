@@ -29,7 +29,6 @@
 
 #include <sys/socket.h>
 
-#include <stdlib.h>
 #include <string.h>
 
 #include <net/if.h>
@@ -39,6 +38,7 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 
@@ -51,29 +51,33 @@ struct ieee80211_ccmp_ctx
   rijndael_ctx    rijndael;
 };
 
-/*
- * Initialize software crypto context.  This function can be overridden
+/* Initialize software crypto context.  This function can be overridden
  * by drivers doing hardware crypto.
  */
-int
-ieee80211_ccmp_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
-{
-    struct ieee80211_ccmp_ctx *ctx;
 
-    ctx = malloc(sizeof(*ctx), M_DEVBUF, M_NOWAIT | M_ZERO);
-    if (ctx == NULL)
-        return ENOMEM;
-    rijndael_set_key_enc_only(&ctx->rijndael, k->k_key, 128);
-    k->k_priv = ctx;
-    return 0;
+int ieee80211_ccmp_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
+{
+  struct ieee80211_ccmp_ctx *ctx;
+
+  ctx = kmalloc(sizeof(*ctx));
+  if (ctx == NULL)
+    {
+      return -ENOMEM;
+    }
+
+  rijndael_set_key_enc_only(&ctx->rijndael, k->k_key, 128);
+  k->k_priv = ctx;
+  return 0;
 }
 
-void
-ieee80211_ccmp_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
+void ieee80211_ccmp_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
 {
-    if (k->k_priv != NULL)
-        free(k->k_priv, M_DEVBUF);
-    k->k_priv = NULL;
+  if (k->k_priv != NULL)
+    {
+      kfree(k->k_priv, M_DEVBUF);
+    }
+
+  k->k_priv = NULL;
 }
 
 /*-

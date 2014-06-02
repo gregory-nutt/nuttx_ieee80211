@@ -130,7 +130,7 @@ void ieee80211_ifattach(struct ifnet *ifp)
     ic->ic_bmisstimeout = 7*ic->ic_lintval;    /* default 7 beacons */
     ic->ic_dtim_period = 1;    /* all TIMs are DTIMs */
 
-    dq_addfirst((sq_entry_t *)ic, &ieee80211com_head);
+    dq_addfirst((FAR dq_entry_t *)ic, &ieee80211com_head);
     ieee80211_node_attach(ifp);
     ieee80211_proto_attach(ifp);
 
@@ -145,7 +145,7 @@ void ieee80211_ifdetach(struct ifnet *ifp)
     ieee80211_proto_detach(ifp);
     ieee80211_crypto_detach(ifp);
     ieee80211_node_detach(ifp);
-    dq_rem(ic, ic_list);
+    dq_rem((dq_entry_t *)ic, ic_list);
     ifmedia_delete_instance(&ic->ic_media, IFM_INST_ANY);
     ether_ifdetach(ifp);
 }

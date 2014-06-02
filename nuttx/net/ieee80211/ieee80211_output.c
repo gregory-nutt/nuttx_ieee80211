@@ -1087,23 +1087,30 @@ ieee80211_add_tie(uint8_t *frm, uint8_t type, uint32_t value)
 
 struct (struct ieee80211_iobuf *) *ieee80211_getmgmt(int flags, int type, unsigned int pktlen)
 {
-    struct ieee80211_iobuf *m;
+  struct ieee80211_iobuf *m;
 
-    /* reserve space for 802.11 header */
-    pktlen += sizeof(struct ieee80211_frame);
+  /* Reserve space for 802.11 header */
 
-    if (pktlen > MCLBYTES)
-        panic("management frame too large: %u", pktlen);
-    MGETHDR(m, flags, type);
-    if (m == NULL)
-        return NULL;
-    if (pktlen > MHLEN) {
-        MCLGET(m, flags);
-        if (!(m->m_flags & M_EXT))
-            return m_free(m);
+  pktlen += sizeof(struct ieee80211_frame);
+  DEBUGASSERT(pktlen <= MCLBYTES);
+    
+  MGETHDR(m, flags, type);
+  if (m == NULL)
+    {
+      return NULL;
     }
-    m->m_data += sizeof(struct ieee80211_frame);
-    return m;
+
+  if (pktlen > MHLEN)
+    {
+      MCLGET(m, flags);
+      if (!(m->m_flags & M_EXT))
+        {
+          return ieee80211_iofree(m);
+        }
+    }
+
+  m->m_data += sizeof(struct ieee80211_frame);
+  return m;
 }
 
 /* Probe request frame format:

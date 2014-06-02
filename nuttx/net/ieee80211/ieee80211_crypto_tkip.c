@@ -69,13 +69,16 @@ ieee80211_tkip_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
 {
     struct ieee80211_tkip_ctx *ctx;
 
-    ctx = malloc(sizeof(*ctx), M_DEVBUF, M_NOWAIT | M_ZERO);
+    ctx = kmalloc(sizeof(struct ieee80211_tkip_ctx));
     if (ctx == NULL)
-        return ENOMEM;
-    /*
-     * Use bits 128-191 as the Michael key for AA->SPA and bits
+      {
+        return -ENOMEM;
+      }
+
+    /* Use bits 128-191 as the Michael key for AA->SPA and bits
      * 192-255 as the Michael key for SPA->AA.
      */
+
 #ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_HOSTAP) {
         ctx->txmic = &k->k_key[16];
@@ -90,20 +93,24 @@ ieee80211_tkip_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
     return 0;
 }
 
-void
-ieee80211_tkip_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
+void ieee80211_tkip_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
 {
-    if (k->k_priv != NULL)
-        free(k->k_priv, M_DEVBUF);
-    k->k_priv = NULL;
+  if (k->k_priv != NULL)
+    {
+      kfree(k->k_priv);
+    }
+
+  k->k_priv = NULL;
 }
 
 /* pseudo-header used for TKIP MIC computation */
-struct ieee80211_tkip_frame {
-    uint8_t    i_da[IEEE80211_ADDR_LEN];
-    uint8_t    i_sa[IEEE80211_ADDR_LEN];
-    uint8_t    i_pri;
-    uint8_t    i_pad[3];
+
+struct ieee80211_tkip_frame
+{
+  uint8_t    i_da[IEEE80211_ADDR_LEN];
+  uint8_t    i_sa[IEEE80211_ADDR_LEN];
+  uint8_t    i_pri;
+  uint8_t    i_pad[3];
 } packed_struct;
 
 /*

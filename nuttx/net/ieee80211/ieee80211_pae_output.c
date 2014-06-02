@@ -260,24 +260,31 @@ ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
 
 struct ieee80211_iobuf *ieee80211_get_eapol_key(int flags, int type, unsigned int pktlen)
 {
-    struct ieee80211_iobuf *m;
+  struct ieee80211_iobuf *m;
 
-    /* reserve space for 802.11 encapsulation and EAPOL-Key header */
-    pktlen += sizeof(struct ieee80211_frame) + LLC_SNAPFRAMELEN +
-        sizeof(struct ieee80211_eapol_key);
+  /* Reserve space for 802.11 encapsulation and EAPOL-Key header */
 
-    if (pktlen > MCLBYTES)
-        panic("EAPOL-Key frame too large: %u", pktlen);
-    MGETHDR(m, flags, type);
-    if (m == NULL)
-        return NULL;
-    if (pktlen > MHLEN) {
-        MCLGET(m, flags);
-        if (!(m->m_flags & M_EXT))
-            return m_free(m);
+  pktlen += sizeof(struct ieee80211_frame) + LLC_SNAPFRAMELEN +
+            sizeof(struct ieee80211_eapol_key);
+  DEBUGASSERT(pktlen <= MCLBYTES);
+
+  MGETHDR(m, flags, type);
+  if (m == NULL)
+    {
+      return NULL;
     }
-    m->m_data += sizeof(struct ieee80211_frame) + LLC_SNAPFRAMELEN;
-    return m;
+
+  if (pktlen > MHLEN)
+    {
+      MCLGET(m, flags);
+      if (!(m->m_flags & M_EXT))
+        {
+          return ieee80211_iofree(m);
+        }
+    }
+
+  m->m_data += sizeof(struct ieee80211_frame) + LLC_SNAPFRAMELEN;
+  return m;
 }
 
 #ifdef CONFIG_IEEE80211_AP

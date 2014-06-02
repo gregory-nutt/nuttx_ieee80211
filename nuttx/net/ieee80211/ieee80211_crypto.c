@@ -27,7 +27,6 @@
 
 #include <sys/socket.h>
 
-#include <stdlib.h>
 #include <string.h>
 #include <queue.h>
 #include <errno.h>
@@ -39,6 +38,7 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -78,7 +78,7 @@ void ieee80211_crypto_detach(struct ifnet *ifp)
       {
         sq_remfirst(&ic->ic_pmksa, pmk);
         explicit_bzero(pmk, sizeof(*pmk));
-        free(pmk, M_DEVBUF);
+        kfree(pmk);
       }
 
     /* clear all group keys from memory */
@@ -599,9 +599,13 @@ struct ieee80211_pmk *ieee80211_pmksa_add(struct ieee80211com *ic, enum ieee8021
 
     if (pmk == NULL)
       {
-        /* allocate a new PMKSA entry */
-        if ((pmk = malloc(sizeof(*pmk), M_DEVBUF, M_NOWAIT)) == NULL)
+        /* Allocate a new PMKSA entry */
+
+        if ((pmk = kmalloc(sizeof(struct ieee80211_pmk))) == NULL)
+          {
             return NULL;
+          }
+
         pmk->pmk_akm = akm;
         IEEE80211_ADDR_COPY(pmk->pmk_macaddr, macaddr);
         sq_addlast((sq_entry_t *pmk), &ic->ic_pmksa);

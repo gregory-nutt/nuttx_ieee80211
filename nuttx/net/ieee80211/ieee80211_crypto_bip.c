@@ -29,7 +29,6 @@
 
 #include <sys/socket.h>
 
-#include <stdlib.h>
 #include <string.h>
 
 #include <net/if.h>
@@ -39,6 +38,7 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
@@ -50,29 +50,33 @@ struct ieee80211_bip_ctx
     AES_CMAC_CTX    cmac;
 };
 
-/*
- * Initialize software crypto context.  This function can be overridden
+/* Initialize software crypto context.  This function can be overridden
  * by drivers doing hardware crypto.
  */
-int
-ieee80211_bip_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
-{
-    struct ieee80211_bip_ctx *ctx;
 
-    ctx = malloc(sizeof(*ctx), M_DEVBUF, M_NOWAIT | M_ZERO);
-    if (ctx == NULL)
-        return ENOMEM;
-    AES_CMAC_SetKey(&ctx->cmac, k->k_key);
-    k->k_priv = ctx;
-    return 0;
+int ieee80211_bip_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
+{
+  struct ieee80211_bip_ctx *ctx;
+
+  ctx = kmalloc(sizeof(*ctx));
+  if (ctx == NULL)
+    {
+      return -ENOMEM;
+    }
+
+  AES_CMAC_SetKey(&ctx->cmac, k->k_key);
+  k->k_priv = ctx;
+  return 0;
 }
 
-void
-ieee80211_bip_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
+void ieee80211_bip_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
 {
-    if (k->k_priv != NULL)
-        free(k->k_priv, M_DEVBUF);
-    k->k_priv = NULL;
+  if (k->k_priv != NULL)
+    {
+      kfree(k->k_priv);
+    }
+
+  k->k_priv = NULL;
 }
 
 /* pseudo-header used for BIP MIC computation */
