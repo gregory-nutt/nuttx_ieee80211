@@ -73,6 +73,12 @@ void ieee80211_ifattach(struct ieee80211com *ic)
   int bit;
   int i;
 
+  /* Set up the devices interface I/O buffers for normal operations */
+
+  ieee80211_ifinit(ic);
+
+  /* Initialize cypto support */
+
   ieee80211_crypto_attach(ic);
 
   /* Fill in 802.11 available channel set, mark all available channels as

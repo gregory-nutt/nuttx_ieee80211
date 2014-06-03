@@ -656,9 +656,11 @@ struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *ic, struct ieee8
     }
 
     df->df_frag = frag;
+
     /* strip 802.11 header and concatenate fragment */
+
     m_adj(iob, hdrlen);
-    m_cat(df->df_m, iob);
+    ieee80211_iocat(df->df_m, iob);
     df->df_m->m_pktlen += iob->m_pktlen;
 
     if (wh->i_fc[1] & IEEE80211_FC1_MORE_FRAG)
@@ -671,20 +673,19 @@ struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *ic, struct ieee8
     return iob;
 }
 
-/*
- * Receive MSDU defragmentation timer exceeds aMaxReceiveLifetime.
- */
-void
-ieee80211_defrag_timeout(void *arg)
+/* Receive MSDU defragmentation timer exceeds aMaxReceiveLifetime  */
+
+void ieee80211_defrag_timeout(void *arg)
 {
-    struct ieee80211_defrag *df = arg;
-    int s = splnet();
+  struct ieee80211_defrag *df = arg;
+  int s = splnet();
 
-    /* discard all received fragments */
-    ieee80211_iofree(df->df_m);
-    df->df_m = NULL;
+  /* Discard all received fragments */
 
-    splx(s);
+  ieee80211_iofree(df->df_m);
+  df->df_m = NULL;
+
+  splx(s);
 }
 
 #ifdef CONFIG_IEEE80211_HT

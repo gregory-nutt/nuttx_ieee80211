@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/net/ieee80211/ieee80211_ifnet.h
+ * net/ieee80211/ieee80211_ifnet.c
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,65 +33,51 @@
  *
  ****************************************************************************/
 
-#ifndef _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_IFNET_H
-#define _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_IFNET_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
+#include <stdbool.h>
+#include <string.h>
+#include <queue.h>
+
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
+#include <nuttx/net/ieee80211/ieee80211_var.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Types
  ****************************************************************************/
 
-/* Represents one packet buffer */
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
-struct ieee80211_iobuf_s
-{
-  sq_entry_t m_link;
-  uint16_t   m_flags;
-  uint16_t   m_len;
-  uint16_t   m_pktlen;
-  uint16_t   m_hdrlen;
-#if NVLAN > 0
-  uint16_t   m_vtag;
-#endif
-  void      *m_priv;
-  uint8_t    m_data[CONFIG_IEEE80211_BUFSIZE];
-};
+/* This is a pool of pre-allocated I/O buffers */
+
+static struct ieee80211_iobuf_s g_iopool[CONFIG_IEEE80211_NBUFFERS];
+static bool g_ioinitialized;
 
 /****************************************************************************
- * Global Data
+ * Public Data
  ****************************************************************************/
 
 /* A list of all free, unallocated I/O buffers */
 
-extern sq_queue_t g_ieee80211_freelist;
+sq_queue_t g_ieee80211_freelist;
 
 /****************************************************************************
- * Inline Functions
+ * Public Functions
  ****************************************************************************/
-
-static __inline FAR struct ieee80211_iobuf_s *ieee80211_ioalloc(void)
-{
-  return (FAR struct ieee80211_iobuf_s *)sq_remfirst(&g_ieee80211_freelist);
-}
 
 /****************************************************************************
- * Public Function Prototypes
+ * Private Functions
  ****************************************************************************/
-
-#warning REVISIT: The design seems to attach and detach Ethernet devices.  NuttX does not work this way
-#warning REVISIT:  Perhaps ieee80211_ifattach should become an general one-time initialization function
-struct ieee80211com;
-void ieee80211_ifattach(struct ieee80211com *ic);
-void ieee80211_ifdetach(struct ieee80211com *ic);
 
 /****************************************************************************
  * Name: ieee80211_ifinit
@@ -101,17 +87,27 @@ void ieee80211_ifdetach(struct ieee80211com *ic);
  *
  ****************************************************************************/
 
-void ieee80211_ifinit(FAR struct ieee80211com *ic);
+void ieee80211_ifinit(FAR struct ieee80211com *ic)
+{
+  int i;
 
-/* Start polling for queued packets if the device is ready and polling has
- * not already been started.
- */
+  /* Perform one-time initialization */
 
-void ieee80211_ifstart(void);
+  if (!g_ioinitialized)
+    {
+      /* Add each I/O buffer to the free list */
 
-/* Enqueue the packet to be sent by the Ethernet driver */
+      for (i = 0; i < CONFIG_IEEE80211_NBUFFERS; i++)
+        {
+          sq_addlast(&g_iopool[i].m_link, &g_ieee80211_freelist);
+        }
 
-int ieee80211_ifsend(struct ieee80211_iobuf_s *iob);
+      g_ioinitialized = true;
+    }
+
+  /* Perform pre-instance initialization */
+  /* NONE */
+}
 
 /****************************************************************************
  * Name: ieee80211_iofree
@@ -122,7 +118,13 @@ int ieee80211_ifsend(struct ieee80211_iobuf_s *iob);
  *
  ****************************************************************************/
 
-FAR struct ieee80211_iobuf_s *ieee80211_iofree(FAR struct ieee80211_iobuf_s *iob);
+FAR struct ieee80211_iobuf_s *ieee80211_iofree(FAR struct ieee80211_iobuf_s *iob)
+{
+  sq_entry_t *next = iob->m_link.flink;
+
+  sq_addlast(&iob->m_link, &g_ieee80211_freelist);
+  return (FAR struct ieee80211_iobuf_s *)next;
+}
 
 /****************************************************************************
  * Name: ieee80211_iopurge
@@ -132,7 +134,27 @@ FAR struct ieee80211_iobuf_s *ieee80211_iofree(FAR struct ieee80211_iobuf_s *iob
  *
  ****************************************************************************/
 
-void ieee80211_iopurge(FAR sq_queue_t *q);
+void ieee80211_iopurge(FAR sq_queue_t *q)
+{
+  /* If the free list is empty, then just move the entry queue to the the
+   * free list.  Otherwise, append the list to the end of the free list.
+   */
+
+  if (g_ieee80211_freelist.tail)
+    {
+      g_ieee80211_freelist.tail->flink = q->head;
+    }
+  else
+    {
+      g_ieee80211_freelist.head = q->head;
+    }
+
+  /* In either case, the tail of the queue is the tail of queue becomes the
+   * tail of the free list.
+   */
+
+  g_ieee80211_freelist.tail = q->tail;
+}
 
 /****************************************************************************
  * Name: ieee80211_iocat
@@ -143,6 +165,84 @@ void ieee80211_iopurge(FAR sq_queue_t *q);
  ****************************************************************************/
 
 void ieee80211_iocat(FAR struct ieee80211_iobuf_s *iob1,
-                     FAR struct ieee80211_iobuf_s *iob2);
+                     FAR struct ieee80211_iobuf_s *iob2)
+{
+  unsigned int offset2;
+  unsigned int ncopy;
+  unsigned int navail;
 
-#endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_IFNET_H */
+  /* Find the last buffer in the iob1 buffer chain */
+ 
+  while (iob1->m_link.flink)
+    {
+      iob1 = (FAR struct ieee80211_iobuf_s *)iob1->m_link.flink;
+    }
+
+  /* Then add data to the end of iob1 */
+
+  offset2 = 0;
+  while (iob2)
+    {
+      /* Is the iob1 tail buffer full? */
+
+      if (iob1->m_len >= CONFIG_IEEE80211_BUFSIZE)
+        {
+          /* Yes.. Just connect the chains */
+
+          iob1->m_link.flink = iob2->m_link.flink;
+
+          /* Has the data offset in iob2? */
+
+          if (offset2 > 0)
+            {
+              /* Yes, move the data down and adjust the size */
+
+              iob2->m_len -= offset2;
+              memcpy(iob2->m_data, &iob2->m_data[offset2], iob2->m_len);
+
+              /* Set up to continue packing, but now into iob2 */
+
+              iob1 = iob2;
+              iob2 = (FAR struct ieee80211_iobuf_s *)iob2->m_link.flink;
+
+              iob1->m_link.flink = NULL;
+              offset2 = 0;
+            }
+          else
+            {
+              /* Otherwise, we are done */
+
+              return;
+            }
+        }
+
+      /* How many bytes can we copy from the source (iob2) */
+
+      ncopy = iob2->m_len - offset2;
+
+      /* Limit the size of the copy to the amount of free space in iob1 */
+
+      navail = CONFIG_IEEE80211_BUFSIZE - iob1->m_len;
+      if (ncopy > navail)
+        {
+          ncopy = navail;
+        }
+
+      /* Copy the data from iob2 into iob1 */
+
+      memcpy(iob1->m_data + iob1->m_len, iob2->m_data, ncopy);
+      iob1->m_len += ncopy;
+      offset2 += ncopy;
+
+      /* Have we consumed all of the data in iob2? */
+
+      if (offset2 >= iob2->m_len)
+        {
+          /* Yes.. free iob2 and start processing the next I/O buffer
+           * in the chain.
+           */
+
+          iob2 = ieee80211_iofree(iob2);
+        }
+    }
+}

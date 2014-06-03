@@ -39,9 +39,10 @@ ifeq ($(CONFIG_NET_IEEE80211),y)
 
 NET_CSRCS += ieee80211.c ieee80211_amrr.c ieee80211_crypto_bip.c ieee80211_crypto.c
 NET_CSRCS += ieee80211_crypto_ccmp.c ieee80211_crypto_tkip.c ieee80211_crypto_wep.c
-NET_CSRCS += ieee80211_debug.c ieee80211_input.c ieee80211_ioctl.c ieee80211_node.c
-NET_CSRCS += ieee80211_output.c ieee80211_pae_input.c ieee80211_pae_output.c
-NET_CSRCS += ieee80211_proto.c  ieee80211_regdomain.c ieee80211_rssadapt.c
+NET_CSRCS += ieee80211_debug.c ieee80211_ifnet.c ieee80211_input.c ieee80211_ioctl.c
+NET_CSRCS += ieee80211_node.c ieee80211_output.c ieee80211_pae_input.c
+NET_CSRCS += ieee80211_pae_output.c ieee80211_proto.c  ieee80211_regdomain.c
+NET_CSRCS += ieee80211_rssadapt.c
 
 # Include wireless build support
 
