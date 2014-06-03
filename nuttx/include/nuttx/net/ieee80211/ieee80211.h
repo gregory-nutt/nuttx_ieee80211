@@ -803,18 +803,44 @@ struct ieee80211_ptk {
 #define IEEE80211_PMKID_LEN    16
 #define IEEE80211_SMKID_LEN    16
 
-/*
- * Key Data Encapsulation (see Table 62).
- */
-enum {
-    IEEE80211_KDE_GTK    = 1,
-    IEEE80211_KDE_MACADDR    = 3,
-    IEEE80211_KDE_PMKID    = 4,
-    IEEE80211_KDE_SMK    = 5,
-    IEEE80211_KDE_NONCE    = 6,
-    IEEE80211_KDE_LIFETIME    = 7,
-    IEEE80211_KDE_ERROR    = 8,
-    IEEE80211_KDE_IGTK    = 9    /* 11w */
+/* Key Data Encapsulation (see Table 62) */
+
+enum
+{
+  IEEE80211_KDE_GTK    = 1,
+  IEEE80211_KDE_MACADDR    = 3,
+  IEEE80211_KDE_PMKID    = 4,
+  IEEE80211_KDE_SMK    = 5,
+  IEEE80211_KDE_NONCE    = 6,
+  IEEE80211_KDE_LIFETIME    = 7,
+  IEEE80211_KDE_ERROR    = 8,
+  IEEE80211_KDE_IGTK    = 9    /* 11w */
 };
+
+typedef FAR void *iee80211_handle;
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: ieee80211_initialize
+ *
+ * Description:
+ *   Initialize the IEEE 802.11 stack for operation with the selected device.
+ *
+ ****************************************************************************/
+
+iee80211_handle ieee80211_initialize(FAR const char *ifname);
+
+/****************************************************************************
+ * Name: ieee80211_uninitialize
+ *
+ * Description:
+ *   Initialize the IEEE 802.11 stack for operation with the selected device.
+ *
+ ****************************************************************************/
+
+void ieee80211_ifdetach(iee80211_handle handle);
 
 #endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_H */

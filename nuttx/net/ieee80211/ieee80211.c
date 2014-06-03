@@ -52,6 +52,7 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
@@ -60,18 +61,37 @@ int ieee80211_cache_size = IEEE80211_CACHE_SIZE;
 
 dq_queue_t ieee80211com_head;
 
-void ieee80211_setbasicrates(struct ieee80211com *);
-int ieee80211_findrate(struct ieee80211com *, enum ieee80211_phymode, int);
+void ieee80211_setbasicrates(FAR struct ieee80211com *);
+int ieee80211_findrate(FAR struct ieee80211com *, enum ieee80211_phymode, int);
 
-#warning REVISIT:  There is no concept of attaching devices in NuttX.
-#warning REVISIT:  Perhaps this should become an general one-time initialization function
-#warning REVISIT:  This should receive the internet string as an argument ("eth0").
-void ieee80211_ifattach(struct ieee80211com *ic)
+/****************************************************************************
+ * Name: ieee80211_initialize
+ *
+ * Description:
+ *   Initialize the IEEE 802.11 stack for operation with the selected device.
+ *
+ ****************************************************************************/
+
+iee80211_handle ieee80211_initialize(FAR const char *ifname)
 {
-  struct ieee80211_channel *c;
+  FAR struct ieee80211com *ic;
+  FAR struct ieee80211_channel *chan;
   int ndx;
   int bit;
   int i;
+
+  /* Allocate the IEEE 802.11 stack state structure */
+
+  ic = (FAR struct ieee80211com *)kzalloc(sizeof(struct ieee80211com));
+  if (ic == NULL)
+    {
+      ndbg("ERROR:  Failed to allocate state structure\n");
+      return NULL;
+    }
+
+  /* Save the device name in the state structure */
+
+  strncpy(ic->ic_ifname, ifname, IFNAMSIZ);
 
   /* Set up the devices interface I/O buffers for normal operations */
 
@@ -89,17 +109,17 @@ void ieee80211_ifattach(struct ieee80211com *ic)
   ic->ic_modecaps |= 1<<IEEE80211_MODE_AUTO;
   for (i = 0; i <= IEEE80211_CHAN_MAX; i++)
     {
-      c = &ic->ic_channels[i];
-      if (c->ic_flags)
+      chan = &ic->ic_channels[i];
+      if (chan->ic_flags)
         {
           /* Verify driver passed us valid data */
 
-          if (i != ieee80211_chan2ieee(ic, c))
+          if (i != ieee80211_chan2ieee(ic, chan))
             {
               nvdbg("ERROR %s: bad channel ignored; freq %u flags %x number %u\n",
-                  ic->ic_ifname, c->ic_freq, c->ic_flags, i);
+                  ic->ic_ifname, chan->ic_freq, chan->ic_flags, i);
 
-              c->ic_flags = 0;    /* NB: remove */
+              chan->ic_flags = 0;    /* NB: remove */
               continue;
             }
 
@@ -109,22 +129,22 @@ void ieee80211_ifattach(struct ieee80211com *ic)
 
           /* Identify mode capabilities */
 
-          if (IEEE80211_IS_CHAN_A(c))
+          if (IEEE80211_IS_CHAN_A(chan))
             {
               ic->ic_modecaps |= 1<<IEEE80211_MODE_11A;
             }
 
-          if (IEEE80211_IS_CHAN_B(c))
+          if (IEEE80211_IS_CHAN_B(chan))
             {
               ic->ic_modecaps |= 1<<IEEE80211_MODE_11B;
             }
 
-          if (IEEE80211_IS_CHAN_PUREG(c))
+          if (IEEE80211_IS_CHAN_PUREG(chan))
             {
               ic->ic_modecaps |= 1<<IEEE80211_MODE_11G;
             }
 
-          if (IEEE80211_IS_CHAN_T(c))
+          if (IEEE80211_IS_CHAN_T(chan))
             {
               ic->ic_modecaps |= 1<<IEEE80211_MODE_TURBO;
             }
@@ -156,56 +176,100 @@ void ieee80211_ifattach(struct ieee80211com *ic)
     ieee80211_proto_attach(ic);
 }
 
-void ieee80211_ifdetach(struct ieee80211com *ic)
+/****************************************************************************
+ * Name: ieee80211_uninitialize
+ *
+ * Description:
+ *   Initialize the IEEE 802.11 stack for operation with the selected device.
+ *
+ ****************************************************************************/
+
+void ieee80211_uninitialize(iee80211_handle handle)
 {
+  FAR struct ieee80211com *ic = (FAR struct ieee80211com *)handle;
+
   ieee80211_proto_detach(ic);
   ieee80211_crypto_detach(ic);
   ieee80211_node_detach(ic);
   //ifmedia_delete_instance(&ic->ic_media, IFM_INST_ANY);
-  // it needs send a signal to alert it need to be deleted
+
+  /* it needs send a signal to alert it need to be deleted */
+
   ether_ifdetach(ic);
+
+  /* Final, free the memory allocation for the IEEE 802.11 stack state structure */
+
+  kfree(ic);
 }
 
 /* Convert MHz frequency to IEEE channel number */
 
 unsigned int ieee80211_mhz2ieee(unsigned int freq, unsigned int flags)
 {
-    if (flags & IEEE80211_CHAN_2GHZ) {    /* 2GHz band */
-        if (freq == 2484)
-            return 14;
-        if (freq < 2484)
-            return (freq - 2407) / 5;
-        else
-            return 15 + ((freq - 2512) / 20);
-    } else if (flags & IEEE80211_CHAN_5GHZ) {    /* 5GHz band */
-        return (freq - 5000) / 5;
-    } else {                /* either, guess */
-        if (freq == 2484)
-            return 14;
-        if (freq < 2484)
-            return (freq - 2407) / 5;
-        if (freq < 5000)
-            return 15 + ((freq - 2512) / 20);
-        return (freq - 5000) / 5;
+  if (flags & IEEE80211_CHAN_2GHZ)
+    {
+      /* 2GHz band */
+
+      if (freq == 2484)
+        {
+          return 14;
+        }
+
+      if (freq < 2484)
+        {
+          return (freq - 2407) / 5;
+        }
+
+      else
+        {
+          return 15 + ((freq - 2512) / 20);
+        }
+    }
+  else if (flags & IEEE80211_CHAN_5GHZ)
+    {
+      /* 5GHz band */
+
+      return (freq - 5000) / 5;
+    }
+  else
+    {
+      /* either, guess */
+
+      if (freq == 2484)
+        {
+          return 14;
+        }
+
+      if (freq < 2484)
+        {
+          return (freq - 2407) / 5;
+        }
+
+      if (freq < 5000)
+        {
+          return 15 + ((freq - 2512) / 20);
+        }
+
+      return (freq - 5000) / 5;
     }
 }
 
 /* Convert channel to IEEE channel number */
 
-unsigned int ieee80211_chan2ieee(struct ieee80211com *ic, const struct ieee80211_channel *c)
+unsigned int ieee80211_chan2ieee(struct ieee80211com *ic, const struct ieee80211_channel *chan)
 {
-  if (ic->ic_channels <= c && c <= &ic->ic_channels[IEEE80211_CHAN_MAX])
+  if (ic->ic_channels <= chan && chan <= &ic->ic_channels[IEEE80211_CHAN_MAX])
     {
-      return c - ic->ic_channels;
+      return chan - ic->ic_channels;
     }
-  else if (c == IEEE80211_CHAN_ANYC)
+  else if (chan == IEEE80211_CHAN_ANYC)
     {
       return IEEE80211_CHAN_ANY;
     }
-  else if (c != NULL)
+  else if (chan != NULL)
     {
       ndbg("ERROR: %s: invalid channel freq %u flags %x\n",
-           ic->ic_ifname, c->ic_freq, c->ic_flags);
+           ic->ic_ifname, chan->ic_freq, chan->ic_flags);
       return 0;
     }
   else
@@ -217,25 +281,25 @@ unsigned int ieee80211_chan2ieee(struct ieee80211com *ic, const struct ieee80211
 
 /* Convert IEEE channel number to MHz frequency */
 
-unsigned int ieee80211_ieee2mhz(unsigned int chan, unsigned int flags)
+unsigned int ieee80211_ieee2mhz(unsigned int chno, unsigned int flags)
 {
     if (flags & IEEE80211_CHAN_2GHZ) {    /* 2GHz band */
-        if (chan == 14)
+        if (chno == 14)
             return 2484;
-        if (chan < 14)
-            return 2407 + chan*5;
+        if (chno < 14)
+            return 2407 + chno*5;
         else
-            return 2512 + ((chan-15)*20);
+            return 2512 + ((chno-15)*20);
     } else if (flags & IEEE80211_CHAN_5GHZ) {/* 5GHz band */
-        return 5000 + (chan*5);
+        return 5000 + (chno*5);
     } else {                /* either, guess */
-        if (chan == 14)
+        if (chno == 14)
             return 2484;
-        if (chan < 14)            /* 0-13 */
-            return 2407 + chan*5;
-        if (chan < 27)            /* 15-26 */
-            return 2512 + ((chan-15)*20);
-        return 5000 + (chan*5);
+        if (chno < 14)            /* 0-13 */
+            return 2407 + chno*5;
+        if (chno < 27)            /* 15-26 */
+            return 2512 + ((chno-15)*20);
+        return 5000 + (chno*5);
     }
 }
 
@@ -308,7 +372,7 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
         IEEE80211_CHAN_PUREG,    /* IEEE80211_MODE_11G */
         IEEE80211_CHAN_T,    /* IEEE80211_MODE_TURBO    */
     };
-    const struct ieee80211_channel *c;
+    const struct ieee80211_channel *chan;
     unsigned int modeflags;
     int ibss;
     int ndx;
@@ -329,13 +393,13 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
 
     modeflags = chanflags[mode];
     for (i = 0; i <= IEEE80211_CHAN_MAX; i++) {
-        c = &ic->ic_channels[i];
+        chan = &ic->ic_channels[i];
         if (mode == IEEE80211_MODE_AUTO) {
             /* ignore turbo channels for autoselect */
-            if ((c->ic_flags &~ IEEE80211_CHAN_TURBO) != 0)
+            if ((chan->ic_flags &~ IEEE80211_CHAN_TURBO) != 0)
                 break;
         } else {
-            if ((c->ic_flags & modeflags) == modeflags)
+            if ((chan->ic_flags & modeflags) == modeflags)
                 break;
         }
     }
@@ -349,7 +413,7 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
     memset(ic->ic_chan_active, 0, sizeof(ic->ic_chan_active));
     for (i = 0; i <= IEEE80211_CHAN_MAX; i++)
       {
-        c = &ic->ic_channels[i];
+        chan = &ic->ic_channels[i];
         ndx = (i >> 3);
         bit = (i & 7);
 
@@ -357,12 +421,12 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
           {
             /* Take anything but pure turbo channels */
 
-            if ((c->ic_flags &~ IEEE80211_CHAN_TURBO) != 0)
+            if ((chan->ic_flags &~ IEEE80211_CHAN_TURBO) != 0)
               {
                 ic->ic_chan_active[ndx] |= (1 << bit);
               }
           }
-        else if ((c->ic_flags & modeflags) == modeflags)
+        else if ((chan->ic_flags & modeflags) == modeflags)
           {
             ic->ic_chan_active[ndx] |= (1 << bit);
           }
