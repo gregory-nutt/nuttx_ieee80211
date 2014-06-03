@@ -50,6 +50,10 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#ifndef MIN
+#  define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -157,6 +161,63 @@ void ieee80211_iopurge(FAR sq_queue_t *q)
 }
 
 /****************************************************************************
+ * Name: ieee80211_iocpy
+ *
+ * Description:
+ *  Copy data 'len' bytes of data into the user buffer starting at 'offset'
+ *  in the I/O buffer.
+ *
+ ****************************************************************************/
+
+void ieee80211_iocpy(FAR uint8_t *dest,
+                     FAR const struct ieee80211_iobuf_s *iob,
+                     unsigned int len, unsigned int offset)
+{
+  FAR const uint8_t *src;
+  unsigned int ncopy;
+  unsigned int avail;
+
+  /* Skip to the I/O buffer containing the offset */
+
+  while (offset >= iob->m_len)
+    {
+      offset -= iob->m_len;
+      iob     = (FAR struct ieee80211_iobuf_s *)iob->m_link.flink;
+    }
+
+  /* Then loop until all of the I/O data is copied to the user buffer */
+
+  while (len > 0)
+    {
+      ASSERT(iob);
+
+      /* Get the source I/O buffer offset address and the amount of data
+       * available from that address.
+       */
+
+      src   = &iob->m_data[offset];
+      avail = iob->m_len - offset;
+
+      /* Copy the whole I/O buffer in to the user buffer */
+
+      ncopy = MIN(avail, len);
+      memcpy(dest, src, ncopy);
+
+      /* Adjust the total length of the copy and the destination address in
+       * the user buffer.
+       */
+
+      len  -= ncopy;
+      dest += ncopy;
+
+      /* Skip to the next I/O buffer in the chain */
+
+      iob = (FAR struct ieee80211_iobuf_s *)iob->m_link.flink;
+      offset = 0;
+    }
+}
+
+/****************************************************************************
  * Name: ieee80211_iocat
  *
  * Description:
@@ -234,18 +295,20 @@ void ieee80211_iocat(FAR struct ieee80211_iobuf_s *iob1,
       iob1->m_len += ncopy;
       offset2 += ncopy;
 
-      /* Have we consumed all of the data in iob2? */
+      /* Have we consumed all of the data in the iob2 entry? */
 
       if (offset2 >= iob2->m_len)
         {
-          /* Yes.. free iob2 and start processing the next I/O buffer
-           * in the chain.
+          /* Yes.. free the iob2 entry and start processing the next I/O
+           * buffer in the iob2 chain.
            */
 
           iob2 = ieee80211_iofree(iob2);
+          offset2 = 0;
         }
     }
 }
+
 /****************************************************************************
  * Name: ieee80211_iotrim_head
  *
@@ -277,7 +340,7 @@ void ieee80211_iotrim_head(FAR struct ieee80211_iobuf_s *iob,
 
               len -= entry->m_len;
               entry->m_len = 0;
-              entry = (FAR struct ieee80211_iobuf_s )entry->m_link.flink;
+              entry = (FAR struct ieee80211_iobuf_s *)entry->m_link.flink;
             }
           else
             {
@@ -376,4 +439,3 @@ void ieee80211_iotrim_tail(FAR struct ieee80211_iobuf_s *iob, unsigned int triml
         }
     }
 }
-

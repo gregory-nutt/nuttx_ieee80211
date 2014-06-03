@@ -365,7 +365,7 @@ struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct 
     }
 
     /* decrypt ICV and compare it with calculated ICV */
-    m_copydata(iob, moff, IEEE80211_WEP_CRCLEN, (void *)&crc0);
+    ieee80211_iocpy(iob, moff, IEEE80211_WEP_CRCLEN, (void *)&crc0);
     rc4_crypt(&ctx->rc4, (void *)&crc0, (void *)&crc0,
         IEEE80211_WEP_CRCLEN);
     crc = ~crc;

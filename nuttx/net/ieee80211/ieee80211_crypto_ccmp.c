@@ -539,7 +539,7 @@ struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct
         b[i] ^= s0[i];
 
     /* check that it matches the MIC in received frame */
-    m_copydata(iob, moff, IEEE80211_CCMP_MICLEN, mic0);
+    ieee80211_iocpy(iob, moff, IEEE80211_CCMP_MICLEN, mic0);
     if (timingsafe_bcmp(mic0, b, IEEE80211_CCMP_MICLEN) != 0) {
         ic->ic_stats.is_ccmp_dec_errs++;
         ieee80211_iofree(m0);

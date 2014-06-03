@@ -945,7 +945,7 @@ struct ieee80211_iobuf_s *ieee80211_align_iobuf(struct ieee80211_iobuf_s *iob)
           next->m_len = pktlen - off;
         }
 
-      m_copydata(iob, off, next->m_len, next->m_data);
+      ieee80211_iocpy(iob, off, next->m_len, next->m_data);
       off += next->m_len;
       *np = next;
       np = &(struct ieee80211_iobuf_s *)next->m_link.flink;

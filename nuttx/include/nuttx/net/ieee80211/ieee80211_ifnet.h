@@ -130,6 +130,19 @@ FAR struct ieee80211_iobuf_s *ieee80211_iofree(FAR struct ieee80211_iobuf_s *iob
 void ieee80211_iopurge(FAR sq_queue_t *q);
 
 /****************************************************************************
+ * Name: ieee80211_iocpy
+ *
+ * Description:
+ *  Copy data 'len' bytes of data into the user buffer starting at 'offset'
+ *  in the I/O buffer.
+ *
+ ****************************************************************************/
+
+void ieee80211_iocpy(FAR uint8_t *dest,
+                     FAR const struct ieee80211_iobuf_s *iob,
+                     unsigned int len, unsigned int offset);
+
+/****************************************************************************
  * Name: ieee80211_iocat
  *
  * Description:

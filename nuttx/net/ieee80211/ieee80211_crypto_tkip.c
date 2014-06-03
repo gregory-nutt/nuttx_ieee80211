@@ -521,7 +521,7 @@ struct ieee80211_iobuf_s *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct
     }
 
     /* extract and decrypt TKIP MIC and WEP ICV from m0's tail */
-    m_copydata(iob, moff, IEEE80211_TKIP_TAILLEN, buf);
+    ieee80211_iocpy(iob, moff, IEEE80211_TKIP_TAILLEN, buf);
     rc4_crypt(&ctx->rc4, buf, buf, IEEE80211_TKIP_TAILLEN);
 
     /* include TKIP MIC in WEP ICV */
