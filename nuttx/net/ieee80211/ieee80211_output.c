@@ -1126,14 +1126,11 @@ struct ieee80211_iobuf_s *ieee80211_getmgmt(int flags, int type, unsigned int pk
       return NULL;
     }
 
-  if (pktlen > MHLEN)
+  if (pktlen > CONFIG_IEEE80211_BUFSIZE)
     {
       MCLGET(iob, flags);
-      if (!(iob->m_flags & M_EXT))
-        {
-          ieee80211_iofree(iob);
-          return NULL;
-        }
+      ieee80211_iofree(iob);
+      return NULL;
     }
 
   iob->m_data += sizeof(struct ieee80211_frame);

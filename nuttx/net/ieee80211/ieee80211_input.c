@@ -912,7 +912,7 @@ struct ieee80211_iobuf_s *ieee80211_align_iobuf(struct ieee80211_iobuf_s *iob)
               return (NULL);
             }
 
-          next->m_len = MHLEN;
+          next->m_len = CONFIG_IEEE80211_BUFSIZE;
         }
       else
         {
@@ -930,10 +930,6 @@ struct ieee80211_iobuf_s *ieee80211_align_iobuf(struct ieee80211_iobuf_s *iob)
       if (pktlen - off >= MINCLSIZE)
         {
           MCLGET(next, M_DONTWAIT);
-          if (next->m_flags & M_EXT)
-            {
-              next->m_len = next->m_ext.ext_size;
-            }
         }
 
       if (next0 == NULL)

@@ -274,13 +274,10 @@ struct ieee80211_iobuf_s *ieee80211_get_eapol_key(int flags, int type, unsigned 
       return NULL;
     }
 
-  if (pktlen > MHLEN)
+  if (pktlen > CONFIG_IEEE80211_BUFSIZE)
     {
       MCLGET(iob, flags);
-      if (!(iob->m_flags & M_EXT))
-        {
-          return ieee80211_iofree(iob);
-        }
+      return ieee80211_iofree(iob);
     }
 
   iob->m_data += sizeof(struct ieee80211_frame) + LLC_SNAPFRAMELEN;

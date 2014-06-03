@@ -118,12 +118,12 @@ struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct 
       }
 
     next0->m_pktlen += IEEE80211_WEP_HDRLEN;
-    next0->m_len = MHLEN;
-    if (next0->m_pktlen >= MINCLSIZE - IEEE80211_WEP_CRCLEN) {
+    next0->m_len = CONFIG_IEEE80211_BUFSIZE;
+    if (next0->m_pktlen >= MINCLSIZE - IEEE80211_WEP_CRCLEN)
+      {
         MCLGET(next0, M_DONTWAIT);
-        if (next0->m_flags & M_EXT)
-            next0->m_len = next0->m_ext.ext_size;
-    }
+      }
+
     if (next0->m_len > next0->m_pktlen)
         next0->m_len = next0->m_pktlen;
 
@@ -192,10 +192,6 @@ struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct 
             if (left >= MINCLSIZE - IEEE80211_WEP_CRCLEN)
               {
                 MCLGET(next, M_DONTWAIT);
-                if (next->m_flags & M_EXT)
-                  {
-                    next->m_len = next->m_ext.ext_size;
-                  }
               }
 
             if (next->m_len > left)
@@ -294,14 +290,16 @@ struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct 
       }
 
     next0->m_pktlen -= IEEE80211_WEP_TOTLEN;
-    next0->m_len = MHLEN;
-    if (next0->m_pktlen >= MINCLSIZE) {
+    next0->m_len = CONFIG_IEEE80211_BUFSIZE;
+    if (next0->m_pktlen >= MINCLSIZE)
+      {
         MCLGET(next0, M_DONTWAIT);
-        if (next0->m_flags & M_EXT)
-            next0->m_len = next0->m_ext.ext_size;
-    }
+      }
+
     if (next0->m_len > next0->m_pktlen)
+      {
         next0->m_len = next0->m_pktlen;
+      }
 
     /* Copy 802.11 header and clear protected bit */
 
@@ -346,10 +344,6 @@ struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct 
             if (left >= MINCLSIZE)
               {
                 MCLGET(next, M_DONTWAIT);
-                if (next->m_flags & M_EXT)
-                  {
-                    next->m_len = next->m_ext.ext_size;
-                  }
               }
 
             if (next->m_len > left)
