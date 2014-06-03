@@ -657,9 +657,9 @@ struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *ic, struct ieee8
 
     df->df_frag = frag;
 
-    /* strip 802.11 header and concatenate fragment */
+    /* Strip 802.11 header and concatenate fragment */
 
-    m_adj(iob, hdrlen);
+    ieee80211_iotrim_head(iob, hdrlen);
     ieee80211_iocat(df->df_m, iob);
     df->df_m->m_pktlen += iob->m_pktlen;
 
@@ -1003,12 +1003,12 @@ void ieee80211_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, str
         llc->llc_snap.org_code[2] == 0)
       {
         eh.ether_type = llc->llc_snap.ether_type;
-        m_adj(iob, hdrlen + LLC_SNAPFRAMELEN - ETHER_HDR_LEN);
+        ieee80211_iotrim_head(iob, hdrlen + LLC_SNAPFRAMELEN - ETHER_HDR_LEN);
       }
     else
       {
         eh.ether_type = htons(iob->m_pktlen - hdrlen);
-        m_adj(iob, hdrlen - ETHER_HDR_LEN);
+        ieee80211_iotrim_head(iob, hdrlen - ETHER_HDR_LEN);
       }
 
     memcpy(iob->m_data, &eh, ETHER_HDR_LEN);
@@ -1038,8 +1038,9 @@ void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
     struct llc *llc;
     int len, pad;
 
-    /* strip 802.11 header */
-    m_adj(iob, hdrlen);
+    /* Strip 802.11 header */
+
+    ieee80211_iotrim_head(iob, hdrlen);
 
     for (;;)
       {
@@ -1086,7 +1087,7 @@ void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
             /* strip LLC+SNAP headers */
             memmove((uint8_t *)eh + LLC_SNAPFRAMELEN, eh,
                 ETHER_HDR_LEN);
-            m_adj(iob, LLC_SNAPFRAMELEN);
+            ieee80211_iotrim_head(iob, LLC_SNAPFRAMELEN);
             len -= LLC_SNAPFRAMELEN;
         }
         len += ETHER_HDR_LEN;
@@ -1102,18 +1103,18 @@ void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
         ieee80211_deliver_data(ic, iob, ni);
 
         iob = next;
-        /* remove padding */
+
+        /* Remove padding */
+
         pad = ((len + 3) & ~3) - len;
-        m_adj(iob, pad);
+        ieee80211_iotrim_head(iob, pad);
     }
 }
 #endif /* !CONFIG_IEEE80211_HT */
 
-/*
- * Parse an EDCA Parameter Set element (see 7.3.2.27).
- */
-int
-ieee80211_parse_edca_params_body(struct ieee80211com *ic, const uint8_t *frm)
+/* Parse an EDCA Parameter Set element (see 7.3.2.27) */
+
+int ieee80211_parse_edca_params_body(struct ieee80211com *ic, const uint8_t *frm)
 {
     unsigned int updtcount;
     int aci;

@@ -140,4 +140,26 @@ void ieee80211_iopurge(FAR sq_queue_t *q);
 void ieee80211_iocat(FAR struct ieee80211_iobuf_s *iob1,
                      FAR struct ieee80211_iobuf_s *iob2);
 
+/****************************************************************************
+ * Name: ieee80211_iotrim_head
+ *
+ * Description:
+ *   Remove bytes from the beginning of an I/O chain
+ *
+ ****************************************************************************/
+
+void ieee80211_iotrim_head(FAR struct ieee80211_iobuf_s *iob,
+                           unsigned int trimlen);
+
+/****************************************************************************
+ * Name: ieee80211_iotrim_tail
+ *
+ * Description:
+ *   Remove bytes from the end of an I/O chain
+ *
+ ****************************************************************************/
+
+void ieee80211_iotrim_tail(FAR struct ieee80211_iobuf_s *iob,
+                           unsigned int trimlen);
+
 #endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_IFNET_H */

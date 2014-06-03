@@ -89,7 +89,7 @@ struct ieee80211_bip_frame {
     uint8_t    i_addr3[IEEE80211_ADDR_LEN];
 } packed_struct;
 
-struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
+struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob0,
     struct ieee80211_key *k)
 {
     struct ieee80211_bip_ctx *ctx = k->k_priv;
@@ -98,7 +98,7 @@ struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ie
     uint8_t *mmie, mic[AES_CMAC_DIGEST_LENGTH];
     struct ieee80211_iobuf_s *iob;
 
-    wh = (FAR struct ieee80211_frame *)m0->m_data;
+    wh = (FAR struct ieee80211_frame *)iob0->m_data;
     DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_MGT);
 
     /* Clear Protected bit from group management frames */
@@ -120,9 +120,9 @@ struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ie
     AES_CMAC_Init(&ctx->cmac);
     AES_CMAC_Update(&ctx->cmac, (uint8_t *)&aad, sizeof aad);
     AES_CMAC_Update(&ctx->cmac, (uint8_t *)&wh[1],
-        m0->m_len - sizeof(*wh));
+        iob0->m_len - sizeof(*wh));
 
-    iob = m0;
+    iob = iob0;
 
     /* Reserve trailing space for MMIE */
 
@@ -156,18 +156,18 @@ struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ie
     memcpy(&mmie[10], mic, 8);
 
     iob->m_len += IEEE80211_MMIE_LEN;
-    m0->m_pktlen += IEEE80211_MMIE_LEN;
+    iob0->m_pktlen += IEEE80211_MMIE_LEN;
 
     k->k_tsc++;
 
-    return m0;
+    return iob0;
  nospace:
     ic->ic_stats.is_tx_nombuf++;
-    ieee80211_iofree(m0);
+    ieee80211_iofree(iob0);
     return NULL;
 }
 
-struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
+struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob0,
     struct ieee80211_key *k)
 {
     struct ieee80211_bip_ctx *ctx = k->k_priv;
@@ -176,7 +176,7 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
     uint8_t *mmie, mic0[8], mic[AES_CMAC_DIGEST_LENGTH];
     uint64_t ipn;
 
-    wh = (FAR struct ieee80211_frame *)m0->m_data;
+    wh = (FAR struct ieee80211_frame *)iob0->m_data;
     DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_MGT);
 
     /* It is assumed that management frames are contiguous and that
@@ -184,8 +184,8 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
      * a header and a MMIE (checked in ieee80211_decrypt()).
      */
 
-    DEBUGASSERT(m0->m_len >= sizeof(*wh) + IEEE80211_MMIE_LEN);
-    mmie = (FAR uint8_t *)m0->m_data + m0->m_len - IEEE80211_MMIE_LEN;
+    DEBUGASSERT(iob0->m_len >= sizeof(*wh) + IEEE80211_MMIE_LEN);
+    mmie = (FAR uint8_t *)iob0->m_data + iob0->m_len - IEEE80211_MMIE_LEN;
 
     ipn = LE_READ_6(&mmie[4]);
     if (ipn <= k->k_mgmt_rsc)
@@ -193,7 +193,7 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
         /* Replayed frame, discard */
 
         ic->ic_stats.is_cmac_replays++;
-        ieee80211_iofree(m0);
+        ieee80211_iofree(iob0);
         return NULL;
       }
 
@@ -216,28 +216,28 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
     AES_CMAC_Init(&ctx->cmac);
     AES_CMAC_Update(&ctx->cmac, (uint8_t *)&aad, sizeof aad);
     AES_CMAC_Update(&ctx->cmac, (uint8_t *)&wh[1],
-        m0->m_len - sizeof(*wh));
+        iob0->m_len - sizeof(*wh));
     AES_CMAC_Final(mic, &ctx->cmac);
 
-    /* Check that MIC matches the one in MMIE */
+  /* Check that MIC matches the one in MMIE */
 
-    if (timingsafe_bcmp(mic, mic0, 8) != 0)
-      {
-        ic->ic_stats.is_cmac_icv_errs++;
-        ieee80211_iofree(m0);
-        return NULL;
-      }
+  if (timingsafe_bcmp(mic, mic0, 8) != 0)
+    {
+      ic->ic_stats.is_cmac_icv_errs++;
+      ieee80211_iofree(iob0);
+      return NULL;
+    }
 
-    /* There is no need to trim the MMIE from the buffer since it is
-     * an information element and will be ignored by upper layers.
-     * We do it anyway as it is cheap to do it here and because it
-     * may be confused with fixed fields by upper layers.
-     */
+  /* There is no need to trim the MMIE from the buffer since it is
+   * an information element and will be ignored by upper layers.
+   * We do it anyway as it is cheap to do it here and because it
+   * may be confused with fixed fields by upper layers.
+   */
 
-    m_adj(m0, -IEEE80211_MMIE_LEN);
+  ieee80211_iotrim_tail(iob0, IEEE80211_MMIE_LEN);
 
-    /* update last seen packet number (MIC is validated) */
-    k->k_mgmt_rsc = ipn;
+  /* Update last seen packet number (MIC is validated) */
 
-    return m0;
+  k->k_mgmt_rsc = ipn;
+  return iob0;
 }

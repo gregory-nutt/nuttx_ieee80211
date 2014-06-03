@@ -602,7 +602,7 @@ struct ieee80211_iobuf_s *ieee80211_encap(struct ieee80211com *ic, struct ieee80
         addqos = 0;
       }
 
-    m_adj(iob, sizeof(struct ether_header) - LLC_SNAPFRAMELEN);
+    ieee80211_iotrim_head(iob, sizeof(struct ether_header) - LLC_SNAPFRAMELEN);
     llc = (FAR struct llc *)iob->m_data;
     llc->llc_dsap = llc->llc_ssap = LLC_SNAP_LSAP;
     llc->llc_control = LLC_UI;

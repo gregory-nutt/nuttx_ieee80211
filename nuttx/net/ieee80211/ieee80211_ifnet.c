@@ -246,3 +246,134 @@ void ieee80211_iocat(FAR struct ieee80211_iobuf_s *iob1,
         }
     }
 }
+/****************************************************************************
+ * Name: ieee80211_iotrim_head
+ *
+ * Description:
+ *   Remove bytes from the beginning of an I/O chain
+ *
+ ****************************************************************************/
+
+void ieee80211_iotrim_head(FAR struct ieee80211_iobuf_s *iob,
+                           unsigned int trimlen)
+{
+  FAR struct ieee80211_iobuf_s *entry;
+  unsigned int len;
+
+  if (iob && trimlen > 0)
+    {
+      entry = iob;
+      len   = trimlen;
+
+      /* Trim from the head of the I/IO buffer chain */
+
+      while (entry != NULL && len > 0)
+        {
+          /* Do we trim this entire I/O buffer away? */
+
+          if (entry->m_len <= len)
+            {
+              /* Yes.. just set is length to zero and skip to the next */
+
+              len -= entry->m_len;
+              entry->m_len = 0;
+              entry = (FAR struct ieee80211_iobuf_s )entry->m_link.flink;
+            }
+          else
+            {
+              /* No, then just take what we need from this I/O buffer and
+               * stop the trim.
+               */
+
+              entry->m_len -= len;
+              memcpy(entry->m_data, &entry->m_data[len], entry->m_len);
+              len = 0;
+            }
+        }
+    }
+}
+
+/****************************************************************************
+ * Name: ieee80211_iotrim_tail
+ *
+ * Description:
+ *   Remove bytes from the end of an I/O chain
+ *
+ ****************************************************************************/
+
+void ieee80211_iotrim_tail(FAR struct ieee80211_iobuf_s *iob, unsigned int trimlen)
+{
+  FAR struct ieee80211_iobuf_s *entry;
+  FAR struct ieee80211_iobuf_s *penultimate;
+  FAR struct ieee80211_iobuf_s *last;
+  unsigned int iosize;
+  int len;
+
+  if (iob && trimlen > 0)
+    {
+      len = trimlen;
+
+      /* Loop until complete the trim */
+
+      while (len > 0)
+        {
+          /* Calculate the total length of the data in the I/O buffer
+           * chain and find the last entry in the chain.
+           */
+
+          penultimate = NULL;
+          last = NULL;
+          iosize = 0;
+
+          for (entry = iob;
+               entry;
+               entry = (FAR struct ieee80211_iobuf_s *)entry->m_link.flink)
+            {
+              /* Accumulate the total size of all buffers in the list */
+
+              iosize += entry->m_len;
+
+              /* Remember the last and the next to the last in the chain */
+
+              penultimate = last;
+              last = entry;
+            }
+
+          /* Trim from the last entry in the chain.  Do we trim this entire
+           * I/O buffer away?
+           */
+
+          if (last->m_len <= len)
+            {
+              /* Yes.. just set is length to zero and skip to the next */
+
+              len -= last->m_len;
+              last->m_len = 0;
+
+              /* There should be a buffer before this one */
+
+              if (!penultimate)
+                {
+                  return;
+                }
+
+              /* Free the last, empty buffer in the list */
+
+              ieee80211_iofree(last);
+              penultimate->m_link.flink = NULL;
+            }
+               
+          else
+            {
+              /* No, then just take what we need from this I/O buffer and
+               * stop the trim.
+               */
+
+              last->m_len -= len;
+              memcpy(last->m_data, &last->m_data[len], last->m_len);
+              len = 0;
+            }
+        }
+    }
+}
+

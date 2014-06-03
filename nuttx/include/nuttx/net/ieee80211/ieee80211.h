@@ -841,6 +841,6 @@ iee80211_handle ieee80211_initialize(FAR const char *ifname);
  *
  ****************************************************************************/
 
-void ieee80211_ifdetach(iee80211_handle handle);
+void ieee80211_uninitialize(iee80211_handle handle);
 
 #endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_H */

@@ -90,7 +90,7 @@ void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s
       goto done;
     }
 
-  m_adj(iob, sizeof(*eh));
+  ieee80211_iotrim_head(iob, sizeof(struct ether_header));
 
   if (iob->m_pktlen < sizeof(*key))
     {
