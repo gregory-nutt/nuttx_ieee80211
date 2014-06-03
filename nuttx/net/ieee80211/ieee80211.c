@@ -34,6 +34,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
@@ -153,7 +155,6 @@ void ieee80211_ifdetach(struct ieee80211com *ic)
   ieee80211_proto_detach(ic);
   ieee80211_crypto_detach(ic);
   ieee80211_node_detach(ic);
-  dq_rem((dq_entry_t *)ic, &ic_list);
   //ifmedia_delete_instance(&ic->ic_media, IFM_INST_ANY);
   // it needs send a signal to alert it need to be deleted
   ether_ifdetach(ic);

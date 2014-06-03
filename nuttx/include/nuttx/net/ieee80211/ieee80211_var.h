@@ -215,8 +215,6 @@ struct ieee80211_defrag
 
 struct ieee80211com
 {
-  dq_entry_t      ic_list;             /* Chain of all ieee80211com */
-
   void            (*ic_recv_mgmt)(struct ieee80211com *,
                   struct ieee80211_iobuf_s *, struct ieee80211_node *,
                   struct ieee80211_rxinfo *, int);
