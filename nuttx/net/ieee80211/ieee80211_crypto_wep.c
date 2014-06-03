@@ -67,7 +67,7 @@ struct ieee80211_wep_ctx
  * by drivers doing hardware crypto.
  */
 
-int ieee80211_wep_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
+int ieee80211_wep_set_key(struct ieee80211_s *ic, struct ieee80211_key *k)
 {
   struct ieee80211_wep_ctx *ctx;
 
@@ -81,7 +81,7 @@ int ieee80211_wep_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
   return 0;
 }
 
-void ieee80211_wep_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
+void ieee80211_wep_delete_key(struct ieee80211_s *ic, struct ieee80211_key *k)
 {
   if (k->k_priv != NULL)
     {
@@ -95,7 +95,7 @@ void ieee80211_wep_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
 #define IEEE80211_WEP_HDRLEN    \
     (IEEE80211_WEP_IVLEN + IEEE80211_WEP_KIDLEN)
 
-struct iob_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct iob_s *m0,
+struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_wep_ctx *ctx = k->k_priv;
@@ -251,7 +251,7 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct iob_s *m0,
     return NULL;
 }
 
-struct iob_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct iob_s *m0,
+struct iob_s *ieee80211_wep_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_wep_ctx *ctx = k->k_priv;

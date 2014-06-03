@@ -47,29 +47,29 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-void    ieee80211_recv_4way_msg1(struct ieee80211com *,
+void    ieee80211_recv_4way_msg1(struct ieee80211_s *,
         struct ieee80211_eapol_key *, struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_AP
-void    ieee80211_recv_4way_msg2(struct ieee80211com *,
+void    ieee80211_recv_4way_msg2(struct ieee80211_s *,
         struct ieee80211_eapol_key *, struct ieee80211_node *,
         const uint8_t *);
 #endif
-void    ieee80211_recv_4way_msg3(struct ieee80211com *,
+void    ieee80211_recv_4way_msg3(struct ieee80211_s *,
         struct ieee80211_eapol_key *, struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_AP
-void    ieee80211_recv_4way_msg4(struct ieee80211com *,
+void    ieee80211_recv_4way_msg4(struct ieee80211_s *,
         struct ieee80211_eapol_key *, struct ieee80211_node *);
-void    ieee80211_recv_4way_msg2or4(struct ieee80211com *,
+void    ieee80211_recv_4way_msg2or4(struct ieee80211_s *,
         struct ieee80211_eapol_key *, struct ieee80211_node *);
 #endif
-void    ieee80211_recv_rsn_group_msg1(struct ieee80211com *,
+void    ieee80211_recv_rsn_group_msg1(struct ieee80211_s *,
         struct ieee80211_eapol_key *, struct ieee80211_node *);
-void    ieee80211_recv_wpa_group_msg1(struct ieee80211com *,
+void    ieee80211_recv_wpa_group_msg1(struct ieee80211_s *,
         struct ieee80211_eapol_key *, struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_AP
-void    ieee80211_recv_group_msg2(struct ieee80211com *,
+void    ieee80211_recv_group_msg2(struct ieee80211_s *,
         struct ieee80211_eapol_key *, struct ieee80211_node *);
-void    ieee80211_recv_eapol_key_req(struct ieee80211com *,
+void    ieee80211_recv_eapol_key_req(struct ieee80211_s *,
         struct ieee80211_eapol_key *, struct ieee80211_node *);
 #endif
 
@@ -77,7 +77,7 @@ void    ieee80211_recv_eapol_key_req(struct ieee80211com *,
  * EAPOL-Key frames with an IEEE 802.11 or WPA descriptor type.
  */
 
-void ieee80211_eapol_key_input(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_eapol_key_input(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
   struct ether_header *eh;
@@ -237,7 +237,7 @@ void ieee80211_eapol_key_input(struct ieee80211com *ic, struct iob_s *iob,
 
 /* Process Message 1 of the 4-Way Handshake (sent by Authenticator) */
 
-void ieee80211_recv_4way_msg1(struct ieee80211com *ic, struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
+void ieee80211_recv_4way_msg1(struct ieee80211_s *ic, struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
 {
     struct ieee80211_ptk tptk;
     struct ieee80211_pmk *pmk;
@@ -319,7 +319,7 @@ void ieee80211_recv_4way_msg1(struct ieee80211com *ic, struct ieee80211_eapol_ke
  * Process Message 2 of the 4-Way Handshake (sent by Supplicant).
  */
 void
-ieee80211_recv_4way_msg2(struct ieee80211com *ic,
+ieee80211_recv_4way_msg2(struct ieee80211_s *ic,
     struct ieee80211_eapol_key *key, struct ieee80211_node *ni,
     const uint8_t *rsnie)
 {
@@ -382,7 +382,7 @@ ieee80211_recv_4way_msg2(struct ieee80211com *ic,
  * Process Message 3 of the 4-Way Handshake (sent by Authenticator).
  */
 void
-ieee80211_recv_4way_msg3(struct ieee80211com *ic,
+ieee80211_recv_4way_msg3(struct ieee80211_s *ic,
     struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
 {
     struct ieee80211_ptk tptk;
@@ -660,7 +660,7 @@ ieee80211_recv_4way_msg3(struct ieee80211com *ic,
  * Process Message 4 of the 4-Way Handshake (sent by Supplicant).
  */
 void
-ieee80211_recv_4way_msg4(struct ieee80211com *ic,
+ieee80211_recv_4way_msg4(struct ieee80211_s *ic,
     struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
 {
     if (ic->ic_opmode != IEEE80211_M_HOSTAP &&
@@ -730,7 +730,7 @@ ieee80211_recv_4way_msg4(struct ieee80211com *ic,
  * the presence of an RSN or WPA Information Element.
  */
 void
-ieee80211_recv_4way_msg2or4(struct ieee80211com *ic,
+ieee80211_recv_4way_msg2or4(struct ieee80211_s *ic,
     struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
 {
     const uint8_t *frm, *efrm;
@@ -777,7 +777,7 @@ ieee80211_recv_4way_msg2or4(struct ieee80211com *ic,
  * Process Message 1 of the RSN Group Key Handshake (sent by Authenticator).
  */
 void
-ieee80211_recv_rsn_group_msg1(struct ieee80211com *ic,
+ieee80211_recv_rsn_group_msg1(struct ieee80211_s *ic,
     struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
 {
     struct ieee80211_key *k;
@@ -923,7 +923,7 @@ deauth:
 
 /* Process Message 1 of the WPA Group Key Handshake (sent by Authenticator) */
 
-void ieee80211_recv_wpa_group_msg1(struct ieee80211com *ic,
+void ieee80211_recv_wpa_group_msg1(struct ieee80211_s *ic,
     struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
 {
     struct ieee80211_key *k;
@@ -1015,7 +1015,7 @@ void ieee80211_recv_wpa_group_msg1(struct ieee80211com *ic,
  * Process Message 2 of the Group Key Handshake (sent by Supplicant).
  */
 void
-ieee80211_recv_group_msg2(struct ieee80211com *ic,
+ieee80211_recv_group_msg2(struct ieee80211_s *ic,
     struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
 {
     if (ic->ic_opmode != IEEE80211_M_HOSTAP &&
@@ -1059,7 +1059,7 @@ ieee80211_recv_group_msg2(struct ieee80211com *ic,
  * or to report a MIC failure in a TKIP MSDU.
  */
 
-void ieee80211_recv_eapol_key_req(struct ieee80211com *ic,
+void ieee80211_recv_eapol_key_req(struct ieee80211_s *ic,
     struct ieee80211_eapol_key *key, struct ieee80211_node *ni)
 {
     uint16_t info;

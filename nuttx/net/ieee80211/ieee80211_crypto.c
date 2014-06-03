@@ -50,7 +50,7 @@ void ieee80211_kdf(const uint8_t *, size_t, const uint8_t *, size_t,
 void ieee80211_derive_pmkid(enum ieee80211_akm, const uint8_t *,
         const uint8_t *, const uint8_t *, uint8_t *);
 
-void ieee80211_crypto_attach(struct ieee80211com *ic)
+void ieee80211_crypto_attach(struct ieee80211_s *ic)
 {
     sq_init(&ic->ic_pmksa);
     if (ic->ic_caps & IEEE80211_C_RSN) {
@@ -65,7 +65,7 @@ void ieee80211_crypto_attach(struct ieee80211com *ic)
     ic->ic_delete_key = ieee80211_delete_key;
 }
 
-void ieee80211_crypto_detach(struct ieee80211com *ic)
+void ieee80211_crypto_detach(struct ieee80211_s *ic)
 {
   FAR struct ieee80211_pmk *pmk;
   int i;
@@ -119,7 +119,7 @@ int ieee80211_cipher_keylen(enum ieee80211_cipher cipher)
     }
 }
 
-int ieee80211_set_key(struct ieee80211com *ic, struct ieee80211_node *ni,
+int ieee80211_set_key(struct ieee80211_s *ic, struct ieee80211_node *ni,
     struct ieee80211_key *k)
 {
     int error;
@@ -145,7 +145,7 @@ int ieee80211_set_key(struct ieee80211com *ic, struct ieee80211_node *ni,
     return error;
 }
 
-void ieee80211_delete_key(struct ieee80211com *ic, struct ieee80211_node *ni,
+void ieee80211_delete_key(struct ieee80211_s *ic, struct ieee80211_node *ni,
     struct ieee80211_key *k)
 {
     switch (k->k_cipher) {
@@ -169,7 +169,7 @@ void ieee80211_delete_key(struct ieee80211com *ic, struct ieee80211_node *ni,
     explicit_bzero(k, sizeof(*k));
 }
 
-struct ieee80211_key *ieee80211_get_txkey(struct ieee80211com *ic, const struct ieee80211_frame *wh,
+struct ieee80211_key *ieee80211_get_txkey(struct ieee80211_s *ic, const struct ieee80211_frame *wh,
     struct ieee80211_node *ni)
 {
     int kid;
@@ -188,7 +188,7 @@ struct ieee80211_key *ieee80211_get_txkey(struct ieee80211com *ic, const struct 
     return &ic->ic_nw_keys[kid];
 }
 
-struct iob_s *ieee80211_encrypt(struct ieee80211com *ic, struct iob_s *m0,
+struct iob_s *ieee80211_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     struct ieee80211_key *k)
 {
     switch (k->k_cipher) {
@@ -213,7 +213,7 @@ struct iob_s *ieee80211_encrypt(struct ieee80211com *ic, struct iob_s *m0,
     return m0;
 }
 
-struct iob_s *ieee80211_decrypt(FAR struct ieee80211com *ic, FAR struct iob_s *m0, struct ieee80211_node *ni)
+struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0, struct ieee80211_node *ni)
 {
     FAR struct ieee80211_frame *wh;
     FAR struct ieee80211_key *k;
@@ -491,7 +491,7 @@ int ieee80211_eapol_key_check_mic(struct ieee80211_eapol_key *key,
  * AES Key Wrap depending on the EAPOL-Key Key Descriptor Version.
  */
 
-void ieee80211_eapol_key_encrypt(struct ieee80211com *ic,
+void ieee80211_eapol_key_encrypt(struct ieee80211_s *ic,
     struct ieee80211_eapol_key *key, const uint8_t *kek)
 {
     union {
@@ -590,7 +590,7 @@ int ieee80211_eapol_key_decrypt(struct ieee80211_eapol_key *key,
 
 /* Add a PMK entry to the PMKSA cache */
 
-struct ieee80211_pmk *ieee80211_pmksa_add(struct ieee80211com *ic, enum ieee80211_akm akm, const uint8_t *macaddr, const uint8_t *key, uint32_t lifetime)
+struct ieee80211_pmk *ieee80211_pmksa_add(struct ieee80211_s *ic, enum ieee80211_akm akm, const uint8_t *macaddr, const uint8_t *key, uint32_t lifetime)
 {
   struct ieee80211_pmk *pmk;
   sq_entry_t *entry;
@@ -642,7 +642,7 @@ struct ieee80211_pmk *ieee80211_pmksa_add(struct ieee80211com *ic, enum ieee8021
  * Check if we have a cached PMK entry for the specified node and PMKID.
  */
 
-struct ieee80211_pmk *ieee80211_pmksa_find(struct ieee80211com *ic, struct ieee80211_node *ni, const uint8_t *pmkid)
+struct ieee80211_pmk *ieee80211_pmksa_find(struct ieee80211_s *ic, struct ieee80211_node *ni, const uint8_t *pmkid)
 {
   struct ieee80211_pmk *pmk;
   sq_entry_t *entry;

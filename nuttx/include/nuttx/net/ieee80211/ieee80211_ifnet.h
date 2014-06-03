@@ -67,8 +67,8 @@
  *
  ****************************************************************************/
 
-struct ieee80211com;
-void ieee80211_ifinit(FAR struct ieee80211com *ic);
+struct ieee80211_s;
+void ieee80211_ifinit(FAR struct ieee80211_s *ic);
 
 /* Start polling for queued packets if the device is ready and polling has
  * not already been started.

@@ -60,78 +60,78 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-struct iob_s *ieee80211_defrag(struct ieee80211com *, struct iob_s *, int);
+struct iob_s *ieee80211_defrag(struct ieee80211_s *, struct iob_s *, int);
 void ieee80211_defrag_timeout(void *);
 #ifdef CONFIG_IEEE80211_HT
-void ieee80211_input_ba(struct ieee80211com *, struct iob_s *,
+void ieee80211_input_ba(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, int, struct ieee80211_rxinfo *);
-void ieee80211_ba_move_window(struct ieee80211com *,
+void ieee80211_ba_move_window(struct ieee80211_s *,
         struct ieee80211_node *, uint8_t, uint16_t);
 #endif
 struct iob_s *ieee80211_align_iobuf(struct iob_s *);
-void ieee80211_decap(struct ieee80211com *, struct iob_s *,
+void ieee80211_decap(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, int);
 #ifdef CONFIG_IEEE80211_HT
-void ieee80211_amsdu_decap(struct ieee80211com *, struct iob_s *,
+void ieee80211_amsdu_decap(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, int);
 #endif
-void ieee80211_deliver_data(struct ieee80211com *, struct iob_s *,
+void ieee80211_deliver_data(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
-int ieee80211_parse_edca_params_body(struct ieee80211com *,
+int ieee80211_parse_edca_params_body(struct ieee80211_s *,
         const uint8_t *);
-int ieee80211_parse_edca_params(struct ieee80211com *, const uint8_t *);
-int ieee80211_parse_wmm_params(struct ieee80211com *, const uint8_t *);
+int ieee80211_parse_edca_params(struct ieee80211_s *, const uint8_t *);
+int ieee80211_parse_wmm_params(struct ieee80211_s *, const uint8_t *);
 enum ieee80211_cipher ieee80211_parse_rsn_cipher(const uint8_t[]);
 enum ieee80211_akm ieee80211_parse_rsn_akm(const uint8_t[]);
-int ieee80211_parse_rsn_body(struct ieee80211com *, const uint8_t *,
+int ieee80211_parse_rsn_body(struct ieee80211_s *, const uint8_t *,
         unsigned int, struct ieee80211_rsnparams *);
 int ieee80211_save_ie(const uint8_t *, uint8_t **);
-void ieee80211_recv_probe_resp(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_probe_resp(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 #ifdef CONFIG_IEEE80211_AP
-void ieee80211_recv_probe_req(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_probe_req(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
 #endif
-void ieee80211_recv_auth(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_auth(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
 #ifdef CONFIG_IEEE80211_AP
-void ieee80211_recv_assoc_req(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_assoc_req(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 #endif
-void ieee80211_recv_assoc_resp(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_assoc_resp(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, int);
-void ieee80211_recv_deauth(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_deauth(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
-void ieee80211_recv_disassoc(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_disassoc(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_HT
-void ieee80211_recv_addba_req(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_addba_req(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
-void ieee80211_recv_addba_resp(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_addba_resp(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
-void ieee80211_recv_delba(struct ieee80211com *, struct iob_s *,
-        struct ieee80211_node *);
-#endif
-void ieee80211_recv_sa_query_req(struct ieee80211com *, struct iob_s *,
-        struct ieee80211_node *);
-#ifdef CONFIG_IEEE80211_AP
-void ieee80211_recv_sa_query_resp(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_delba(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
 #endif
-void ieee80211_recv_action(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_sa_query_req(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_AP
-void    ieee80211_recv_pspoll(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_sa_query_resp(struct ieee80211_s *, struct iob_s *,
+        struct ieee80211_node *);
+#endif
+void ieee80211_recv_action(struct ieee80211_s *, struct iob_s *,
+        struct ieee80211_node *);
+#ifdef CONFIG_IEEE80211_AP
+void    ieee80211_recv_pspoll(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
 #endif
 #ifdef CONFIG_IEEE80211_HT
-void ieee80211_recv_bar(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_bar(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
-void ieee80211_bar_tid(struct ieee80211com *, struct ieee80211_node *,
+void ieee80211_bar_tid(struct ieee80211_s *, struct ieee80211_node *,
         uint8_t, uint16_t);
 #endif
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
-void ieee80211_input_print(struct ieee80211com *,  struct ieee80211com *,
+void ieee80211_input_print(struct ieee80211_s *,  struct ieee80211_s *,
         struct ieee80211_frame *, struct ieee80211_rxinfo *);
 #endif
 void ieee80211_input_print_task(void *, void *);
@@ -168,7 +168,7 @@ void ieee80211_input_print_task(void *arg1, void *arg2)
   kfree(msg);
 }
 
-static void ieee80211_input_print(struct ieee80211com *ic, struct ieee80211_frame *wh, struct ieee80211_rxinfo *rxi)
+static void ieee80211_input_print(struct ieee80211_s *ic, struct ieee80211_frame *wh, struct ieee80211_rxinfo *rxi)
 {
   int error;
   char *msg;
@@ -202,7 +202,7 @@ static void ieee80211_input_print(struct ieee80211com *ic, struct ieee80211_fram
  * by the 802.11 layer.
  */
 
-void ieee80211_input(struct ieee80211com *ic, struct iob_s *iob, struct ieee80211_node *ni,
+void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211_node *ni,
     struct ieee80211_rxinfo *rxi)
 {
     struct ieee80211_frame *wh;
@@ -588,7 +588,7 @@ void ieee80211_input(struct ieee80211com *ic, struct iob_s *iob, struct ieee8021
  * reception of fragments of three fragmented MSDUs or MMPDUs.
  */
 
-struct iob_s *ieee80211_defrag(struct ieee80211com *ic, struct iob_s *iob, int hdrlen)
+struct iob_s *ieee80211_defrag(struct ieee80211_s *ic, struct iob_s *iob, int hdrlen)
 {
     const struct ieee80211_frame *owh, *wh;
     struct ieee80211_defrag *df;
@@ -694,7 +694,7 @@ void ieee80211_defrag_timeout(void *arg)
  * agreement (see 9.10.7.6).
  */
 
-void ieee80211_input_ba(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_input_ba(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni, int tid, struct ieee80211_rxinfo *rxi)
 {
     struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
@@ -761,7 +761,7 @@ void ieee80211_input_ba(struct ieee80211com *ic, struct iob_s *iob,
  * BlockAckReq frame or an ADDBA Request (PBAC).
  */
 
-void ieee80211_ba_move_window(struct ieee80211com *ic, struct ieee80211_node *ni, uint8_t tid, uint16_t ssn)
+void ieee80211_ba_move_window(struct ieee80211_s *ic, struct ieee80211_node *ni, uint8_t tid, uint16_t ssn)
 {
     struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
     int count;
@@ -797,7 +797,7 @@ void ieee80211_ba_move_window(struct ieee80211com *ic, struct ieee80211_node *ni
 }
 #endif /* !CONFIG_IEEE80211_HT */
 
-void ieee80211_deliver_data(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_deliver_data(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
   struct ether_header *eh;
@@ -957,7 +957,7 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
 }
 #endif /* __STRICT_ALIGNMENT */
 
-void ieee80211_decap(struct ieee80211com *ic, struct iob_s *iob, struct ieee80211_node *ni, int hdrlen)
+void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211_node *ni, int hdrlen)
 {
     struct ether_header eh;
     struct ieee80211_frame *wh;
@@ -1031,7 +1031,7 @@ void ieee80211_decap(struct ieee80211com *ic, struct iob_s *iob, struct ieee8021
 #ifdef CONFIG_IEEE80211_HT
 /* Decapsulate an Aggregate MSDU (see 7.2.2.2) */
 
-void ieee80211_amsdu_decap(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni, int hdrlen)
 {
     struct iob_s *next;
@@ -1115,7 +1115,7 @@ void ieee80211_amsdu_decap(struct ieee80211com *ic, struct iob_s *iob,
 
 /* Parse an EDCA Parameter Set element (see 7.3.2.27) */
 
-int ieee80211_parse_edca_params_body(struct ieee80211com *ic, const uint8_t *frm)
+int ieee80211_parse_edca_params_body(struct ieee80211_s *ic, const uint8_t *frm)
 {
     unsigned int updtcount;
     int aci;
@@ -1151,7 +1151,7 @@ int ieee80211_parse_edca_params_body(struct ieee80211com *ic, const uint8_t *frm
 }
 
 int
-ieee80211_parse_edca_params(struct ieee80211com *ic, const uint8_t *frm)
+ieee80211_parse_edca_params(struct ieee80211_s *ic, const uint8_t *frm)
 {
     if (frm[1] < 18) {
         ic->ic_stats.is_rx_elem_toosmall++;
@@ -1161,7 +1161,7 @@ ieee80211_parse_edca_params(struct ieee80211com *ic, const uint8_t *frm)
 }
 
 int
-ieee80211_parse_wmm_params(struct ieee80211com *ic, const uint8_t *frm)
+ieee80211_parse_wmm_params(struct ieee80211_s *ic, const uint8_t *frm)
 {
     if (frm[1] < 24) {
         ic->ic_stats.is_rx_elem_toosmall++;
@@ -1236,7 +1236,7 @@ ieee80211_parse_rsn_akm(const uint8_t selector[4])
  * Parse an RSN element (see 7.3.2.25).
  */
 int
-ieee80211_parse_rsn_body(struct ieee80211com *ic, const uint8_t *frm,
+ieee80211_parse_rsn_body(struct ieee80211_s *ic, const uint8_t *frm,
     unsigned int len, struct ieee80211_rsnparams *rsn)
 {
     const uint8_t *efrm;
@@ -1337,7 +1337,7 @@ ieee80211_parse_rsn_body(struct ieee80211com *ic, const uint8_t *frm,
 }
 
 int
-ieee80211_parse_rsn(struct ieee80211com *ic, const uint8_t *frm,
+ieee80211_parse_rsn(struct ieee80211_s *ic, const uint8_t *frm,
     struct ieee80211_rsnparams *rsn)
 {
     if (frm[1] < 2) {
@@ -1348,7 +1348,7 @@ ieee80211_parse_rsn(struct ieee80211com *ic, const uint8_t *frm,
 }
 
 int
-ieee80211_parse_wpa(struct ieee80211com *ic, const uint8_t *frm,
+ieee80211_parse_wpa(struct ieee80211_s *ic, const uint8_t *frm,
     struct ieee80211_rsnparams *rsn)
 {
     if (frm[1] < 6) {
@@ -1396,7 +1396,7 @@ int ieee80211_save_ie(const uint8_t *frm, uint8_t **ie)
  * [tlv] HT Operation (802.11n)
  */
 
-void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int isprobe)
 {
   const struct ieee80211_frame *wh;
@@ -1821,7 +1821,7 @@ void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct iob_s *iob,
  * [tlv] HT Capabilities (802.11n)
  */
 
-void ieee80211_recv_probe_req(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_probe_req(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi)
 {
     const struct ieee80211_frame *wh;
@@ -1935,7 +1935,7 @@ void ieee80211_recv_probe_req(struct ieee80211com *ic, struct iob_s *iob,
  * [2] Status code
  */
 
-void ieee80211_recv_auth(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_auth(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi)
 {
     const struct ieee80211_frame *wh;
@@ -1992,7 +1992,7 @@ void ieee80211_recv_auth(struct ieee80211com *ic, struct iob_s *iob,
  * [tlv] HT Capabilities (802.11n)
  */
 
-void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_assoc_req(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int reassoc)
 {
     const struct ieee80211_frame *wh;
@@ -2334,7 +2334,7 @@ void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct iob_s *iob,
  * [tlv] HT Operation (802.11n)
  */
 
-void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_assoc_resp(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni, int reassoc)
 {
     const struct ieee80211_frame *wh;
@@ -2507,7 +2507,7 @@ void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct iob_s *iob,
  * [2] Reason code
  */
 
-void ieee80211_recv_deauth(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_deauth(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2553,7 +2553,7 @@ void ieee80211_recv_deauth(struct ieee80211com *ic, struct iob_s *iob,
  * [2] Reason code
  */
 
-void ieee80211_recv_disassoc(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_disassoc(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2605,7 +2605,7 @@ void ieee80211_recv_disassoc(struct ieee80211com *ic, struct iob_s *iob,
  * [2] Block Ack Starting Sequence Control
  */
 
-void ieee80211_recv_addba_req(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_addba_req(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2735,7 +2735,7 @@ void ieee80211_recv_addba_req(struct ieee80211com *ic, struct iob_s *iob,
  * [2] Block Ack Timeout Value
  */
 
-void ieee80211_recv_addba_resp(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_addba_resp(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2804,7 +2804,7 @@ void ieee80211_recv_addba_resp(struct ieee80211com *ic, struct iob_s *iob,
  * [2] Reason Code
  */
 
-void ieee80211_recv_delba(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_delba(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2887,7 +2887,7 @@ void ieee80211_recv_delba(struct ieee80211com *ic, struct iob_s *iob,
  * [2] Transaction Identifier
  */
 
-void ieee80211_recv_sa_query_req(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_sa_query_req(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2928,7 +2928,7 @@ void ieee80211_recv_sa_query_req(struct ieee80211com *ic, struct iob_s *iob,
  * [2] Transaction Identifier
  */
 
-void ieee80211_recv_sa_query_resp(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_sa_query_resp(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2972,7 +2972,7 @@ void ieee80211_recv_sa_query_resp(struct ieee80211com *ic, struct iob_s *iob,
  * [1] Action
  */
 
-void ieee80211_recv_action(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_action(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -3021,7 +3021,7 @@ void ieee80211_recv_action(struct ieee80211com *ic, struct iob_s *iob,
     }
 }
 
-void ieee80211_recv_mgmt(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_mgmt(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int subtype)
 {
     switch (subtype) {
@@ -3073,7 +3073,7 @@ void ieee80211_recv_mgmt(struct ieee80211com *ic, struct iob_s *iob,
 #ifdef CONFIG_IEEE80211_AP
 /* Process an incoming PS-Poll control frame (see 11.2) */
 
-void ieee80211_recv_pspoll(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_pspoll(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     struct ieee80211_frame_pspoll *psp;
@@ -3140,7 +3140,7 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct iob_s *iob,
 #ifdef CONFIG_IEEE80211_HT
 /* Process an incoming BlockAckReq control frame (see 7.2.1.7) */
 
-void ieee80211_recv_bar(struct ieee80211com *ic, struct iob_s *iob,
+void ieee80211_recv_bar(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame_min *wh;
@@ -3197,7 +3197,7 @@ void ieee80211_recv_bar(struct ieee80211com *ic, struct iob_s *iob,
  * This is the common back-end for all BlockAckReq frame variants.
  */
 void
-ieee80211_bar_tid(struct ieee80211com *ic, struct ieee80211_node *ni,
+ieee80211_bar_tid(struct ieee80211_s *ic, struct ieee80211_node *ni,
     uint8_t tid, uint16_t ssn)
 {
     struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];

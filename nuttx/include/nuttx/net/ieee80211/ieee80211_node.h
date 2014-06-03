@@ -178,14 +178,14 @@ struct ieee80211_rx_ba
 /* Node specific information.  Note that drivers are expected
  * to derive from this structure to add device-specific per-node
  * state.  This is done by overriding the ic_node_* methods in
- * the ieee80211com structure.
+ * the ieee80211_s structure.
  */
 
 struct ieee80211_node
 {
   RB_ENTRY(ieee80211_node) ni_node;
 
-  struct ieee80211com *ni_ic;          /* back-pointer */
+  struct ieee80211_s *ni_ic;          /* back-pointer */
 
   unsigned int    ni_refcnt;
   unsigned int    ni_scangen;          /* gen# for timeout scan */
@@ -329,49 +329,49 @@ static __inline void ieee80211_unref_node(struct ieee80211_node **ni)
   *ni = NULL;            /* guard against use */
 }
 
-void ieee80211_node_attach(struct ieee80211com *);
-void ieee80211_node_lateattach(struct ieee80211com *);
-void ieee80211_node_detach(struct ieee80211com *);
+void ieee80211_node_attach(struct ieee80211_s *);
+void ieee80211_node_lateattach(struct ieee80211_s *);
+void ieee80211_node_detach(struct ieee80211_s *);
 
-void ieee80211_begin_scan(struct ieee80211com *);
-void ieee80211_next_scan(struct ieee80211com *);
-void ieee80211_end_scan(struct ieee80211com *);
-void ieee80211_reset_scan(struct ieee80211com *);
-struct ieee80211_node *ieee80211_alloc_node(struct ieee80211com *,
+void ieee80211_begin_scan(struct ieee80211_s *);
+void ieee80211_next_scan(struct ieee80211_s *);
+void ieee80211_end_scan(struct ieee80211_s *);
+void ieee80211_reset_scan(struct ieee80211_s *);
+struct ieee80211_node *ieee80211_alloc_node(struct ieee80211_s *,
         const uint8_t *);
-struct ieee80211_node *ieee80211_dup_bss(struct ieee80211com *,
+struct ieee80211_node *ieee80211_dup_bss(struct ieee80211_s *,
         const uint8_t *);
-struct ieee80211_node *ieee80211_find_node(struct ieee80211com *,
+struct ieee80211_node *ieee80211_find_node(struct ieee80211_s *,
         const uint8_t *);
-struct ieee80211_node *ieee80211_find_rxnode(struct ieee80211com *,
+struct ieee80211_node *ieee80211_find_rxnode(struct ieee80211_s *,
         const struct ieee80211_frame *);
-struct ieee80211_node *ieee80211_find_txnode(struct ieee80211com *,
+struct ieee80211_node *ieee80211_find_txnode(struct ieee80211_s *,
         const uint8_t *);
 struct ieee80211_node *
-        ieee80211_find_node_for_beacon(struct ieee80211com *,
+        ieee80211_find_node_for_beacon(struct ieee80211_s *,
         const uint8_t *, const struct ieee80211_channel *,
         const char *, uint8_t);
-void ieee80211_release_node(struct ieee80211com *,
+void ieee80211_release_node(struct ieee80211_s *,
         struct ieee80211_node *);
-void ieee80211_free_allnodes(struct ieee80211com *);
+void ieee80211_free_allnodes(struct ieee80211_s *);
 typedef void ieee80211_iter_func(void *, struct ieee80211_node *);
-void ieee80211_iterate_nodes(struct ieee80211com *ic,
+void ieee80211_iterate_nodes(struct ieee80211_s *ic,
         ieee80211_iter_func *, void *);
-void ieee80211_clean_nodes(struct ieee80211com *, int);
-int ieee80211_setup_rates(struct ieee80211com *,
+void ieee80211_clean_nodes(struct ieee80211_s *, int);
+int ieee80211_setup_rates(struct ieee80211_s *,
         struct ieee80211_node *, const uint8_t *, const uint8_t *, int);
 extern  int ieee80211_iserp_sta(const struct ieee80211_node *);
 
-void ieee80211_node_join(struct ieee80211com *,
+void ieee80211_node_join(struct ieee80211_s *,
         struct ieee80211_node *, int);
-void ieee80211_node_leave(struct ieee80211com *,
+void ieee80211_node_leave(struct ieee80211_s *,
         struct ieee80211_node *);
-int ieee80211_match_bss(struct ieee80211com *,
+int ieee80211_match_bss(struct ieee80211_s *,
         struct ieee80211_node *);
-void ieee80211_create_ibss(struct ieee80211com* ,
+void ieee80211_create_ibss(struct ieee80211_s* ,
         struct ieee80211_channel *);
-void ieee80211_notify_dtim(struct ieee80211com *);
-void ieee80211_set_tim(struct ieee80211com *, int, int);
+void ieee80211_notify_dtim(struct ieee80211_s *);
+void ieee80211_set_tim(struct ieee80211_s *, int, int);
 
 int ieee80211_node_cmp(const struct ieee80211_node *,
         const struct ieee80211_node *);

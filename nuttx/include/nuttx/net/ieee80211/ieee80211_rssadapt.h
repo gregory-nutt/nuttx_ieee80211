@@ -86,12 +86,12 @@ struct ieee80211_rssdesc {
 };
 
 void	ieee80211_rssadapt_updatestats(struct ieee80211_rssadapt *);
-void	ieee80211_rssadapt_input(struct ieee80211com *,
+void	ieee80211_rssadapt_input(struct ieee80211_s *,
 	    const struct ieee80211_node *, struct ieee80211_rssadapt *, int);
-void	ieee80211_rssadapt_lower_rate(struct ieee80211com *,
+void	ieee80211_rssadapt_lower_rate(struct ieee80211_s *,
 	    const struct ieee80211_node *, struct ieee80211_rssadapt *,
 	    const struct ieee80211_rssdesc *);
-void	ieee80211_rssadapt_raise_rate(struct ieee80211com *,
+void	ieee80211_rssadapt_raise_rate(struct ieee80211_s *,
 	    struct ieee80211_rssadapt *, const struct ieee80211_rssdesc *);
 int	ieee80211_rssadapt_choose(struct ieee80211_rssadapt *,
 	    const struct ieee80211_rateset *, const struct ieee80211_frame *,

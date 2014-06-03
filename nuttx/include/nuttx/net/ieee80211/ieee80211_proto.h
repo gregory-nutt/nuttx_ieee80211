@@ -72,110 +72,110 @@ extern const char * const ieee80211_mgt_subtype_name[];
 extern const char * const ieee80211_state_name[IEEE80211_S_MAX];
 extern const char * const ieee80211_phymode_name[];
 
-void ieee80211_proto_attach(struct ieee80211com *);
-void ieee80211_proto_detach(struct ieee80211com *);
+void ieee80211_proto_attach(struct ieee80211_s *);
+void ieee80211_proto_detach(struct ieee80211_s *);
 
 struct ieee80211_node;
 struct ieee80211_rxinfo;
 struct ieee80211_rsnparams;
-void ieee80211_set_link_state(struct ieee80211com *ic, enum ieee80211_linkstate_e linkstate);
+void ieee80211_set_link_state(struct ieee80211_s *ic, enum ieee80211_linkstate_e linkstate);
 unsigned int ieee80211_get_hdrlen(const struct ieee80211_frame *);
-void ieee80211_input(struct ieee80211com *, struct iob_s *,
+void ieee80211_input(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
-int ieee80211_output(struct ieee80211com *, struct iob_s *, struct sockaddr *,
+int ieee80211_output(struct ieee80211_s *, struct iob_s *, struct sockaddr *,
         struct rtentry *);
-void ieee80211_recv_mgmt(struct ieee80211com *, struct iob_s *,
+void ieee80211_recv_mgmt(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
-int ieee80211_send_mgmt(struct ieee80211com *, struct ieee80211_node *,
+int ieee80211_send_mgmt(struct ieee80211_s *, struct ieee80211_node *,
         int, int, int);
-void ieee80211_eapol_key_input(struct ieee80211com *, struct iob_s *,
+void ieee80211_eapol_key_input(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
-struct iob_s *ieee80211_encap(struct ieee80211com *, struct iob_s *,
+struct iob_s *ieee80211_encap(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node **);
-struct iob_s *ieee80211_get_rts(struct ieee80211com *,
+struct iob_s *ieee80211_get_rts(struct ieee80211_s *,
         const struct ieee80211_frame *, uint16_t);
-struct iob_s *ieee80211_get_cts_to_self(struct ieee80211com *,
+struct iob_s *ieee80211_get_cts_to_self(struct ieee80211_s *,
         uint16_t);
-struct iob_s *ieee80211_beacon_alloc(struct ieee80211com *,
+struct iob_s *ieee80211_beacon_alloc(struct ieee80211_s *,
         struct ieee80211_node *);
 extern int ieee80211_save_ie(const uint8_t *, uint8_t **);
 void ieee80211_eapol_timeout(void *);
 
-int ieee80211_send_4way_msg1(struct ieee80211com *,
+int ieee80211_send_4way_msg1(struct ieee80211_s *,
         struct ieee80211_node *);
-int ieee80211_send_4way_msg2(struct ieee80211com *,
+int ieee80211_send_4way_msg2(struct ieee80211_s *,
         struct ieee80211_node *, const uint8_t *,
         const struct ieee80211_ptk *);
-int ieee80211_send_4way_msg3(struct ieee80211com *,
+int ieee80211_send_4way_msg3(struct ieee80211_s *,
         struct ieee80211_node *);
-int ieee80211_send_4way_msg4(struct ieee80211com *,
+int ieee80211_send_4way_msg4(struct ieee80211_s *,
         struct ieee80211_node *);
-int ieee80211_send_group_msg1(struct ieee80211com *,
+int ieee80211_send_group_msg1(struct ieee80211_s *,
         struct ieee80211_node *);
-int ieee80211_send_group_msg2(struct ieee80211com *,
+int ieee80211_send_group_msg2(struct ieee80211_s *,
         struct ieee80211_node *, const struct ieee80211_key *);
-int ieee80211_send_eapol_key_req(struct ieee80211com *,
+int ieee80211_send_eapol_key_req(struct ieee80211_s *,
         struct ieee80211_node *, uint16_t, uint64_t);
-int ieee80211_pwrsave(struct ieee80211com *, struct iob_s *,
+int ieee80211_pwrsave(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
 #define    ieee80211_new_state(_ic, _nstate, _arg) \
     (((_ic)->ic_newstate)((_ic), (_nstate), (_arg)))
-enum ieee80211_edca_ac ieee80211_up_to_ac(struct ieee80211com *, int);
-uint8_t *ieee80211_add_capinfo(uint8_t *, struct ieee80211com *,
+enum ieee80211_edca_ac ieee80211_up_to_ac(struct ieee80211_s *, int);
+uint8_t *ieee80211_add_capinfo(uint8_t *, struct ieee80211_s *,
         const struct ieee80211_node *);
 uint8_t *ieee80211_add_ssid(uint8_t *, const uint8_t *, unsigned int);
 uint8_t *ieee80211_add_rates(uint8_t *,
         const struct ieee80211_rateset *);
-uint8_t *ieee80211_add_fh_params(uint8_t *, struct ieee80211com *,
+uint8_t *ieee80211_add_fh_params(uint8_t *, struct ieee80211_s *,
         const struct ieee80211_node *);
-uint8_t *ieee80211_add_ds_params(uint8_t *, struct ieee80211com *,
+uint8_t *ieee80211_add_ds_params(uint8_t *, struct ieee80211_s *,
         const struct ieee80211_node *);
-uint8_t *ieee80211_add_tim(uint8_t *, struct ieee80211com *);
+uint8_t *ieee80211_add_tim(uint8_t *, struct ieee80211_s *);
 uint8_t *ieee80211_add_ibss_params(uint8_t *,
         const struct ieee80211_node *);
-uint8_t *ieee80211_add_edca_params(uint8_t *, struct ieee80211com *);
-uint8_t *ieee80211_add_erp(uint8_t *, struct ieee80211com *);
+uint8_t *ieee80211_add_edca_params(uint8_t *, struct ieee80211_s *);
+uint8_t *ieee80211_add_erp(uint8_t *, struct ieee80211_s *);
 uint8_t *ieee80211_add_qos_capability(uint8_t *,
-        struct ieee80211com *);
-uint8_t *ieee80211_add_rsn(uint8_t *, struct ieee80211com *,
+        struct ieee80211_s *);
+uint8_t *ieee80211_add_rsn(uint8_t *, struct ieee80211_s *,
         const struct ieee80211_node *);
-uint8_t *ieee80211_add_wpa(uint8_t *, struct ieee80211com *,
+uint8_t *ieee80211_add_wpa(uint8_t *, struct ieee80211_s *,
         const struct ieee80211_node *);
 uint8_t *ieee80211_add_xrates(uint8_t *,
         const struct ieee80211_rateset *);
-uint8_t *ieee80211_add_htcaps(uint8_t *, struct ieee80211com *);
-uint8_t *ieee80211_add_htop(uint8_t *, struct ieee80211com *);
+uint8_t *ieee80211_add_htcaps(uint8_t *, struct ieee80211_s *);
+uint8_t *ieee80211_add_htop(uint8_t *, struct ieee80211_s *);
 uint8_t *ieee80211_add_tie(uint8_t *, uint8_t, uint32_t);
 
-int ieee80211_parse_rsn(struct ieee80211com *, const uint8_t *,
+int ieee80211_parse_rsn(struct ieee80211_s *, const uint8_t *,
         struct ieee80211_rsnparams *);
-int ieee80211_parse_wpa(struct ieee80211com *, const uint8_t *,
+int ieee80211_parse_wpa(struct ieee80211_s *, const uint8_t *,
         struct ieee80211_rsnparams *);
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
 void ieee80211_print_essid(const uint8_t *, int);
 void ieee80211_dump_pkt(const uint8_t *, int, int, int);
 #endif
-int ieee80211_ibss_merge(struct ieee80211com *,
+int ieee80211_ibss_merge(struct ieee80211_s *,
         struct ieee80211_node *, uint64_t);
-void ieee80211_reset_erp(struct ieee80211com *);
-void ieee80211_set_shortslottime(struct ieee80211com *, int);
-void ieee80211_auth_open(struct ieee80211com *,
+void ieee80211_reset_erp(struct ieee80211_s *);
+void ieee80211_set_shortslottime(struct ieee80211_s *, int);
+void ieee80211_auth_open(struct ieee80211_s *,
         const struct ieee80211_frame *, struct ieee80211_node *,
         struct ieee80211_rxinfo *rs, uint16_t, uint16_t);
 void ieee80211_gtk_rekey_timeout(void *);
-int ieee80211_keyrun(struct ieee80211com *, uint8_t *);
-void ieee80211_setkeys(struct ieee80211com *);
-void ieee80211_setkeysdone(struct ieee80211com *);
+int ieee80211_keyrun(struct ieee80211_s *, uint8_t *);
+void ieee80211_setkeys(struct ieee80211_s *);
+void ieee80211_setkeysdone(struct ieee80211_s *);
 void ieee80211_sa_query_timeout(void *);
-void ieee80211_sa_query_request(struct ieee80211com *,
+void ieee80211_sa_query_request(struct ieee80211_s *,
         struct ieee80211_node *);
 
 #ifdef CONFIG_IEEE80211_HT
 void ieee80211_tx_ba_timeout(void *);
 void ieee80211_rx_ba_timeout(void *);
-int ieee80211_addba_request(struct ieee80211com *,
+int ieee80211_addba_request(struct ieee80211_s *,
         struct ieee80211_node *,  uint16_t, uint8_t);
-void ieee80211_delba_request(struct ieee80211com *,
+void ieee80211_delba_request(struct ieee80211_s *,
         struct ieee80211_node *, uint16_t, uint8_t, uint8_t);
 #endif
 

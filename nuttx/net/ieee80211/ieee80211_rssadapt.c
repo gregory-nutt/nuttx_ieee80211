@@ -152,7 +152,7 @@ ieee80211_rssadapt_updatestats(struct ieee80211_rssadapt *ra)
 }
 
 void
-ieee80211_rssadapt_input(struct ieee80211com *ic,
+ieee80211_rssadapt_input(struct ieee80211_s *ic,
     const struct ieee80211_node *ni, struct ieee80211_rssadapt *ra, int rssi)
 {
 #ifdef CONFIG_DEBUG_NET
@@ -174,7 +174,7 @@ ieee80211_rssadapt_input(struct ieee80211com *ic,
  * the same data rate.
  */
 void
-ieee80211_rssadapt_lower_rate(struct ieee80211com *ic,
+ieee80211_rssadapt_lower_rate(struct ieee80211_s *ic,
     const struct ieee80211_node *ni, struct ieee80211_rssadapt *ra,
     const struct ieee80211_rssdesc *id)
 {
@@ -214,7 +214,7 @@ ieee80211_rssadapt_lower_rate(struct ieee80211com *ic,
 }
 
 void
-ieee80211_rssadapt_raise_rate(struct ieee80211com *ic,
+ieee80211_rssadapt_raise_rate(struct ieee80211_s *ic,
     struct ieee80211_rssadapt *ra, const struct ieee80211_rssdesc *id)
 {
     uint16_t (*thrs)[IEEE80211_RATE_SIZE], newthr, oldthr;

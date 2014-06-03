@@ -52,12 +52,12 @@
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 #include <nuttx/net/ieee80211/ieee80211_ioctl.h>
 
-void     ieee80211_node2req(struct ieee80211com *,
+void     ieee80211_node2req(struct ieee80211_s *,
         const struct ieee80211_node *, struct ieee80211_nodereq *);
-void     ieee80211_req2node(struct ieee80211com *,
+void     ieee80211_req2node(struct ieee80211_s *,
         const struct ieee80211_nodereq *, struct ieee80211_node *);
 
-void ieee80211_node2req(struct ieee80211com *ic, const struct ieee80211_node *ni,
+void ieee80211_node2req(struct ieee80211_s *ic, const struct ieee80211_node *ni,
     struct ieee80211_nodereq *nr)
 {
     /* Node address and name information */
@@ -97,7 +97,7 @@ void ieee80211_node2req(struct ieee80211com *ic, const struct ieee80211_node *ni
         nr->nr_flags |= IEEE80211_NODEREQ_AP_BSS;
 }
 
-void ieee80211_req2node(struct ieee80211com *ic, const struct ieee80211_nodereq *nr,
+void ieee80211_req2node(struct ieee80211_s *ic, const struct ieee80211_nodereq *nr,
     struct ieee80211_node *ni)
 {
     /* Node address and name information */
@@ -124,7 +124,7 @@ void ieee80211_req2node(struct ieee80211com *ic, const struct ieee80211_nodereq 
     ni->ni_state = nr->nr_state;
 }
 
-static int ieee80211_ioctl_setnwkeys(struct ieee80211com *ic,
+static int ieee80211_ioctl_setnwkeys(struct ieee80211_s *ic,
     const struct ieee80211_nwkey *nwkey)
 {
     struct ieee80211_key *k;
@@ -173,7 +173,7 @@ static int ieee80211_ioctl_setnwkeys(struct ieee80211com *ic,
     return -ENETRESET;
 }
 
-static int ieee80211_ioctl_getnwkeys(struct ieee80211com *ic, struct ieee80211_nwkey *nwkey)
+static int ieee80211_ioctl_getnwkeys(struct ieee80211_s *ic, struct ieee80211_nwkey *nwkey)
 {
     struct ieee80211_key *k;
     int error, i;
@@ -216,7 +216,7 @@ static int ieee80211_ioctl_getnwkeys(struct ieee80211com *ic, struct ieee80211_n
     return 0;
 }
 
-static int ieee80211_ioctl_setwpaparms(struct ieee80211com *ic,
+static int ieee80211_ioctl_setwpaparms(struct ieee80211_s *ic,
     const struct ieee80211_wpaparams *wpa)
 {
     if (!(ic->ic_caps & IEEE80211_C_RSN))
@@ -280,7 +280,7 @@ static int ieee80211_ioctl_setwpaparms(struct ieee80211com *ic,
     return -ENETRESET;
 }
 
-static int ieee80211_ioctl_getwpaparms(struct ieee80211com *ic,
+static int ieee80211_ioctl_getwpaparms(struct ieee80211_s *ic,
     struct ieee80211_wpaparams *wpa)
 {
     wpa->i_enabled = (ic->ic_flags & IEEE80211_F_RSNON) ? 1 : 0;
@@ -323,18 +323,18 @@ static int ieee80211_ioctl_getwpaparms(struct ieee80211com *ic,
     return 0;
 }
 
-static int ieee80211_ioctl_setmode(struct ieee80211com *ic)
+static int ieee80211_ioctl_setmode(struct ieee80211_s *ic)
 {
 
 }
 
-static int ieee80211_ioctl_getmode(struct ieee80211com *ic)
+static int ieee80211_ioctl_getmode(struct ieee80211_s *ic)
 {
 
 }
 
 
-int ieee80211_ioctl(struct ieee80211com *ic, unsigned long cmd, void *data)
+int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
 {
     struct ifreq *ifr = (struct ifreq *)data;
     int i, error = 0;

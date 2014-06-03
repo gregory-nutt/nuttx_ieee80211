@@ -86,9 +86,9 @@ const char * const ieee80211_phymode_name[] =
   "turbo",      /* IEEE80211_MODE_TURBO */
 };
 
-int ieee80211_newstate(struct ieee80211com *, enum ieee80211_state, int);
+int ieee80211_newstate(struct ieee80211_s *, enum ieee80211_state, int);
 
-void ieee80211_proto_attach( struct ieee80211com *ic)
+void ieee80211_proto_attach( struct ieee80211_s *ic)
 {
 #ifdef notdef
     ic->ic_rtsthreshold = IEEE80211_RTS_DEFAULT;
@@ -107,7 +107,7 @@ void ieee80211_proto_attach( struct ieee80211com *ic)
     ic->ic_send_mgmt = ieee80211_send_mgmt;
 }
 
-void ieee80211_proto_detach(struct ieee80211com *ic)
+void ieee80211_proto_detach(struct ieee80211_s *ic)
 {
   iob_freeq(&ic->ic_mgtq);
   iob_freeq(&ic->ic_pwrsaveq);
@@ -233,7 +233,7 @@ void ieee80211_dump_pkt(const uint8_t *buf, int len, int rate, int rssi)
 #endif
 
 int
-ieee80211_fix_rate(struct ieee80211com *ic, struct ieee80211_node *ni,
+ieee80211_fix_rate(struct ieee80211_s *ic, struct ieee80211_node *ni,
     int flags)
 {
 #define    RV(v)    ((v) & IEEE80211_RATE_VAL)
@@ -340,7 +340,7 @@ ieee80211_fix_rate(struct ieee80211com *ic, struct ieee80211_node *ni,
  * Reset 11g-related state.
  */
 void
-ieee80211_reset_erp(struct ieee80211com *ic)
+ieee80211_reset_erp(struct ieee80211_s *ic)
 {
     ic->ic_flags &= ~IEEE80211_F_USEPROT;
     ic->ic_nonerpsta = 0;
@@ -373,7 +373,7 @@ ieee80211_reset_erp(struct ieee80211com *ic)
  * Set the short slot time state and notify the driver.
  */
 void
-ieee80211_set_shortslottime(struct ieee80211com *ic, int on)
+ieee80211_set_shortslottime(struct ieee80211_s *ic, int on)
 {
     if (on)
         ic->ic_flags |= IEEE80211_F_SHSLOT;
@@ -390,7 +390,7 @@ ieee80211_set_shortslottime(struct ieee80211com *ic, int on)
  * the transmit key machine (4-Way Handshake for 802.11) should run.
  */
 int
-ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
+ieee80211_keyrun(struct ieee80211_s *ic, uint8_t *macaddr)
 {
 #ifdef CONFIG_IEEE80211_AP
     struct ieee80211_node *ni;
@@ -445,7 +445,7 @@ ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
 static void
 ieee80211_node_gtk_rekey(void *arg, struct ieee80211_node *ni)
 {
-    struct ieee80211com *ic = arg;
+    struct ieee80211_s *ic = arg;
 
     if (ni->ni_state != IEEE80211_STA_ASSOC ||
         ni->ni_rsn_gstate != RSNA_IDLE)
@@ -464,7 +464,7 @@ ieee80211_node_gtk_rekey(void *arg, struct ieee80211_node *ni)
  * changed.
  */
 void
-ieee80211_setkeys(struct ieee80211com *ic)
+ieee80211_setkeys(struct ieee80211_s *ic)
 {
     struct ieee80211_key *k;
     uint8_t kid;
@@ -499,7 +499,7 @@ ieee80211_setkeys(struct ieee80211com *ic)
  * The group key handshake has been completed with all associated stations.
  */
 void
-ieee80211_setkeysdone(struct ieee80211com *ic)
+ieee80211_setkeysdone(struct ieee80211_s *ic)
 {
     uint8_t kid;
 
@@ -523,7 +523,7 @@ ieee80211_setkeysdone(struct ieee80211com *ic)
 void
 ieee80211_gtk_rekey_timeout(void *arg)
 {
-    struct ieee80211com *ic = arg;
+    struct ieee80211_s *ic = arg;
     int s;
 
     s = splnet();
@@ -538,7 +538,7 @@ void
 ieee80211_sa_query_timeout(void *arg)
 {
     struct ieee80211_node *ni = arg;
-    struct ieee80211com *ic = ni->ni_ic;
+    struct ieee80211_s *ic = ni->ni_ic;
     int s;
 
     s = splnet();
@@ -555,7 +555,7 @@ ieee80211_sa_query_timeout(void *arg)
  * to which the STA is associated.
  */
 void
-ieee80211_sa_query_request(struct ieee80211com *ic, struct ieee80211_node *ni)
+ieee80211_sa_query_request(struct ieee80211_s *ic, struct ieee80211_node *ni)
 {
     /* MLME-SAQuery.request */
 
@@ -580,7 +580,7 @@ ieee80211_tx_ba_timeout(void *arg)
 {
     struct ieee80211_tx_ba *ba = arg;
     struct ieee80211_node *ni = ba->ba_ni;
-    struct ieee80211com *ic = ni->ni_ic;
+    struct ieee80211_s *ic = ni->ni_ic;
     uint8_t tid;
     int s;
 
@@ -603,7 +603,7 @@ ieee80211_rx_ba_timeout(void *arg)
 {
     struct ieee80211_rx_ba *ba = arg;
     struct ieee80211_node *ni = ba->ba_ni;
-    struct ieee80211com *ic = ni->ni_ic;
+    struct ieee80211_s *ic = ni->ni_ic;
     uint8_t tid;
     int s;
 
@@ -620,7 +620,7 @@ ieee80211_rx_ba_timeout(void *arg)
  * Request initiation of Block Ack with the specified peer.
  */
 int
-ieee80211_addba_request(struct ieee80211com *ic, struct ieee80211_node *ni,
+ieee80211_addba_request(struct ieee80211_s *ic, struct ieee80211_node *ni,
     uint16_t ssn, uint8_t tid)
 {
     struct ieee80211_tx_ba *ba = &ni->ni_tx_ba[tid];
@@ -646,7 +646,7 @@ ieee80211_addba_request(struct ieee80211com *ic, struct ieee80211_node *ni,
  * Request the deletion of Block Ack with a peer.
  */
 void
-ieee80211_delba_request(struct ieee80211com *ic, struct ieee80211_node *ni,
+ieee80211_delba_request(struct ieee80211_s *ic, struct ieee80211_node *ni,
     uint16_t reason, uint8_t dir, uint8_t tid)
 {
     /* MLME-DELBA.request */
@@ -697,7 +697,7 @@ ieee80211_delba_request(struct ieee80211com *ic, struct ieee80211_node *ni,
 }
 #endif /* !CONFIG_IEEE80211_HT */
 
-void ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *wh,
+void ieee80211_auth_open(struct ieee80211_s *ic, const struct ieee80211_frame *wh,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, uint16_t seq,
     uint16_t status)
 {
@@ -792,7 +792,7 @@ void ieee80211_auth_open(struct ieee80211com *ic, const struct ieee80211_frame *
     }
 }
 
-int ieee80211_newstate(struct ieee80211com *ic, enum ieee80211_state nstate, int mgt)
+int ieee80211_newstate(struct ieee80211_s *ic, enum ieee80211_state nstate, int mgt)
 {
     struct ieee80211_node *ni;
     enum ieee80211_state ostate;
@@ -1035,7 +1035,7 @@ justcleanup:
     return 0;
 }
 
-void ieee80211_set_link_state(struct ieee80211com *ic, enum ieee80211_linkstate_e linkstate)
+void ieee80211_set_link_state(struct ieee80211_s *ic, enum ieee80211_linkstate_e linkstate)
 {
   switch (ic->ic_opmode)
     {

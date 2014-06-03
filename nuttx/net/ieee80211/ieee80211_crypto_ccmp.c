@@ -53,7 +53,7 @@ struct ieee80211_ccmp_ctx
  * by drivers doing hardware crypto.
  */
 
-int ieee80211_ccmp_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
+int ieee80211_ccmp_set_key(struct ieee80211_s *ic, struct ieee80211_key *k)
 {
   struct ieee80211_ccmp_ctx *ctx;
 
@@ -68,7 +68,7 @@ int ieee80211_ccmp_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
   return 0;
 }
 
-void ieee80211_ccmp_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
+void ieee80211_ccmp_delete_key(struct ieee80211_s *ic, struct ieee80211_key *k)
 {
   if (k->k_priv != NULL)
     {
@@ -161,7 +161,7 @@ static void ieee80211_ccmp_phase1(rijndael_ctx *ctx, const struct ieee80211_fram
     rijndael_encrypt(ctx, a, s0);
 }
 
-struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct iob_s *m0,
+struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_ccmp_ctx *ctx = k->k_priv;
@@ -345,7 +345,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211com *ic, struct iob_s *m0,
     return NULL;
 }
 
-struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211com *ic, struct iob_s *m0,
+struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_ccmp_ctx *ctx = k->k_priv;

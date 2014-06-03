@@ -81,7 +81,7 @@ struct ieee80211_tkip_ctx {
  * by drivers doing hardware crypto.
  */
 int
-ieee80211_tkip_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
+ieee80211_tkip_set_key(struct ieee80211_s *ic, struct ieee80211_key *k)
 {
     struct ieee80211_tkip_ctx *ctx;
 
@@ -109,7 +109,7 @@ ieee80211_tkip_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
     return 0;
 }
 
-void ieee80211_tkip_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
+void ieee80211_tkip_delete_key(struct ieee80211_s *ic, struct ieee80211_key *k)
 {
   if (k->k_priv != NULL)
     {
@@ -210,7 +210,7 @@ ieee80211_tkip_mic(struct iob_s *m0, int off, const uint8_t *key,
 #define IEEE80211_TKIP_OVHD    \
     (IEEE80211_TKIP_HDRLEN + IEEE80211_TKIP_TAILLEN)
 
-struct iob_s *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct iob_s *m0,
+struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_tkip_ctx *ctx = k->k_priv;
@@ -377,7 +377,7 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct iob_s *m0,
     return NULL;
 }
 
-struct iob_s *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct iob_s *m0,
+struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     struct ieee80211_key *k)
 {
     struct ieee80211_tkip_ctx *ctx = k->k_priv;
@@ -575,7 +575,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct iob_s *m0,
 static void
 ieee80211_tkip_deauth(void *arg, struct ieee80211_node *ni)
 {
-    struct ieee80211com *ic = arg;
+    struct ieee80211_s *ic = arg;
 
     if (ni->ni_state == IEEE80211_STA_ASSOC &&
         (ic->ic_bss->ni_rsngroupcipher == IEEE80211_CIPHER_TKIP ||
@@ -592,7 +592,7 @@ ieee80211_tkip_deauth(void *arg, struct ieee80211_node *ni)
  * drivers when their hardware crypto engines detect a Michael MIC failure.
  */
 
-void ieee80211_michael_mic_failure(struct ieee80211com *ic, uint64_t tsc)
+void ieee80211_michael_mic_failure(struct ieee80211_s *ic, uint64_t tsc)
 {
     extern int ticks;
 

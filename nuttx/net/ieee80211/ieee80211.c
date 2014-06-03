@@ -60,10 +60,10 @@
 
 int ieee80211_cache_size = IEEE80211_CACHE_SIZE;
 
-dq_queue_t ieee80211com_head;
+dq_queue_t ieee80211_s_head;
 
-void ieee80211_setbasicrates(FAR struct ieee80211com *);
-int ieee80211_findrate(FAR struct ieee80211com *, enum ieee80211_phymode, int);
+void ieee80211_setbasicrates(FAR struct ieee80211_s *);
+int ieee80211_findrate(FAR struct ieee80211_s *, enum ieee80211_phymode, int);
 
 /****************************************************************************
  * Name: ieee80211_initialize
@@ -75,7 +75,7 @@ int ieee80211_findrate(FAR struct ieee80211com *, enum ieee80211_phymode, int);
 
 iee80211_handle ieee80211_initialize(FAR const char *ifname)
 {
-  FAR struct ieee80211com *ic;
+  FAR struct ieee80211_s *ic;
   FAR struct ieee80211_channel *chan;
   int ndx;
   int bit;
@@ -83,7 +83,7 @@ iee80211_handle ieee80211_initialize(FAR const char *ifname)
 
   /* Allocate the IEEE 802.11 stack state structure */
 
-  ic = (FAR struct ieee80211com *)kzalloc(sizeof(struct ieee80211com));
+  ic = (FAR struct ieee80211_s *)kzalloc(sizeof(struct ieee80211_s));
   if (ic == NULL)
     {
       ndbg("ERROR:  Failed to allocate state structure\n");
@@ -172,7 +172,7 @@ iee80211_handle ieee80211_initialize(FAR const char *ifname)
     ic->ic_bmisstimeout = 7*ic->ic_lintval;    /* default 7 beacons */
     ic->ic_dtim_period = 1;    /* all TIMs are DTIMs */
 
-    dq_addfirst((FAR dq_entry_t *)ic, &ieee80211com_head);
+    dq_addfirst((FAR dq_entry_t *)ic, &ieee80211_s_head);
     ieee80211_node_attach(ic);
     ieee80211_proto_attach(ic);
 }
@@ -187,7 +187,7 @@ iee80211_handle ieee80211_initialize(FAR const char *ifname)
 
 void ieee80211_uninitialize(iee80211_handle handle)
 {
-  FAR struct ieee80211com *ic = (FAR struct ieee80211com *)handle;
+  FAR struct ieee80211_s *ic = (FAR struct ieee80211_s *)handle;
 
   ieee80211_proto_detach(ic);
   ieee80211_crypto_detach(ic);
@@ -257,7 +257,7 @@ unsigned int ieee80211_mhz2ieee(unsigned int freq, unsigned int flags)
 
 /* Convert channel to IEEE channel number */
 
-unsigned int ieee80211_chan2ieee(struct ieee80211com *ic, const struct ieee80211_channel *chan)
+unsigned int ieee80211_chan2ieee(struct ieee80211_s *ic, const struct ieee80211_channel *chan)
 {
   if (ic->ic_channels <= chan && chan <= &ic->ic_channels[IEEE80211_CHAN_MAX])
     {
@@ -304,7 +304,7 @@ unsigned int ieee80211_ieee2mhz(unsigned int chno, unsigned int flags)
     }
 }
 
-void ieee80211_watchdog(struct ieee80211com *ic)
+void ieee80211_watchdog(struct ieee80211_s *ic)
 {
   if (ic->ic_mgt_timer && --ic->ic_mgt_timer == 0)
     {
@@ -328,7 +328,7 @@ const struct ieee80211_rateset ieee80211_std_rateset_11g =
  * the basic OFDM rates.
  */
 
-void ieee80211_setbasicrates(struct ieee80211com *ic)
+void ieee80211_setbasicrates(struct ieee80211_s *ic)
 {
     static const struct ieee80211_rateset basic[] = {
         { 0 },                /* IEEE80211_MODE_AUTO */
@@ -363,7 +363,7 @@ void ieee80211_setbasicrates(struct ieee80211com *ic)
  * inappropriate for this mode.
  */
 
-int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
+int ieee80211_setmode(struct ieee80211_s *ic, enum ieee80211_phymode mode)
 {
 #define    N(a)    (sizeof(a) / sizeof(a[0]))
     static const unsigned int chanflags[] = {
@@ -481,7 +481,7 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
 #undef N
 }
 
-enum ieee80211_phymode ieee80211_next_mode(struct ieee80211com *ic)
+enum ieee80211_phymode ieee80211_next_mode(struct ieee80211_s *ic)
 {
   if (IFM_MODE(ic->ic_media.ifm_cur->ifm_media) != IFM_AUTO) {
       /*
@@ -521,7 +521,7 @@ enum ieee80211_phymode ieee80211_next_mode(struct ieee80211com *ic)
  * XXX never returns turbo modes -dcy
  */
 
-enum ieee80211_phymode ieee80211_chan2mode(struct ieee80211com *ic,
+enum ieee80211_phymode ieee80211_chan2mode(struct ieee80211_s *ic,
     const struct ieee80211_channel *chan)
 {
     /*

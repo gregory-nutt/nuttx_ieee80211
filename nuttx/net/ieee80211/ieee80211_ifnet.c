@@ -83,7 +83,7 @@
  *
  ****************************************************************************/
 
-void ieee80211_ifinit(FAR struct ieee80211com *ic)
+void ieee80211_ifinit(FAR struct ieee80211_s *ic)
 {
   /* Perform one-time initialization */
   /* Initialize the I/O buffering (okay to call multiple times */

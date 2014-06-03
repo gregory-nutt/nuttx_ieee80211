@@ -213,35 +213,35 @@ struct ieee80211_defrag
 
 #define IEEE80211_GROUP_NKID    6
 
-struct ieee80211com
+struct ieee80211_s
 {
-  void            (*ic_recv_mgmt)(struct ieee80211com *,
+  void            (*ic_recv_mgmt)(struct ieee80211_s *,
                   struct iob_s *, struct ieee80211_node *,
                   struct ieee80211_rxinfo *, int);
-  int            (*ic_send_mgmt)(struct ieee80211com *,
+  int            (*ic_send_mgmt)(struct ieee80211_s *,
                   struct ieee80211_node *, int, int, int);
-  int            (*ic_newstate)(struct ieee80211com *,
+  int            (*ic_newstate)(struct ieee80211_s *,
                   enum ieee80211_state, int);
-  void            (*ic_newassoc)(struct ieee80211com *,
+  void            (*ic_newassoc)(struct ieee80211_s *,
                   struct ieee80211_node *, int);
-  void            (*ic_node_leave)(struct ieee80211com *,
+  void            (*ic_node_leave)(struct ieee80211_s *,
                   struct ieee80211_node *);
-  void            (*ic_updateslot)(struct ieee80211com *);
-  void            (*ic_updateedca)(struct ieee80211com *);
-  void            (*ic_set_tim)(struct ieee80211com *, int, int);
-  int            (*ic_set_key)(struct ieee80211com *,
+  void            (*ic_updateslot)(struct ieee80211_s *);
+  void            (*ic_updateedca)(struct ieee80211_s *);
+  void            (*ic_set_tim)(struct ieee80211_s *, int, int);
+  int            (*ic_set_key)(struct ieee80211_s *,
                   struct ieee80211_node *,
                   struct ieee80211_key *);
-  void            (*ic_delete_key)(struct ieee80211com *,
+  void            (*ic_delete_key)(struct ieee80211_s *,
                   struct ieee80211_node *,
                   struct ieee80211_key *);
-  int            (*ic_ampdu_tx_start)(struct ieee80211com *,
+  int            (*ic_ampdu_tx_start)(struct ieee80211_s *,
                   struct ieee80211_node *, uint8_t);
-  void            (*ic_ampdu_tx_stop)(struct ieee80211com *,
+  void            (*ic_ampdu_tx_stop)(struct ieee80211_s *,
                   struct ieee80211_node *, uint8_t);
-  int            (*ic_ampdu_rx_start)(struct ieee80211com *,
+  int            (*ic_ampdu_rx_start)(struct ieee80211_s *,
                   struct ieee80211_node *, uint8_t);
-  void            (*ic_ampdu_rx_stop)(struct ieee80211com *,
+  void            (*ic_ampdu_rx_stop)(struct ieee80211_s *,
                   struct ieee80211_node *, uint8_t);
 
   char            ic_ifname[IFNAMSIZ];  /* Network interface name */
@@ -275,13 +275,13 @@ struct ieee80211com
   uint16_t        ic_rtsthreshold;
   uint16_t        ic_fragthreshold;
   unsigned int    ic_scangen;    /* gen# for timeout scan */
-  struct ieee80211_node  *(*ic_node_alloc)(struct ieee80211com *);
-  void            (*ic_node_free)(struct ieee80211com *,
+  struct ieee80211_node  *(*ic_node_alloc)(struct ieee80211_s *);
+  void            (*ic_node_free)(struct ieee80211_s *,
                   struct ieee80211_node *);
-  void            (*ic_node_copy)(struct ieee80211com *,
+  void            (*ic_node_copy)(struct ieee80211_s *,
                   struct ieee80211_node *,
                   const struct ieee80211_node *);
-  uint8_t         (*ic_node_getrssi)(struct ieee80211com *,
+  uint8_t         (*ic_node_getrssi)(struct ieee80211_s *,
                    const struct ieee80211_node *);
   uint8_t         ic_max_rssi;
   struct ieee80211_tree    ic_tree;
@@ -348,7 +348,7 @@ struct ieee80211com
   dq_queue_t      c_vaps;
 };
 
-extern dq_queue_t ieee80211com_head;
+extern dq_queue_t ieee80211_s_head;
 
 #define IEEE80211_ADDR_EQ(a1,a2)    (memcmp(a1,a2,IEEE80211_ADDR_LEN) == 0)
 #define IEEE80211_ADDR_COPY(dst,src)    memcpy(dst,src,IEEE80211_ADDR_LEN)
@@ -414,31 +414,31 @@ extern dq_queue_t ieee80211com_head;
 /* Driver callbacks for media status and change requests. */
 #warning REVISIT: These don't make sense with NuttX.
 
-struct ieee80211com;
+struct ieee80211_s;
 struct ifmediareq;
-typedef int (*ifm_change_cb_t)(struct ieee80211com *);
-typedef void (*ifm_stat_cb_t)(struct ieee80211com *, struct ifmediareq *);
+typedef int (*ifm_change_cb_t)(struct ieee80211_s *);
+typedef void (*ifm_stat_cb_t)(struct ieee80211_s *, struct ifmediareq *);
 
 #warning REVISIT: I think that these media interfaces should go away??? They are not used internally.
-void ieee80211_media_init(struct ieee80211com *, ifm_change_cb_t, ifm_stat_cb_t);
-int ieee80211_media_change(struct ieee80211com *);
-void ieee80211_media_status(struct ieee80211com *, struct ifmediareq *);
-int ieee80211_ioctl(struct ieee80211com *, unsigned long, void *);
-int ieee80211_get_rate(struct ieee80211com *);
-void ieee80211_watchdog(struct ieee80211com *);
-int ieee80211_fix_rate(struct ieee80211com *, struct ieee80211_node *, int);
-int ieee80211_rate2media(struct ieee80211com *, int,
+void ieee80211_media_init(struct ieee80211_s *, ifm_change_cb_t, ifm_stat_cb_t);
+int ieee80211_media_change(struct ieee80211_s *);
+void ieee80211_media_status(struct ieee80211_s *, struct ifmediareq *);
+int ieee80211_ioctl(struct ieee80211_s *, unsigned long, void *);
+int ieee80211_get_rate(struct ieee80211_s *);
+void ieee80211_watchdog(struct ieee80211_s *);
+int ieee80211_fix_rate(struct ieee80211_s *, struct ieee80211_node *, int);
+int ieee80211_rate2media(struct ieee80211_s *, int,
         enum ieee80211_phymode);
 int ieee80211_media2rate(int);
 uint8_t ieee80211_rate2plcp(uint8_t, enum ieee80211_phymode);
 uint8_t ieee80211_plcp2rate(uint8_t, enum ieee80211_phymode);
 unsigned int ieee80211_mhz2ieee(unsigned int, unsigned int);
-unsigned int ieee80211_chan2ieee(struct ieee80211com *,
+unsigned int ieee80211_chan2ieee(struct ieee80211_s *,
         const struct ieee80211_channel *);
 unsigned int ieee80211_ieee2mhz(unsigned int, unsigned int);
-int ieee80211_setmode(struct ieee80211com *, enum ieee80211_phymode);
-enum ieee80211_phymode ieee80211_next_mode(struct ieee80211com *);
-enum ieee80211_phymode ieee80211_chan2mode(struct ieee80211com *,
+int ieee80211_setmode(struct ieee80211_s *, enum ieee80211_phymode);
+enum ieee80211_phymode ieee80211_next_mode(struct ieee80211_s *);
+enum ieee80211_phymode ieee80211_chan2mode(struct ieee80211_s *,
         const struct ieee80211_channel *);
 
 extern int ieee80211_cache_size;

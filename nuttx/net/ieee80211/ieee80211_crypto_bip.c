@@ -56,7 +56,7 @@ struct ieee80211_bip_ctx
  * by drivers doing hardware crypto.
  */
 
-int ieee80211_bip_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
+int ieee80211_bip_set_key(struct ieee80211_s *ic, struct ieee80211_key *k)
 {
   struct ieee80211_bip_ctx *ctx;
 
@@ -71,7 +71,7 @@ int ieee80211_bip_set_key(struct ieee80211com *ic, struct ieee80211_key *k)
   return 0;
 }
 
-void ieee80211_bip_delete_key(struct ieee80211com *ic, struct ieee80211_key *k)
+void ieee80211_bip_delete_key(struct ieee80211_s *ic, struct ieee80211_key *k)
 {
   if (k->k_priv != NULL)
     {
@@ -89,7 +89,7 @@ struct ieee80211_bip_frame {
     uint8_t    i_addr3[IEEE80211_ADDR_LEN];
 } packed_struct;
 
-struct iob_s *ieee80211_bip_encap(struct ieee80211com *ic, struct iob_s *iob0,
+struct iob_s *ieee80211_bip_encap(struct ieee80211_s *ic, struct iob_s *iob0,
     struct ieee80211_key *k)
 {
     struct ieee80211_bip_ctx *ctx = k->k_priv;
@@ -167,7 +167,7 @@ struct iob_s *ieee80211_bip_encap(struct ieee80211com *ic, struct iob_s *iob0,
     return NULL;
 }
 
-struct iob_s *ieee80211_bip_decap(struct ieee80211com *ic, struct iob_s *iob0,
+struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
     struct ieee80211_key *k)
 {
     struct ieee80211_bip_ctx *ctx = k->k_priv;

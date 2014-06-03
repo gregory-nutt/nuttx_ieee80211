@@ -49,7 +49,7 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-int ieee80211_send_eapol_key(struct ieee80211com *, struct iob_s *,
+int ieee80211_send_eapol_key(struct ieee80211_s *, struct iob_s *,
             struct ieee80211_node *, const struct ieee80211_ptk *);
 #ifdef CONFIG_IEEE80211_AP
 uint8_t *ieee80211_add_gtk_kde(uint8_t *, struct ieee80211_node *,
@@ -63,7 +63,7 @@ struct iob_s *ieee80211_get_eapol_key(int, int, unsigned int);
  * the PTK must be passed (otherwise it can be set to NULL.)
  */
 
-int ieee80211_send_eapol_key(struct ieee80211com *ic, struct iob_s *iob,
+int ieee80211_send_eapol_key(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni, const struct ieee80211_ptk *ptk)
 {
   struct ether_header *eh;
@@ -173,7 +173,7 @@ void
 ieee80211_eapol_timeout(void *arg)
 {
     struct ieee80211_node *ni = arg;
-    struct ieee80211com *ic = ni->ni_ic;
+    struct ieee80211_s *ic = ni->ni_ic;
     int s;
 
     ndbg("ERROR: no answer from station %s in state %d\n",
@@ -288,7 +288,7 @@ struct iob_s *ieee80211_get_eapol_key(int flags, int type, unsigned int pktlen)
 #ifdef CONFIG_IEEE80211_AP
 /* Send 4-Way Handshake Message 1 to the supplicant */
 
-int ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
+int ieee80211_send_4way_msg1(struct ieee80211_s *ic, struct ieee80211_node *ni)
 {
   struct ieee80211_eapol_key *key;
   struct iob_s *iob;
@@ -348,7 +348,7 @@ int ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
 
 /* Send 4-Way Handshake Message 2 to the authenticator */
 
-int ieee80211_send_4way_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
+int ieee80211_send_4way_msg2(struct ieee80211_s *ic, struct ieee80211_node *ni,
   const uint8_t *replaycnt, const struct ieee80211_ptk *tptk)
 {
   struct ieee80211_eapol_key *key;
@@ -412,7 +412,7 @@ int ieee80211_send_4way_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
 #ifdef CONFIG_IEEE80211_AP
 /* Send 4-Way Handshake Message 3 to the supplicant */
 
-int ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
+int ieee80211_send_4way_msg3(struct ieee80211_s *ic, struct ieee80211_node *ni)
 {
   struct ieee80211_eapol_key *key;
   struct ieee80211_key *k;
@@ -506,7 +506,7 @@ int ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
 
 /* Send 4-Way Handshake Message 4 to the authenticator */
 
-int ieee80211_send_4way_msg4(struct ieee80211com *ic, struct ieee80211_node *ni)
+int ieee80211_send_4way_msg4(struct ieee80211_s *ic, struct ieee80211_node *ni)
 {
   struct ieee80211_eapol_key *key;
   struct iob_s *iob;
@@ -558,7 +558,7 @@ int ieee80211_send_4way_msg4(struct ieee80211com *ic, struct ieee80211_node *ni)
 #ifdef CONFIG_IEEE80211_AP
 /* Send Group Key Handshake Message 1 to the supplicant */
 
-int ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
+int ieee80211_send_group_msg1(struct ieee80211_s *ic, struct ieee80211_node *ni)
 {
   struct ieee80211_eapol_key *key;
   const struct ieee80211_key *k;
@@ -659,7 +659,7 @@ int ieee80211_send_group_msg1(struct ieee80211com *ic, struct ieee80211_node *ni
 
 /* Send Group Key Handshake Message 2 to the authenticator */
 
-int ieee80211_send_group_msg2(struct ieee80211com *ic, struct ieee80211_node *ni, const struct ieee80211_key *k)
+int ieee80211_send_group_msg2(struct ieee80211_s *ic, struct ieee80211_node *ni, const struct ieee80211_key *k)
 {
   struct ieee80211_eapol_key *key;
   uint16_t info;
@@ -707,7 +707,7 @@ int ieee80211_send_group_msg2(struct ieee80211com *ic, struct ieee80211_node *ni
  * or to report a MIC failure in a TKIP MSDU.
  */
  
-int ieee80211_send_eapol_key_req(struct ieee80211com *ic,
+int ieee80211_send_eapol_key_req(struct ieee80211_s *ic,
     struct ieee80211_node *ni, uint16_t info, uint64_t tsc)
 {
   struct ieee80211_eapol_key *key;

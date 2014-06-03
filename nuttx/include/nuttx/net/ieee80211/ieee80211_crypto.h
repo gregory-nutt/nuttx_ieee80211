@@ -111,24 +111,24 @@ struct ieee80211_pmk
 
 /* forward references */
 
-struct ieee80211com;
+struct ieee80211_s;
 struct ieee80211_node;
 
-void ieee80211_crypto_attach(struct ieee80211com *);
-void ieee80211_crypto_detach(struct ieee80211com *);
+void ieee80211_crypto_attach(struct ieee80211_s *);
+void ieee80211_crypto_detach(struct ieee80211_s *);
 
-struct ieee80211_key *ieee80211_get_txkey(struct ieee80211com *,
+struct ieee80211_key *ieee80211_get_txkey(struct ieee80211_s *,
         const struct ieee80211_frame *, struct ieee80211_node *);
-struct ieee80211_key *ieee80211_get_rxkey(struct ieee80211com *,
+struct ieee80211_key *ieee80211_get_rxkey(struct ieee80211_s *,
         struct iob_s *, struct ieee80211_node *);
-struct iob_s *ieee80211_encrypt(struct ieee80211com *, struct iob_s *,
+struct iob_s *ieee80211_encrypt(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_key *);
-struct iob_s *ieee80211_decrypt(struct ieee80211com *, struct iob_s *,
+struct iob_s *ieee80211_decrypt(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
 
-int ieee80211_set_key(struct ieee80211com *, struct ieee80211_node *,
+int ieee80211_set_key(struct ieee80211_s *, struct ieee80211_node *,
         struct ieee80211_key *);
-void ieee80211_delete_key(struct ieee80211com *, struct ieee80211_node *,
+void ieee80211_delete_key(struct ieee80211_s *, struct ieee80211_node *,
         struct ieee80211_key *);
 
 void ieee80211_eapol_key_mic(struct ieee80211_eapol_key *,
@@ -136,54 +136,54 @@ void ieee80211_eapol_key_mic(struct ieee80211_eapol_key *,
 int ieee80211_eapol_key_check_mic(struct ieee80211_eapol_key *,
         const uint8_t *);
 #ifdef CONFIG_IEEE80211_AP
-void ieee80211_eapol_key_encrypt(struct ieee80211com *,
+void ieee80211_eapol_key_encrypt(struct ieee80211_s *,
         struct ieee80211_eapol_key *, const uint8_t *);
 #endif
 int ieee80211_eapol_key_decrypt(struct ieee80211_eapol_key *,
         const uint8_t *);
 
-struct ieee80211_pmk *ieee80211_pmksa_add(struct ieee80211com *,
+struct ieee80211_pmk *ieee80211_pmksa_add(struct ieee80211_s *,
         enum ieee80211_akm, const uint8_t *, const uint8_t *, uint32_t);
-struct ieee80211_pmk *ieee80211_pmksa_find(struct ieee80211com *,
+struct ieee80211_pmk *ieee80211_pmksa_find(struct ieee80211_s *,
         struct ieee80211_node *, const uint8_t *);
 void ieee80211_derive_ptk(enum ieee80211_akm, const uint8_t *,
         const uint8_t *, const uint8_t *, const uint8_t *,
         const uint8_t *, struct ieee80211_ptk *);
 int ieee80211_cipher_keylen(enum ieee80211_cipher);
 
-int ieee80211_wep_set_key(struct ieee80211com *, struct ieee80211_key *);
-void ieee80211_wep_delete_key(struct ieee80211com *,
+int ieee80211_wep_set_key(struct ieee80211_s *, struct ieee80211_key *);
+void ieee80211_wep_delete_key(struct ieee80211_s *,
         struct ieee80211_key *);
-struct iob_s *ieee80211_wep_encrypt(struct ieee80211com *, struct iob_s *,
+struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_key *);
-struct iob_s *ieee80211_wep_decrypt(struct ieee80211com *, struct iob_s *,
+struct iob_s *ieee80211_wep_decrypt(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_key *);
 
-int ieee80211_tkip_set_key(struct ieee80211com *, struct ieee80211_key *);
-void ieee80211_tkip_delete_key(struct ieee80211com *,
+int ieee80211_tkip_set_key(struct ieee80211_s *, struct ieee80211_key *);
+void ieee80211_tkip_delete_key(struct ieee80211_s *,
         struct ieee80211_key *);
-struct iob_s *ieee80211_tkip_encrypt(struct ieee80211com *,
+struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *,
         struct iob_s *, struct ieee80211_key *);
-struct iob_s *ieee80211_tkip_decrypt(struct ieee80211com *,
+struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *,
         struct iob_s *, struct ieee80211_key *);
 void ieee80211_tkip_mic(struct iob_s *, int, const uint8_t *,
         uint8_t[IEEE80211_TKIP_MICLEN]);
-void ieee80211_michael_mic_failure(struct ieee80211com *, uint64_t);
+void ieee80211_michael_mic_failure(struct ieee80211_s *, uint64_t);
 
-int ieee80211_ccmp_set_key(struct ieee80211com *, struct ieee80211_key *);
-void ieee80211_ccmp_delete_key(struct ieee80211com *,
+int ieee80211_ccmp_set_key(struct ieee80211_s *, struct ieee80211_key *);
+void ieee80211_ccmp_delete_key(struct ieee80211_s *,
         struct ieee80211_key *);
-struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211com *, struct iob_s *,
+struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_key *);
-struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211com *, struct iob_s *,
+struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_key *);
 
-int ieee80211_bip_set_key(struct ieee80211com *, struct ieee80211_key *);
-void ieee80211_bip_delete_key(struct ieee80211com *,
+int ieee80211_bip_set_key(struct ieee80211_s *, struct ieee80211_key *);
+void ieee80211_bip_delete_key(struct ieee80211_s *,
         struct ieee80211_key *);
-struct iob_s *ieee80211_bip_encap(struct ieee80211com *, struct iob_s *,
+struct iob_s *ieee80211_bip_encap(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_key *);
-struct iob_s *ieee80211_bip_decap(struct ieee80211com *, struct iob_s *,
+struct iob_s *ieee80211_bip_decap(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_key *);
 
 #endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_CRYPTO_H */
