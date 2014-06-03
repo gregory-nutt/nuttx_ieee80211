@@ -61,6 +61,8 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
+#inlcude "net_internal.h"
+
 int ieee80211_classify(struct ieee80211com *, struct ieee80211_iobuf_s *);
 int ieee80211_mgmt_output(struct ieee80211com *, struct ieee80211_node *,
         struct ieee80211_iobuf_s *, int);
@@ -110,9 +112,7 @@ int ieee80211_output(struct ieeeu80211com *ic, struct ieee80211_iobuf_s *iob, st
   FAR struct uip_driver_s *dev;
   FAR struct ieee80211_frame *wh;
   FAR struct m_tag *mtag;
-  unsigned short mflags;
   int s;
-  int len;
   int error = 0;
 
   /* Get the driver structure */
@@ -167,8 +167,6 @@ int ieee80211_output(struct ieeeu80211com *ic, struct ieee80211_iobuf_s *iob, st
        * yet active.
        */
 
-      mflags = iob->m_flags;
-      len = iob->m_pktlen;
       s = splnet();
       error = ieee80211_ifsend(iob);
       if (error)
@@ -189,9 +187,12 @@ fallback:
   return (ether_output(ic, iob, dst, rt));
 
  bad:
-    if (iob)
-        ieee80211_iofree(iob);
-    return (error);
+  if (iob)
+    {
+      ieee80211_iofree(iob);
+    }
+
+  return error;
 }
 
 /* Send a management frame to the specified node.  The node pointer
@@ -1130,7 +1131,8 @@ struct ieee80211_iobuf_s *ieee80211_getmgmt(int flags, int type, unsigned int pk
       MCLGET(iob, flags);
       if (!(iob->m_flags & M_EXT))
         {
-          return ieee80211_iofree(iob);
+          ieee80211_iofree(iob);
+          return NULL;
         }
     }
 
@@ -1736,41 +1738,49 @@ int ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
 
     case IEEE80211_FC0_SUBTYPE_DEAUTH:
         if ((iob = ieee80211_get_deauth(ic, ni, arg1)) == NULL)
+          {
             senderr(ENOMEM, is_tx_nombuf);
+          }
 
         nvdbg("%s: station %s deauthenticate (reason %d)\n",
               ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), arg1);
-        }
         break;
 
     case IEEE80211_FC0_SUBTYPE_ASSOC_REQ:
     case IEEE80211_FC0_SUBTYPE_REASSOC_REQ:
         if ((iob = ieee80211_get_assoc_req(ic, ni, type)) == NULL)
+          {
             senderr(ENOMEM, is_tx_nombuf);
+          }
 
         timer = IEEE80211_TRANS_WAIT;
         break;
+
 #ifdef CONFIG_IEEE80211_AP
     case IEEE80211_FC0_SUBTYPE_ASSOC_RESP:
     case IEEE80211_FC0_SUBTYPE_REASSOC_RESP:
         if ((iob = ieee80211_get_assoc_resp(ic, ni, arg1)) == NULL)
+          {
             senderr(ENOMEM, is_tx_nombuf);
+          }
         break;
 #endif
     case IEEE80211_FC0_SUBTYPE_DISASSOC:
         if ((iob = ieee80211_get_disassoc(ic, ni, arg1)) == NULL)
+          {
             senderr(ENOMEM, is_tx_nombuf);
+          }
 
         nvdbg("%s: station %s disassociate (reason %d)\n",
               ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), arg1);
-        }
         break;
 
     case IEEE80211_FC0_SUBTYPE_ACTION:
-        iob = ieee80211_get_action(ic, ni, arg1 >> 16, arg1 & 0xffff,
-            arg2);
+        iob = ieee80211_get_action(ic, ni, arg1 >> 16, arg1 & 0xffff, arg2);
         if (iob == NULL)
+          {
             senderr(ENOMEM, is_tx_nombuf);
+          }
         break;
 
     default:
@@ -1780,13 +1790,19 @@ int ieee80211_send_mgmt(struct ieee80211com *ic, struct ieee80211_node *ni,
     }
 
     ret = ieee80211_mgmt_output(ic, ni, iob, type);
-    if (ret == 0) {
+    if (ret == 0)
+      {
         if (timer)
+          {
             ic->ic_mgt_timer = timer;
-    } else {
+          }
+      }
+    else
+      {
 bad:
         ieee80211_release_node(ic, ni);
-    }
+      }
+
     return ret;
 #undef senderr
 }

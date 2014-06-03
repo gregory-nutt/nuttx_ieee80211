@@ -41,8 +41,6 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 
-#include <crypto/rijndael.h>
-
 /* CCMP software crypto context */
 
 struct ieee80211_ccmp_ctx

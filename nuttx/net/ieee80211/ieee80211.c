@@ -117,6 +117,7 @@ void ieee80211_ifattach(struct ieee80211com *ic)
             }
 
           if (IEEE80211_IS_CHAN_T(c))
+            {
               ic->ic_modecaps |= 1<<IEEE80211_MODE_TURBO;
             }
         }
@@ -125,7 +126,10 @@ void ieee80211_ifattach(struct ieee80211com *ic)
     /* validate ic->ic_curmode */
 
     if ((ic->ic_modecaps & (1<<ic->ic_curmode)) == 0)
+      {
         ic->ic_curmode = IEEE80211_MODE_AUTO;
+      }
+
     ic->ic_des_chan = IEEE80211_CHAN_ANYC;    /* any channel is ok */
     ic->ic_scan_lock = IEEE80211_SCAN_UNLOCKED;
 
@@ -307,7 +311,7 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
     /* validate new mode */
     if ((ic->ic_modecaps & (1<<mode)) == 0) {
         ndbg("ERROR: mode %u not supported (caps 0x%x)\n", mode, ic->ic_modecaps);
-        return EINVAL;
+        return -EINVAL;
     }
 
     /* Verify at least one channel is present in the available
@@ -330,7 +334,7 @@ int ieee80211_setmode(struct ieee80211com *ic, enum ieee80211_phymode mode)
     }
     if (i > IEEE80211_CHAN_MAX) {
         ndbg("ERROR: no channels found for mode %u\n", mode);
-        return EINVAL;
+        return -EINVAL;
     }
 
     /* Calculate the active channel set */

@@ -321,7 +321,7 @@ static int ieee80211_ioctl_getmode(struct ieee80211com *ic)
 }
 
 
-int ieee80211_ioctl(struct ieee80211com *ic, u_long cmd, void *data)
+int ieee80211_ioctl(struct ieee80211com *ic, unsigned long cmd, void *data)
 {
     struct ifreq *ifr = (struct ifreq *)data;
     int i, error = 0;

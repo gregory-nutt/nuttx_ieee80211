@@ -29,6 +29,7 @@
 #include <sys/socket.h>
 
 #include <string.h>
+#include <errno.h>
 
 #include <net/if.h>
 
@@ -41,6 +42,18 @@
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#ifndef MIN
+#  define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
 
 /* WEP software crypto context */
 
@@ -167,7 +180,7 @@ struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct 
             /* next is full and there's more data to copy */
 
             newbuf = ieee80211_ioalloc();
-            if newbuf == NULL)
+            if (newbuf == NULL)
               {
                 goto nospace;
               }
@@ -193,7 +206,7 @@ struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *ic, struct 
             noff = 0;
           }
 
-        len = min(iob->m_len - moff, next->m_len - noff);
+        len = MIN(iob->m_len - moff, next->m_len - noff);
 
         crc = ether_crc32_le_update(crc, iob->m_data + moff, len);
         rc4_crypt(&ctx->rc4, iob->m_data + moff, next->m_data + noff, len);
@@ -346,7 +359,8 @@ struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *ic, struct 
 
             noff = 0;
         }
-        len = min(iob->m_len - moff, next->m_len - noff);
+
+        len = MIN(iob->m_len - moff, next->m_len - noff);
 
         rc4_crypt(&ctx->rc4, iob->m_data + moff, next->m_data + noff, len);
         crc = ether_crc32_le_update(crc, next->m_data + noff, len);

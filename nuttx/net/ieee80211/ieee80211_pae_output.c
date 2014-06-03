@@ -73,7 +73,7 @@ int ieee80211_send_eapol_key(struct ieee80211com *ic, struct ieee80211_iobuf_s *
   M_PREPEND(iob, sizeof(struct ether_header), M_DONTWAIT);
   if (iob == NULL)
     {
-      return ENOMEM;
+      return -ENOMEM;
     }
 
   /* No need to m_pullup here (ok by construction) */
@@ -310,7 +310,7 @@ int ieee80211_send_4way_msg1(struct ieee80211com *ic, struct ieee80211_node *ni)
       (ni->ni_rsnprotos == IEEE80211_PROTO_RSN) ? 2 + 20 : 0);
   if (iob == NULL)
     {
-      return ENOMEM;
+      return -ENOMEM;
     }
 
   key = (FAR struct ieee80211_eapol_key *)iob->m_data;
@@ -365,7 +365,7 @@ int ieee80211_send_4way_msg2(struct ieee80211com *ic, struct ieee80211_node *ni,
 
   if (iob == NULL)
     {
-      return ENOMEM;
+      return -ENOMEM;
     }
 
   key = (FAR struct ieee80211_eapol_key *)iob->m_data;
@@ -440,7 +440,7 @@ int ieee80211_send_4way_msg3(struct ieee80211com *ic, struct ieee80211_node *ni)
 
   if (iob == NULL)
     {
-      return ENOMEM;
+      return -ENOMEM;
     }
 
   key = (FAR struct ieee80211_eapol_key *)iob->m_data;
@@ -670,7 +670,7 @@ int ieee80211_send_group_msg2(struct ieee80211com *ic, struct ieee80211_node *ni
   iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
   if (iob == NULL)
     {
-      return ENOMEM;
+      return -ENOMEM;
     }
 
   key = (FAR struct ieee80211_eapol_key *)iob->m_data;
@@ -718,7 +718,7 @@ int ieee80211_send_eapol_key_req(struct ieee80211com *ic,
   iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
   if (iob == NULL)
     {
-      return ENOMEM;
+      return -ENOMEM;
     }
 
   key = (FAR struct ieee80211_eapol_key *)iob->m_data;

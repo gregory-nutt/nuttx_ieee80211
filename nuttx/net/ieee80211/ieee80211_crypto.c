@@ -67,28 +67,34 @@ void ieee80211_crypto_attach(struct ieee80211com *ic)
 
 void ieee80211_crypto_detach(struct ieee80211com *ic)
 {
-    struct ieee80211_pmk *pmk;
-    int i;
+  FAR struct ieee80211_pmk *pmk;
+  int i;
 
-    /* Purge the PMKSA cache */
+  /* Purge the PMKSA cache */
 
-    while ((pmk = sq_peek(&ic->ic_pmksa)) != NULL)
+  while ((pmk = (FAR struct ieee80211_pmk *)sq_peek(&ic->ic_pmksa)) != NULL)
+    {
+      sq_remfirst(&ic->ic_pmksa);
+      explicit_bzero(pmk, sizeof(struct ieee80211_pmk));
+      kfree(pmk);
+    }
+
+  /* Clear all group keys from memory */
+
+    for (i = 0; i < IEEE80211_GROUP_NKID; i++)
       {
-        sq_remfirst(&ic->ic_pmksa, pmk);
-        explicit_bzero(pmk, sizeof(*pmk));
-        kfree(pmk);
-      }
-
-    /* clear all group keys from memory */
-    for (i = 0; i < IEEE80211_GROUP_NKID; i++) {
         struct ieee80211_key *k = &ic->ic_nw_keys[i];
         if (k->k_cipher != IEEE80211_CIPHER_NONE)
+          {
             (*ic->ic_delete_key)(ic, NULL, k);
+          }
+
         explicit_bzero(k, sizeof(*k));
     }
 
-    /* clear pre-shared key from memory */
-    explicit_bzero(ic->ic_psk, IEEE80211_PMK_LEN);
+  /* Clear pre-shared key from memory */
+
+  explicit_bzero(ic->ic_psk, IEEE80211_PMK_LEN);
 }
 
 /*
@@ -582,77 +588,76 @@ int ieee80211_eapol_key_decrypt(struct ieee80211_eapol_key *key,
     return 1;    /* unknown Key Descriptor Version */
 }
 
-/*
- * Add a PMK entry to the PMKSA cache.
- */
+/* Add a PMK entry to the PMKSA cache */
 
-struct ieee80211_pmk *ieee80211_pmksa_add(struct ieee80211com *ic, enum ieee80211_akm akm,
-    const uint8_t *macaddr, const uint8_t *key, uint32_t lifetime)
+struct ieee80211_pmk *ieee80211_pmksa_add(struct ieee80211com *ic, enum ieee80211_akm akm, const uint8_t *macaddr, const uint8_t *key, uint32_t lifetime)
 {
-    struct ieee80211_pmk *pmk;
-    sq_entry_t *entry;
+  struct ieee80211_pmk *pmk;
+  sq_entry_t *entry;
 
-    /* check if an entry already exists for this (STA,AKMP) */
+  /* Check if an entry already exists for this (STA,AKMP) */
 
-    for (entry = ic->ic_pmksa.head; entry; entry->flink)
-      {
-        pmk = (struct ieee80211_pmk *)entry;
-        if (pmk->pmk_akm == akm &&
-            IEEE80211_ADDR_EQ(pmk->pmk_macaddr, macaddr))
-          {
-            break;
-          }
-      }
-
-    if (pmk == NULL)
-      {
-        /* Allocate a new PMKSA entry */
-
-        if ((pmk = kmalloc(sizeof(struct ieee80211_pmk))) == NULL)
-          {
-            return NULL;
-          }
-
-        pmk->pmk_akm = akm;
-        IEEE80211_ADDR_COPY(pmk->pmk_macaddr, macaddr);
-        sq_addlast((sq_entry_t *pmk), &ic->ic_pmksa);
+  for (entry = ic->ic_pmksa.head; entry; entry = entry->flink)
+    {
+      pmk = (struct ieee80211_pmk *)entry;
+      if (pmk->pmk_akm == akm && IEEE80211_ADDR_EQ(pmk->pmk_macaddr, macaddr))
+        {
+          break;
+        }
     }
-    memcpy(pmk->pmk_key, key, IEEE80211_PMK_LEN);
-    pmk->pmk_lifetime = lifetime;    /* XXX not used yet */
+
+  if (pmk == NULL)
+    {
+      /* Allocate a new PMKSA entry */
+
+      if ((pmk = kmalloc(sizeof(struct ieee80211_pmk))) == NULL)
+        {
+          return NULL;
+        }
+
+      pmk->pmk_akm = akm;
+      IEEE80211_ADDR_COPY(pmk->pmk_macaddr, macaddr);
+      sq_addlast((sq_entry_t *)pmk, &ic->ic_pmksa);
+    }
+
+  memcpy(pmk->pmk_key, key, IEEE80211_PMK_LEN);
+  pmk->pmk_lifetime = lifetime;    /* XXX not used yet */
 #ifdef CONFIG_IEEE80211_AP
-    if (ic->ic_opmode == IEEE80211_M_HOSTAP) {
+  if (ic->ic_opmode == IEEE80211_M_HOSTAP)
+    {
         ieee80211_derive_pmkid(pmk->pmk_akm, pmk->pmk_key,
             ic->ic_myaddr, macaddr, pmk->pmk_pmkid);
-    } else
+    }
+  else
 #endif
     {
         ieee80211_derive_pmkid(pmk->pmk_akm, pmk->pmk_key,
             macaddr, ic->ic_myaddr, pmk->pmk_pmkid);
     }
-    return pmk;
+
+  return pmk;
 }
 
 /*
  * Check if we have a cached PMK entry for the specified node and PMKID.
  */
 
-struct ieee80211_pmk *ieee80211_pmksa_find(struct ieee80211com *ic, struct ieee80211_node *ni,
-    const uint8_t *pmkid)
+struct ieee80211_pmk *ieee80211_pmksa_find(struct ieee80211com *ic, struct ieee80211_node *ni, const uint8_t *pmkid)
 {
-    struct ieee80211_pmk *pmk;
-    sq_entry_t *entry;
+  struct ieee80211_pmk *pmk;
+  sq_entry_t *entry;
 
-    for (entry = ic->ic_pmksa.head; entry; entry->flink)
-      {
-        pmk = (struct ieee80211_pmk *)entry;
-        if (pmk->pmk_akm == ni->ni_rsnakms &&
-            IEEE80211_ADDR_EQ(pmk->pmk_macaddr, ni->ni_macaddr) &&
-            (pmkid == NULL ||
-             memcmp(pmk->pmk_pmkid, pmkid, IEEE80211_PMKID_LEN) == 0))
-          {
-            break;
-          }
-      }
+  for (entry = ic->ic_pmksa.head; entry; entry = entry->flink)
+    {
+      pmk = (struct ieee80211_pmk *)entry;
+      if (pmk->pmk_akm == ni->ni_rsnakms &&
+          IEEE80211_ADDR_EQ(pmk->pmk_macaddr, ni->ni_macaddr) &&
+          (pmkid == NULL ||
+           memcmp(pmk->pmk_pmkid, pmkid, IEEE80211_PMKID_LEN) == 0))
+        {
+          break;
+        }
+    }
 
-    return pmk;
+  return pmk;
 }

@@ -52,6 +52,8 @@
 #endif
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/clock.h>
+
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
@@ -611,8 +613,10 @@ struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *ic, struct ieee8
         df->df_seq = seq;
         df->df_frag = 0;
         df->df_m = iob;
-        /* start receive MSDU timer of aMaxReceiveLifetime */
-        wd_start(df->df_to,  SEC2TICK(1));
+
+        /* Start receive MSDU timer of aMaxReceiveLifetime */
+
+        wd_start(df->df_to, SEC2TICK(1));
         return NULL;    /* MSDU or MMPDU not yet complete */
     }
 
@@ -795,7 +799,9 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *i
     struct ieee80211_node *ni)
 {
   struct ether_header *eh;
-  struct ieee80211_iobuf_s *m1;
+#ifdef CONFIG_IEEE80211_AP
+  struct ieee80211_iobuf_s *iob1;
+#endif
 
   eh = (FAR struct ether_header *)iob->m_data;
 
@@ -812,8 +818,9 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *i
    * bridge EAPOL frames as suggested in C.1.1 of IEEE Std 802.1X.
    */
 
-  m1 = NULL;
 #ifdef CONFIG_IEEE80211_AP
+  iob1 = NULL;
+
   if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
       !(ic->ic_flags & IEEE80211_F_NOBRIDGE) &&
       eh->ether_type != htons(ETHERTYPE_PAE))
@@ -824,10 +831,10 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *i
 
       if (ETHER_IS_MULTICAST(eh->ether_dhost))
         {
-          m1 = m_copym2(iob, 0, M_COPYALL, M_DONTWAIT);
-          if (m1 != NULL)
+          iob1 = m_copym2(iob, 0, M_COPYALL, M_DONTWAIT);
+          if (iob1 != NULL)
             {
-              m1->m_flags |= M_MCAST;
+              iob1->m_flags |= M_MCAST;
             }
         }
       else
@@ -835,15 +842,15 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *i
           ni1 = ieee80211_find_node(ic, eh->ether_dhost);
           if (ni1 != NULL && ni1->ni_state == IEEE80211_STA_ASSOC)
             {
-              m1 = iob;
+              iob1 = iob;
               iob = NULL;
             }
         }
 
-      if (m1 != NULL)
+      if (iob1 != NULL)
         {
-          len = m1->m_pktlen;
-          error = ieee80211_ifsend(m1);
+          len = iob1->m_pktlen;
+          error = ieee80211_ifsend(iob1);
           if (!error)
             {
               ieee80211_ifstart();
@@ -1404,15 +1411,17 @@ void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
   const uint8_t *wmmie;
   const uint8_t *rsnie;
   const uint8_t *wpaie;
+#ifdef CONFIG_IEEE80211_HT
   const uint8_t *htcaps;
   const uint8_t *htop;
+#endif
   uint16_t capinfo;
   uint16_t bintval;
   uint8_t chan;
   uint8_t bchan;
   uint8_t erp;
   int ndx;
-  int bit
+  int bit;
   int is_new;
 
   /* We process beacon/probe response frames for:
@@ -1442,7 +1451,7 @@ void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
       return;
     }
 
-  wh   = (FAR struct ieee80211_fram *)iob->m_data;
+  wh   = (FAR struct ieee80211_frame *)iob->m_data;
   frm  = (const uint8_t *)&wh[1];
   efrm = iob->m_data + iob->m_len;
 
@@ -1450,8 +1459,19 @@ void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
   bintval = LE_READ_2(frm); frm += 2;
   capinfo = LE_READ_2(frm); frm += 2;
 
-  ssid = rates = xrates = edcaie = wmmie = rsnie = wpaie = NULL;
-  htcaps = htop = NULL;
+  ssid = NULL;
+  rates = NULL;
+  xrates = NULL;
+  edcaie = NULL;
+  wmmie = NULL;
+  rsnie NULL;
+  wpaie = NULL;
+
+#ifdef CONFIG_IEEE80211_HT
+  htcaps = NULL;
+  htop = NULL;
+#endif
+
   bchan = ieee80211_chan2ieee(ic, ic->ic_bss->ni_chan);
   chan = bchan;
   erp = 0;
@@ -1806,8 +1826,14 @@ void ieee80211_recv_probe_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi)
 {
     const struct ieee80211_frame *wh;
-    const uint8_t *frm, *efrm;
-    const uint8_t *ssid, *rates, *xrates, *htcaps;
+    const uint8_t *frm;
+    const uint8_t *efrm;
+    const uint8_t *ssid;
+    const uint8_t *rates;
+    const uint8_t *xrates;
+#ifdef CONFIG_IEEE80211_HT
+    const uint8_t *htcaps;
+#endif
     uint8_t rate;
 
     if (ic->ic_opmode == IEEE80211_M_STA ||
@@ -1818,13 +1844,23 @@ void ieee80211_recv_probe_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
     frm = (const uint8_t *)&wh[1];
     efrm = iob->m_data + iob->m_len;
 
-    ssid = rates = xrates = htcaps = NULL;
-    while (frm + 2 <= efrm) {
-        if (frm + 2 + frm[1] > efrm) {
+    ssid = NULL;
+    rates = NULL;
+    xrates = NULL;
+#ifdef CONFIG_IEEE80211_HT
+    htcaps = NULL;
+#endif
+
+    while (frm + 2 <= efrm)
+      {
+        if (frm + 2 + frm[1] > efrm)
+          {
             ic->ic_stats.is_rx_elem_toosmall++;
             break;
-        }
-        switch (frm[0]) {
+          }
+
+        switch (frm[0])
+          {
         case IEEE80211_ELEMID_SSID:
             ssid = frm;
             break;
@@ -1961,10 +1997,20 @@ void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int reassoc)
 {
     const struct ieee80211_frame *wh;
-    const uint8_t *frm, *efrm;
-    const uint8_t *ssid, *rates, *xrates, *rsnie, *wpaie, *htcaps;
-    uint16_t capinfo, bintval;
-    int resp, status = 0;
+    const uint8_t *frm;
+    const uint8_t *efrm;
+    const uint8_t *ssid;
+    const uint8_t *rates;
+    const uint8_t *xrates;
+    const uint8_t *rsnie;
+    const uint8_t *wpaie;
+#ifdef CONFIG_IEEE80211_HT
+    const uint8_t *htcaps;
+#endif
+    uint16_t capinfo;
+    uint16_t bintval;
+    int resp;
+    int status = 0;
     struct ieee80211_rsnparams rsn;
     uint8_t rate;
 
@@ -2000,13 +2046,25 @@ void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
     } else
         resp = IEEE80211_FC0_SUBTYPE_ASSOC_RESP;
 
-    ssid = rates = xrates = rsnie = wpaie = htcaps = NULL;
-    while (frm + 2 <= efrm) {
-        if (frm + 2 + frm[1] > efrm) {
+    ssid = NULL;
+    rates = NULL;
+    xrates = NULL;
+    rsnie = NULL;
+    wpaie = NULL;
+#ifdef CONFIG_IEEE80211_HT
+    htcaps = NULL;
+#endif
+
+    while (frm + 2 <= efrm)
+      {
+        if (frm + 2 + frm[1] > efrm)
+          {
             ic->ic_stats.is_rx_elem_toosmall++;
             break;
-        }
-        switch (frm[0]) {
+          }
+
+        switch (frm[0])
+          {
         case IEEE80211_ELEMID_SSID:
             ssid = frm;
             break;
@@ -2281,16 +2339,27 @@ void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
     struct ieee80211_node *ni, int reassoc)
 {
     const struct ieee80211_frame *wh;
-    const uint8_t *frm, *efrm;
-    const uint8_t *rates, *xrates, *edcaie, *wmmie, *htcaps, *htop;
-    uint16_t capinfo, status, associd;
+    const uint8_t *frm;
+    const uint8_t *efrm;
+    const uint8_t *rates;
+    const uint8_t *xrates;
+    const uint8_t *edcaie;
+    const uint8_t *wmmie;
+#ifdef CONFIG_IEEE80211_HT
+    const uint8_t *htcaps;
+    const uint8_t *htop;
+#endif
+    uint16_t capinfo;
+    uint16_t status;
+    uint16_t associd;
     uint8_t rate;
 
     if (ic->ic_opmode != IEEE80211_M_STA ||
-        ic->ic_state != IEEE80211_S_ASSOC) {
+        ic->ic_state != IEEE80211_S_ASSOC)
+      {
         ic->ic_stats.is_rx_mgtdiscard++;
         return;
-    }
+      }
 
     /* Make sure all mandatory fixed fields are present */
 
@@ -2322,13 +2391,25 @@ void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
     }
     associd = LE_READ_2(frm); frm += 2;
 
-    rates = xrates = edcaie = wmmie = htcaps = htop = NULL;
-    while (frm + 2 <= efrm) {
-        if (frm + 2 + frm[1] > efrm) {
+    rates = NULL;
+    xrates = NULL;
+    edcaie = NULL;
+    wmmie = NULL;
+#ifdef CONFIG_IEEE80211_HT
+    htcaps = NULL;
+    htop = NULL;
+#endif
+
+    while (frm + 2 <= efrm)
+      {
+        if (frm + 2 + frm[1] > efrm)
+          {
             ic->ic_stats.is_rx_elem_toosmall++;
             break;
-        }
-        switch (frm[0]) {
+          }
+
+        switch (frm[0])
+          {
         case IEEE80211_ELEMID_RATES:
             rates = frm;
             break;
@@ -3122,15 +3203,19 @@ ieee80211_bar_tid(struct ieee80211com *ic, struct ieee80211_node *ni,
 {
     struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
 
-    /* check if we have a Block Ack agreement for RA/TID */
-    if (ba->ba_state != IEEE80211_BA_AGREED) {
+    /* Check if we have a Block Ack agreement for RA/TID */
+
+    if (ba->ba_state != IEEE80211_BA_AGREED)
+      {
         /* XXX not sure in PBAC case */
         /* send a DELBA with reason code UNKNOWN-BA */
+
         IEEE80211_SEND_ACTION(ic, ni, IEEE80211_CATEG_BA,
             IEEE80211_ACTION_DELBA,
             IEEE80211_REASON_SETUP_REQUIRED << 16 | tid);
         return;
-    }
+      }
+
     /* check if it is a Protected Block Ack agreement */
     if ((ni->ni_flags & IEEE80211_NODE_MFP) &&
         (ni->ni_rsncaps & IEEE80211_RSNCAP_PBAC)) {

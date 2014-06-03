@@ -66,13 +66,13 @@ static const char digits[] = "0123456789abcdef";
  *
  ****************************************************************************/
 
-char *ieee80211_addr2str(uint8_t *addr)
+FAR char *ieee80211_addr2str(uint8_t *addr)
 {
   static char buffer[IEEE80211_ADDR_LEN * 3];
-  char *str;
+  FAR char *str;
   int i;
 
-   for (i = 0, str = bufffer; i < IEEE80211_ADDR_LEN; i++)
+   for (i = 0, str = buffer; i < IEEE80211_ADDR_LEN; i++)
      {
        *str++ = digits[*addr >> 4];
        *str++ = digits[*addr++ & 0xf];

@@ -400,7 +400,7 @@ ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
     /* STA must be associated or AP must be ready */
     if (ic->ic_state != IEEE80211_S_RUN ||
         !(ic->ic_flags & IEEE80211_F_RSNON))
-        return ENETDOWN;
+        return -ENETDOWN;
 
 #ifdef CONFIG_IEEE80211_AP
     if (ic->ic_opmode == IEEE80211_M_STA)
@@ -411,13 +411,13 @@ ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
     /* find the STA with which we must start the key exchange */
     if ((ni = ieee80211_find_node(ic, macaddr)) == NULL) {
         ndbg("ERROR: no node found for %s\n", ieee80211_addr2str(macaddr));
-        return EINVAL;
+        return -EINVAL;
     }
     /* check that the STA is in the correct state */
     if (ni->ni_state != IEEE80211_STA_ASSOC ||
         ni->ni_rsn_state != RSNA_AUTHENTICATION_2) {
         ndbg("ERROR: unexpected in state %d\n", ni->ni_rsn_state);
-        return EINVAL;
+        return -EINVAL;
     }
     ni->ni_rsn_state = RSNA_INITPMK;
 
@@ -427,7 +427,7 @@ ieee80211_keyrun(struct ieee80211com *ic, uint8_t *macaddr)
         IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_DEAUTH,
             IEEE80211_REASON_AUTH_LEAVE);
         ieee80211_node_leave(ic, ni);
-        return EINVAL;
+        return -EINVAL;
     }
     memcpy(ni->ni_pmk, pmk->pmk_key, IEEE80211_PMK_LEN);
     memcpy(ni->ni_pmkid, pmk->pmk_pmkid, IEEE80211_PMKID_LEN);

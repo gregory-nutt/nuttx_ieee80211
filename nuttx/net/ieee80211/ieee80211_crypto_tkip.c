@@ -46,6 +46,18 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#ifndef MIN
+#  define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
 typedef uint8_t  byte;    /* 8-bit byte (octet) */
 typedef uint16_t u16b;    /* 16-bit unsigned word */
 typedef uint32_t u32b;    /* 32-bit unsigned word */
@@ -310,7 +322,8 @@ struct ieee80211_iobuf_s *ieee80211_tkip_encrypt(struct ieee80211com *ic, struct
 
             noff = 0;
         }
-        len = min(iob->m_len - moff, next->m_len - noff);
+
+        len = MIN(iob->m_len - moff, next->m_len - noff);
 
         crc = ether_crc32_le_update(crc, iob->m_data + moff, len);
         rc4_crypt(&ctx->rc4, iob->m_data + moff,  next->m_data + noff, len);
@@ -504,7 +517,8 @@ struct ieee80211_iobuf_s *ieee80211_tkip_decrypt(struct ieee80211com *ic, struct
 
             noff = 0;
         }
-        len = min(iob->m_len - moff, next->m_len - noff);
+
+        len = MIN(iob->m_len - moff, next->m_len - noff);
 
         rc4_crypt(&ctx->rc4, iob->m_data + moff, next->m_data + noff, len);
         crc = ether_crc32_le_update(crc, next->m_data + noff, len);

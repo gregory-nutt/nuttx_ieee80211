@@ -1808,7 +1808,7 @@ int ieee80211_ibss_merge(struct ieee80211com *ic, struct ieee80211_node *ni, uin
   ieee80211_node_newstate(ni, IEEE80211_STA_BSS);
   (*ic->ic_node_copy)(ic, ic->ic_bss, ni);
 
-  return ENETRESET;
+  return -ENETRESET;
 }
 
 void ieee80211_set_tim(struct ieee80211com *ic, int aid, int set)
