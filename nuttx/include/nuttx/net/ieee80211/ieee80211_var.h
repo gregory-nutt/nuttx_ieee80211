@@ -44,8 +44,8 @@
 
 #include <net/if.h>
 
+#include <nuttx/net/iob.h>
 #include <nuttx/net/ieee80211/ieee80211.h>
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 #include <nuttx/net/ieee80211/ieee80211_ioctl.h>        /* for ieee80211_stats */
 #include <nuttx/net/ieee80211/ieee80211_node.h>
@@ -197,7 +197,7 @@ struct ieee80211_edca_ac_params
 struct ieee80211_defrag
 {
   WDOG_ID      df_to;
-  struct ieee80211_iobuf_s *df_m;
+  struct iob_s *df_m;
   uint16_t     df_seq;
   uint8_t      df_frag;
 };
@@ -216,7 +216,7 @@ struct ieee80211_defrag
 struct ieee80211com
 {
   void            (*ic_recv_mgmt)(struct ieee80211com *,
-                  struct ieee80211_iobuf_s *, struct ieee80211_node *,
+                  struct iob_s *, struct ieee80211_node *,
                   struct ieee80211_rxinfo *, int);
   int            (*ic_send_mgmt)(struct ieee80211com *,
                   struct ieee80211_node *, int, int, int);

@@ -59,6 +59,7 @@
 #include <nuttx/tree.h>
 
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
+#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -1141,7 +1142,7 @@ void ieee80211_free_node(struct ieee80211com *ic, struct ieee80211_node *ni)
 #ifdef CONFIG_IEEE80211_AP
   if (!sq_empty(&ni->ni_savedq))
     {
-      ieee80211_iopurge(&ni->ni_savedq);
+      iob_freeq(&ni->ni_savedq);
       if (ic->ic_set_tim != NULL)
         {
           (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
@@ -1532,7 +1533,7 @@ void ieee80211_node_leave_ht(struct ieee80211com *ic, struct ieee80211_node *ni)
             {
               if (ba->ba_buf[i].iob != NULL)
                 {
-                  ieee80211_iofree(ba->ba_buf[i].iob);
+                  iob_free(ba->ba_buf[i].iob);
                 }
             }
 
@@ -1647,7 +1648,7 @@ void ieee80211_node_leave(struct ieee80211com *ic, struct ieee80211_node *ni)
 
   if (!sq_empty(&ni->ni_savedq))
     {
-      ieee80211_iopurge(&ni->ni_savedq);
+      iob_freeq(&ni->ni_savedq);
       if (ic->ic_set_tim != NULL)
         {
           (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
@@ -1839,13 +1840,13 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
   /* NB: group addressed MSDUs are buffered in ic_bss */
   struct ieee80211_node *ni = ic->ic_bss;
   struct ieee80211_frame *wh;
-  struct ieee80211_iobuf_s *iob;
+  struct iob_s *iob;
 
   DEBUGASSERT(ic->ic_opmode == IEEE80211_M_HOSTAP);
 
   for (;;)
     {
-      iob = (struct ieee80211_iobuf_s *)sq_remfirst(&ni->ni_savedq);
+      iob = (struct iob_s *)sq_remfirst(&ni->ni_savedq);
       if (iob == NULL)
         {
           break;
@@ -1855,7 +1856,7 @@ void ieee80211_notify_dtim(struct ieee80211com *ic)
         {
           /* more queued frames, set the more data bit */
 
-          wh = (FAR struct ieee80211_frame *)iob->m_data;
+          wh = (FAR struct ieee80211_frame *)iob->io_data;
           wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
         }
 

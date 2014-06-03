@@ -41,6 +41,7 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
+#include <nuttx/net/iob.h>
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
@@ -76,7 +77,7 @@ void    ieee80211_recv_eapol_key_req(struct ieee80211com *,
  * EAPOL-Key frames with an IEEE 802.11 or WPA descriptor type.
  */
 
-void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_eapol_key_input(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
   struct ether_header *eh;
@@ -84,25 +85,25 @@ void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s
   uint16_t info, desc;
   int totlen;
 
-  eh = (FAR struct ether_header *)iob->m_data;
+  eh = (FAR struct ether_header *)iob->io_data;
   if (IEEE80211_IS_MULTICAST(eh->ether_dhost))
     {
       goto done;
     }
 
-  ieee80211_iotrim_head(iob, sizeof(struct ether_header));
+  iob_trimhead(iob, sizeof(struct ether_header));
 
-  if (iob->m_pktlen < sizeof(*key))
+  if (iob->io_pktlen < sizeof(*key))
     {
       goto done;
-  if (iob->m_len < sizeof(*key) &&
+  if (iob->io_len < sizeof(*key) &&
       (iob = m_pullup(iob, sizeof(*key))) == NULL)
     {
       ic->ic_stats.is_rx_nombuf++;
       goto done;
     }
 
-  key = (FAR struct ieee80211_eapol_key *)iob->m_data;
+  key = (FAR struct ieee80211_eapol_key *)iob->io_data;
   if (key->type != EAPOL_KEY)
     {
       goto done;
@@ -118,7 +119,7 @@ void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s
 
   /* Check packet body length */
 
-  if (iob->m_pktlen < 4 + BE_READ_2(key->len))
+  if (iob->io_pktlen < 4 + BE_READ_2(key->len))
     {
       goto done;
     }
@@ -126,7 +127,7 @@ void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s
   /* Check key data length */
 
   totlen = sizeof(*key) + BE_READ_2(key->paylen);
-  if (iob->m_pktlen < totlen || totlen > MCLBYTES)
+  if (iob->io_pktlen < totlen || totlen > MCLBYTES)
     {
       goto done;
     }
@@ -159,13 +160,13 @@ void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s
 
   /* Make sure the key data field is contiguous */
 
-  if (iob->m_len < totlen && (iob = m_pullup(iob, totlen)) == NULL)
+  if (iob->io_len < totlen && (iob = m_pullup(iob, totlen)) == NULL)
     {
       ic->ic_stats.is_rx_nombuf++;
       goto done;
     }
 
-  key = (FAR struct ieee80211_eapol_key *)iob->m_data;
+  key = (FAR struct ieee80211_eapol_key *)iob->io_data;
 
   /* Determine message type (see 8.5.3.7) */
 
@@ -230,7 +231,7 @@ void ieee80211_eapol_key_input(struct ieee80211com *ic, struct ieee80211_iobuf_s
  done:
   if (iob != NULL)
     {
-      ieee80211_iofree(iob);
+      iob_free(iob);
     }
 }
 

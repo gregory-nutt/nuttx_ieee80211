@@ -39,7 +39,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
+
+#include <nuttx/net/iob.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -79,23 +80,23 @@ struct ieee80211_rxinfo;
 struct ieee80211_rsnparams;
 void ieee80211_set_link_state(struct ieee80211com *ic, enum ieee80211_linkstate_e linkstate);
 unsigned int ieee80211_get_hdrlen(const struct ieee80211_frame *);
-void ieee80211_input(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_input(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
-int ieee80211_output(struct ieee80211com *, struct ieee80211_iobuf_s *, struct sockaddr *,
+int ieee80211_output(struct ieee80211com *, struct iob_s *, struct sockaddr *,
         struct rtentry *);
-void ieee80211_recv_mgmt(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_mgmt(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 int ieee80211_send_mgmt(struct ieee80211com *, struct ieee80211_node *,
         int, int, int);
-void ieee80211_eapol_key_input(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_eapol_key_input(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
-struct ieee80211_iobuf_s *ieee80211_encap(struct ieee80211com *, struct ieee80211_iobuf_s *,
+struct iob_s *ieee80211_encap(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node **);
-struct ieee80211_iobuf_s *ieee80211_get_rts(struct ieee80211com *,
+struct iob_s *ieee80211_get_rts(struct ieee80211com *,
         const struct ieee80211_frame *, uint16_t);
-struct ieee80211_iobuf_s *ieee80211_get_cts_to_self(struct ieee80211com *,
+struct iob_s *ieee80211_get_cts_to_self(struct ieee80211com *,
         uint16_t);
-struct ieee80211_iobuf_s *ieee80211_beacon_alloc(struct ieee80211com *,
+struct iob_s *ieee80211_beacon_alloc(struct ieee80211com *,
         struct ieee80211_node *);
 extern int ieee80211_save_ie(const uint8_t *, uint8_t **);
 void ieee80211_eapol_timeout(void *);
@@ -115,7 +116,7 @@ int ieee80211_send_group_msg2(struct ieee80211com *,
         struct ieee80211_node *, const struct ieee80211_key *);
 int ieee80211_send_eapol_key_req(struct ieee80211com *,
         struct ieee80211_node *, uint16_t, uint64_t);
-int ieee80211_pwrsave(struct ieee80211com *, struct ieee80211_iobuf_s *,
+int ieee80211_pwrsave(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
 #define    ieee80211_new_state(_ic, _nstate, _arg) \
     (((_ic)->ic_newstate)((_ic), (_nstate), (_arg)))

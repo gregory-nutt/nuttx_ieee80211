@@ -53,10 +53,10 @@
 #endif
 
 #include <nuttx/tree.h>
-
 #include <nuttx/kmalloc.h>
+#include <nuttx/net/iob.h>
+
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -109,8 +109,8 @@ void ieee80211_proto_attach( struct ieee80211com *ic)
 
 void ieee80211_proto_detach(struct ieee80211com *ic)
 {
-  ieee80211_iopurge(&ic->ic_mgtq);
-  ieee80211_iopurge(&ic->ic_pwrsaveq);
+  iob_freeq(&ic->ic_mgtq);
+  iob_freeq(&ic->ic_pwrsaveq);
 }
 
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
@@ -684,7 +684,7 @@ ieee80211_delba_request(struct ieee80211com *ic, struct ieee80211_node *ni,
               {
                 if (ba->ba_buf[i].m != NULL)
                   {
-                    ieee80211_iofree(ba->ba_buf[i].m);
+                    iob_free(ba->ba_buf[i].m);
                   }
               }
 
@@ -879,8 +879,8 @@ justcleanup:
                 wd_cancel(ic->ic_rsn_timeout);
 #endif
             ic->ic_mgt_timer = 0;
-            ieee80211_iopurge(&ic->ic_mgtq);
-            ieee80211_iopurge(&ic->ic_pwrsaveq);
+            iob_freeq(&ic->ic_mgtq);
+            iob_freeq(&ic->ic_pwrsaveq);
             ieee80211_free_allnodes(ic);
             break;
         }

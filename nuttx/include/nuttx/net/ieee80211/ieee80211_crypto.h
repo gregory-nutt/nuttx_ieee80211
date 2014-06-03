@@ -28,7 +28,7 @@
 
 #include <queue.h>
 
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
+#include <nuttx/net/iob.h>
 
 /****************************************************************************
  * Public Types
@@ -120,10 +120,10 @@ void ieee80211_crypto_detach(struct ieee80211com *);
 struct ieee80211_key *ieee80211_get_txkey(struct ieee80211com *,
         const struct ieee80211_frame *, struct ieee80211_node *);
 struct ieee80211_key *ieee80211_get_rxkey(struct ieee80211com *,
-        struct ieee80211_iobuf_s *, struct ieee80211_node *);
-struct ieee80211_iobuf_s *ieee80211_encrypt(struct ieee80211com *, struct ieee80211_iobuf_s *,
+        struct iob_s *, struct ieee80211_node *);
+struct iob_s *ieee80211_encrypt(struct ieee80211com *, struct iob_s *,
         struct ieee80211_key *);
-struct ieee80211_iobuf_s *ieee80211_decrypt(struct ieee80211com *, struct ieee80211_iobuf_s *,
+struct iob_s *ieee80211_decrypt(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
 
 int ieee80211_set_key(struct ieee80211com *, struct ieee80211_node *,
@@ -154,36 +154,36 @@ int ieee80211_cipher_keylen(enum ieee80211_cipher);
 int ieee80211_wep_set_key(struct ieee80211com *, struct ieee80211_key *);
 void ieee80211_wep_delete_key(struct ieee80211com *,
         struct ieee80211_key *);
-struct ieee80211_iobuf_s *ieee80211_wep_encrypt(struct ieee80211com *, struct ieee80211_iobuf_s *,
+struct iob_s *ieee80211_wep_encrypt(struct ieee80211com *, struct iob_s *,
         struct ieee80211_key *);
-struct ieee80211_iobuf_s *ieee80211_wep_decrypt(struct ieee80211com *, struct ieee80211_iobuf_s *,
+struct iob_s *ieee80211_wep_decrypt(struct ieee80211com *, struct iob_s *,
         struct ieee80211_key *);
 
 int ieee80211_tkip_set_key(struct ieee80211com *, struct ieee80211_key *);
 void ieee80211_tkip_delete_key(struct ieee80211com *,
         struct ieee80211_key *);
-struct ieee80211_iobuf_s *ieee80211_tkip_encrypt(struct ieee80211com *,
-        struct ieee80211_iobuf_s *, struct ieee80211_key *);
-struct ieee80211_iobuf_s *ieee80211_tkip_decrypt(struct ieee80211com *,
-        struct ieee80211_iobuf_s *, struct ieee80211_key *);
-void ieee80211_tkip_mic(struct ieee80211_iobuf_s *, int, const uint8_t *,
+struct iob_s *ieee80211_tkip_encrypt(struct ieee80211com *,
+        struct iob_s *, struct ieee80211_key *);
+struct iob_s *ieee80211_tkip_decrypt(struct ieee80211com *,
+        struct iob_s *, struct ieee80211_key *);
+void ieee80211_tkip_mic(struct iob_s *, int, const uint8_t *,
         uint8_t[IEEE80211_TKIP_MICLEN]);
 void ieee80211_michael_mic_failure(struct ieee80211com *, uint64_t);
 
 int ieee80211_ccmp_set_key(struct ieee80211com *, struct ieee80211_key *);
 void ieee80211_ccmp_delete_key(struct ieee80211com *,
         struct ieee80211_key *);
-struct ieee80211_iobuf_s *ieee80211_ccmp_encrypt(struct ieee80211com *, struct ieee80211_iobuf_s *,
+struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211com *, struct iob_s *,
         struct ieee80211_key *);
-struct ieee80211_iobuf_s *ieee80211_ccmp_decrypt(struct ieee80211com *, struct ieee80211_iobuf_s *,
+struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211com *, struct iob_s *,
         struct ieee80211_key *);
 
 int ieee80211_bip_set_key(struct ieee80211com *, struct ieee80211_key *);
 void ieee80211_bip_delete_key(struct ieee80211com *,
         struct ieee80211_key *);
-struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *, struct ieee80211_iobuf_s *,
+struct iob_s *ieee80211_bip_encap(struct ieee80211com *, struct iob_s *,
         struct ieee80211_key *);
-struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *, struct ieee80211_iobuf_s *,
+struct iob_s *ieee80211_bip_decap(struct ieee80211com *, struct iob_s *,
         struct ieee80211_key *);
 
 #endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_CRYPTO_H */

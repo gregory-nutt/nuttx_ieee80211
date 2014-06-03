@@ -173,32 +173,45 @@ static int ieee80211_ioctl_setnwkeys(struct ieee80211com *ic,
     return -ENETRESET;
 }
 
-static int ieee80211_ioctl_getnwkeys(struct ieee80211com *ic,
-    struct ieee80211_nwkey *nwkey)
+static int ieee80211_ioctl_getnwkeys(struct ieee80211com *ic, struct ieee80211_nwkey *nwkey)
 {
     struct ieee80211_key *k;
     int error, i;
 
     if (ic->ic_flags & IEEE80211_F_WEPON)
+      {
         nwkey->i_wepon = IEEE80211_NWKEY_WEP;
+      }
     else
+      {
         nwkey->i_wepon = IEEE80211_NWKEY_OPEN;
+      }
 
     nwkey->i_defkid = ic->ic_wep_txkey + 1;
 
-    for (i = 0; i < IEEE80211_WEP_NKID; i++) {
+    for (i = 0; i < IEEE80211_WEP_NKID; i++)
+      {
         if (nwkey->i_key[i].i_keydat == NULL)
+          {
             continue;
+          }
+
         k = &ic->ic_nw_keys[i];
         if (k->k_cipher != IEEE80211_CIPHER_WEP40 &&
             k->k_cipher != IEEE80211_CIPHER_WEP104)
+          {
             nwkey->i_key[i].i_keylen = 0;
+          }
         else
+          {
             nwkey->i_key[i].i_keylen = k->k_len;
-        error = copyout(k->k_key, nwkey->i_key[i].i_keydat,
-            nwkey->i_key[i].i_keylen);
+          }
+
+        error = copyout(k->k_key, nwkey->i_key[i].i_keydat, nwkey->i_key[i].i_keylen);
         if (error != 0)
+          {
             return error;
+          }
     }
     return 0;
 }

@@ -39,7 +39,7 @@
 #endif
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
+#include <nuttx/net/iob.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
@@ -188,7 +188,7 @@ struct ieee80211_key *ieee80211_get_txkey(struct ieee80211com *ic, const struct 
     return &ic->ic_nw_keys[kid];
 }
 
-struct ieee80211_iobuf_s *ieee80211_encrypt(struct ieee80211com *ic, struct ieee80211_iobuf_s *m0,
+struct iob_s *ieee80211_encrypt(struct ieee80211com *ic, struct iob_s *m0,
     struct ieee80211_key *k)
 {
     switch (k->k_cipher) {
@@ -207,13 +207,13 @@ struct ieee80211_iobuf_s *ieee80211_encrypt(struct ieee80211com *ic, struct ieee
         break;
     default:
         /* should not get there */
-        ieee80211_iofree(m0);
+        iob_free(m0);
         m0 = NULL;
     }
     return m0;
 }
 
-struct ieee80211_iobuf_s *ieee80211_decrypt(FAR struct ieee80211com *ic, FAR struct ieee80211_iobuf_s *m0, struct ieee80211_node *ni)
+struct iob_s *ieee80211_decrypt(FAR struct ieee80211com *ic, FAR struct iob_s *m0, struct ieee80211_node *ni)
 {
     FAR struct ieee80211_frame *wh;
     FAR struct ieee80211_key *k;
@@ -225,7 +225,7 @@ struct ieee80211_iobuf_s *ieee80211_decrypt(FAR struct ieee80211com *ic, FAR str
     /* Find key for decryption */
 
     
-    wh = (FAR struct ieee80211_frame *)m0->m_data;
+    wh = (FAR struct ieee80211_frame *)m0->io_data;
     if ((ic->ic_flags & IEEE80211_F_RSNON) &&
         !IEEE80211_IS_MULTICAST(wh->i_addr1) &&
         ni->ni_rsncipher != IEEE80211_CIPHER_USEGROUP)
@@ -242,9 +242,9 @@ struct ieee80211_iobuf_s *ieee80211_decrypt(FAR struct ieee80211com *ic, FAR str
 
         /* Check that IV field is present */
 
-        if (m0->m_len < hdrlen + 4)
+        if (m0->io_len < hdrlen + 4)
           {
-            ieee80211_iofree(m0);
+            iob_free(m0);
             return NULL;
           }
 
@@ -253,20 +253,20 @@ struct ieee80211_iobuf_s *ieee80211_decrypt(FAR struct ieee80211com *ic, FAR str
         k = &ic->ic_nw_keys[kid];
     } else {
         /* retrieve integrity group key id from MMIE */
-        if (m0->m_len < sizeof(*wh) + IEEE80211_MMIE_LEN) {
-            ieee80211_iofree(m0);
+        if (m0->io_len < sizeof(*wh) + IEEE80211_MMIE_LEN) {
+            iob_free(m0);
             return NULL;
         }
         /* it is assumed management frames are contiguous */
-        mmie = (uint8_t *)wh + m0->m_len - IEEE80211_MMIE_LEN;
+        mmie = (uint8_t *)wh + m0->io_len - IEEE80211_MMIE_LEN;
         /* check that MMIE is valid */
         if (mmie[0] != IEEE80211_ELEMID_MMIE || mmie[1] != 16) {
-            ieee80211_iofree(m0);
+            iob_free(m0);
             return NULL;
         }
         kid = LE_READ_2(&mmie[2]);
         if (kid != 4 && kid != 5) {
-            ieee80211_iofree(m0);
+            iob_free(m0);
             return NULL;
         }
         k = &ic->ic_nw_keys[kid];
@@ -287,7 +287,7 @@ struct ieee80211_iobuf_s *ieee80211_decrypt(FAR struct ieee80211com *ic, FAR str
         break;
     default:
         /* key not defined */
-        ieee80211_iofree(m0);
+        iob_free(m0);
         m0 = NULL;
     }
     return m0;

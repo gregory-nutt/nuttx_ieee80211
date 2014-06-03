@@ -40,7 +40,7 @@
 #endif
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
+#include <nuttx/net/iob.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
@@ -89,16 +89,16 @@ struct ieee80211_bip_frame {
     uint8_t    i_addr3[IEEE80211_ADDR_LEN];
 } packed_struct;
 
-struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob0,
+struct iob_s *ieee80211_bip_encap(struct ieee80211com *ic, struct iob_s *iob0,
     struct ieee80211_key *k)
 {
     struct ieee80211_bip_ctx *ctx = k->k_priv;
     struct ieee80211_bip_frame aad;
     struct ieee80211_frame *wh;
     uint8_t *mmie, mic[AES_CMAC_DIGEST_LENGTH];
-    struct ieee80211_iobuf_s *iob;
+    struct iob_s *iob;
 
-    wh = (FAR struct ieee80211_frame *)iob0->m_data;
+    wh = (FAR struct ieee80211_frame *)iob0->io_data;
     DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_MGT);
 
     /* Clear Protected bit from group management frames */
@@ -120,7 +120,7 @@ struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ie
     AES_CMAC_Init(&ctx->cmac);
     AES_CMAC_Update(&ctx->cmac, (uint8_t *)&aad, sizeof aad);
     AES_CMAC_Update(&ctx->cmac, (uint8_t *)&wh[1],
-        iob0->m_len - sizeof(*wh));
+        iob0->io_len - sizeof(*wh));
 
     iob = iob0;
 
@@ -128,22 +128,22 @@ struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ie
 
     if (M_TRAILINGSPACE(iob) < IEEE80211_MMIE_LEN)
       {
-        struct ieee80211_iobuf_s *newbuf;
+        struct iob_s *newbuf;
 
-        newbuf = ieee80211_ioalloc();
-        if (iob->m_link.flink == NULL)
+        newbuf = iob_alloc();
+        if (iob->io_link.flink == NULL)
           {
             goto nospace;
           }
 
-        iob->m_link.flink = (sq_entry_t *)newbuf;
+        iob->io_link.flink = (sq_entry_t *)newbuf;
         iob = newbuf;
-        iob->m_len = 0;
+        iob->io_len = 0;
       }
 
     /* construct Management MIC IE */
 
-    mmie    = (FAR uint8_t *)iob->m_data + iob->m_len;
+    mmie    = (FAR uint8_t *)iob->io_data + iob->io_len;
     mmie[0] = IEEE80211_ELEMID_MMIE;
     mmie[1] = 16;
     LE_WRITE_2(&mmie[2], k->k_id);
@@ -155,19 +155,19 @@ struct ieee80211_iobuf_s *ieee80211_bip_encap(struct ieee80211com *ic, struct ie
     /* truncate AES-128-CMAC to 64-bit */
     memcpy(&mmie[10], mic, 8);
 
-    iob->m_len += IEEE80211_MMIE_LEN;
-    iob0->m_pktlen += IEEE80211_MMIE_LEN;
+    iob->io_len += IEEE80211_MMIE_LEN;
+    iob0->io_pktlen += IEEE80211_MMIE_LEN;
 
     k->k_tsc++;
 
     return iob0;
  nospace:
     ic->ic_stats.is_tx_nombuf++;
-    ieee80211_iofree(iob0);
+    iob_free(iob0);
     return NULL;
 }
 
-struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob0,
+struct iob_s *ieee80211_bip_decap(struct ieee80211com *ic, struct iob_s *iob0,
     struct ieee80211_key *k)
 {
     struct ieee80211_bip_ctx *ctx = k->k_priv;
@@ -176,7 +176,7 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
     uint8_t *mmie, mic0[8], mic[AES_CMAC_DIGEST_LENGTH];
     uint64_t ipn;
 
-    wh = (FAR struct ieee80211_frame *)iob0->m_data;
+    wh = (FAR struct ieee80211_frame *)iob0->io_data;
     DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_MGT);
 
     /* It is assumed that management frames are contiguous and that
@@ -184,8 +184,8 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
      * a header and a MMIE (checked in ieee80211_decrypt()).
      */
 
-    DEBUGASSERT(iob0->m_len >= sizeof(*wh) + IEEE80211_MMIE_LEN);
-    mmie = (FAR uint8_t *)iob0->m_data + iob0->m_len - IEEE80211_MMIE_LEN;
+    DEBUGASSERT(iob0->io_len >= sizeof(*wh) + IEEE80211_MMIE_LEN);
+    mmie = (FAR uint8_t *)iob0->io_data + iob0->io_len - IEEE80211_MMIE_LEN;
 
     ipn = LE_READ_6(&mmie[4]);
     if (ipn <= k->k_mgmt_rsc)
@@ -193,7 +193,7 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
         /* Replayed frame, discard */
 
         ic->ic_stats.is_cmac_replays++;
-        ieee80211_iofree(iob0);
+        iob_free(iob0);
         return NULL;
       }
 
@@ -216,7 +216,7 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
     AES_CMAC_Init(&ctx->cmac);
     AES_CMAC_Update(&ctx->cmac, (uint8_t *)&aad, sizeof aad);
     AES_CMAC_Update(&ctx->cmac, (uint8_t *)&wh[1],
-        iob0->m_len - sizeof(*wh));
+        iob0->io_len - sizeof(*wh));
     AES_CMAC_Final(mic, &ctx->cmac);
 
   /* Check that MIC matches the one in MMIE */
@@ -224,7 +224,7 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
   if (timingsafe_bcmp(mic, mic0, 8) != 0)
     {
       ic->ic_stats.is_cmac_icv_errs++;
-      ieee80211_iofree(iob0);
+      iob_free(iob0);
       return NULL;
     }
 
@@ -234,7 +234,7 @@ struct ieee80211_iobuf_s *ieee80211_bip_decap(struct ieee80211com *ic, struct ie
    * may be confused with fixed fields by upper layers.
    */
 
-  ieee80211_iotrim_tail(iob0, IEEE80211_MMIE_LEN);
+  iob_trimtail(iob0, IEEE80211_MMIE_LEN);
 
   /* Update last seen packet number (MIC is validated) */
 

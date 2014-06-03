@@ -54,27 +54,28 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/clock.h>
 
+#include <nuttx/net/iob.h>
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *, struct ieee80211_iobuf_s *, int);
+struct iob_s *ieee80211_defrag(struct ieee80211com *, struct iob_s *, int);
 void ieee80211_defrag_timeout(void *);
 #ifdef CONFIG_IEEE80211_HT
-void ieee80211_input_ba(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_input_ba(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *, int, struct ieee80211_rxinfo *);
 void ieee80211_ba_move_window(struct ieee80211com *,
         struct ieee80211_node *, uint8_t, uint16_t);
 #endif
-struct ieee80211_iobuf_s *ieee80211_align_iobuf(struct ieee80211_iobuf_s *);
-void ieee80211_decap(struct ieee80211com *, struct ieee80211_iobuf_s *,
+struct iob_s *ieee80211_align_iobuf(struct iob_s *);
+void ieee80211_decap(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *, int);
 #ifdef CONFIG_IEEE80211_HT
-void ieee80211_amsdu_decap(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_amsdu_decap(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *, int);
 #endif
-void ieee80211_deliver_data(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_deliver_data(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
 int ieee80211_parse_edca_params_body(struct ieee80211com *,
         const uint8_t *);
@@ -85,46 +86,46 @@ enum ieee80211_akm ieee80211_parse_rsn_akm(const uint8_t[]);
 int ieee80211_parse_rsn_body(struct ieee80211com *, const uint8_t *,
         unsigned int, struct ieee80211_rsnparams *);
 int ieee80211_save_ie(const uint8_t *, uint8_t **);
-void ieee80211_recv_probe_resp(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_probe_resp(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 #ifdef CONFIG_IEEE80211_AP
-void ieee80211_recv_probe_req(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_probe_req(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
 #endif
-void ieee80211_recv_auth(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_auth(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
 #ifdef CONFIG_IEEE80211_AP
-void ieee80211_recv_assoc_req(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_assoc_req(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 #endif
-void ieee80211_recv_assoc_resp(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_assoc_resp(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *, int);
-void ieee80211_recv_deauth(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_deauth(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
-void ieee80211_recv_disassoc(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_disassoc(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_HT
-void ieee80211_recv_addba_req(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_addba_req(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
-void ieee80211_recv_addba_resp(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_addba_resp(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
-void ieee80211_recv_delba(struct ieee80211com *, struct ieee80211_iobuf_s *,
-        struct ieee80211_node *);
-#endif
-void ieee80211_recv_sa_query_req(struct ieee80211com *, struct ieee80211_iobuf_s *,
-        struct ieee80211_node *);
-#ifdef CONFIG_IEEE80211_AP
-void ieee80211_recv_sa_query_resp(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_delba(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
 #endif
-void ieee80211_recv_action(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_sa_query_req(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_AP
-void    ieee80211_recv_pspoll(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_sa_query_resp(struct ieee80211com *, struct iob_s *,
+        struct ieee80211_node *);
+#endif
+void ieee80211_recv_action(struct ieee80211com *, struct iob_s *,
+        struct ieee80211_node *);
+#ifdef CONFIG_IEEE80211_AP
+void    ieee80211_recv_pspoll(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
 #endif
 #ifdef CONFIG_IEEE80211_HT
-void ieee80211_recv_bar(struct ieee80211com *, struct ieee80211_iobuf_s *,
+void ieee80211_recv_bar(struct ieee80211com *, struct iob_s *,
         struct ieee80211_node *);
 void ieee80211_bar_tid(struct ieee80211com *, struct ieee80211_node *,
         uint8_t, uint16_t);
@@ -201,7 +202,7 @@ static void ieee80211_input_print(struct ieee80211com *ic, struct ieee80211_fram
  * by the 802.11 layer.
  */
 
-void ieee80211_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, struct ieee80211_node *ni,
+void ieee80211_input(struct ieee80211com *ic, struct iob_s *iob, struct ieee80211_node *ni,
     struct ieee80211_rxinfo *rxi)
 {
     struct ieee80211_frame *wh;
@@ -219,13 +220,13 @@ void ieee80211_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, str
      * Do not process frames without an Address 2 field any further.
      * Only CTS and ACK control frames do not have this field.
      */
-    if (iob->m_len < sizeof(struct ieee80211_frame_min)) {
-        ndbg("ERROR: frame too short, len %u\n", iob->m_len);
+    if (iob->io_len < sizeof(struct ieee80211_frame_min)) {
+        ndbg("ERROR: frame too short, len %u\n", iob->io_len);
         ic->ic_stats.is_rx_tooshort++;
         goto out;
     }
 
-    wh = (FAR struct ieee80211_frame *)iob->m_data;
+    wh = (FAR struct ieee80211_frame *)iob->io_data;
     if ((wh->i_fc[0] & IEEE80211_FC0_VERSION_MASK) != IEEE80211_FC0_VERSION_0)
       {
         ndbg("ERROR: frame with wrong version: %x\n", wh->i_fc[0]);
@@ -239,9 +240,9 @@ void ieee80211_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, str
     if (type != IEEE80211_FC0_TYPE_CTL)
       {
         hdrlen = ieee80211_get_hdrlen(wh);
-        if (iob->m_len < hdrlen)
+        if (iob->io_len < hdrlen)
           {
-            ndbg("ERROR: frame too short, len %u\n", iob->m_len);
+            ndbg("ERROR: frame too short, len %u\n", iob->io_len);
             ic->ic_stats.is_rx_tooshort++;
             goto err;
           }
@@ -301,8 +302,8 @@ void ieee80211_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, str
 
             /* dequeue buffered unicast frames */
             while (!sq_empty(&ni->ni_savedq)) {
-                struct ieee80211_iobuf_s *iob;
-                iob = (struct ieee80211_iobuf_s *iob)sq_remfirst(&ni->ni_savedq);
+                struct iob_s *iob;
+                iob = (struct iob_s *iob)sq_remfirst(&ni->ni_savedq);
                 sq_addlast((sq_entry_t *)iob, &ic->ic_pwrsaveq);
                 ieee80211_ifstart();
             }
@@ -469,7 +470,7 @@ void ieee80211_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, str
                     goto err;
                   }
 
-                wh = (FAR struct ieee80211_frame *)iob->m_data;
+                wh = (FAR struct ieee80211_frame *)iob->io_data;
             }
         }
       else if ((wh->i_fc[1] & IEEE80211_FC1_PROTECTED) ||
@@ -533,7 +534,7 @@ void ieee80211_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, str
                     goto out;
                   }
 
-                wh = (FAR struct ieee80211_frame *)iob->m_data;
+                wh = (FAR struct ieee80211_frame *)iob->io_data;
             }
         }
       else if ((ic->ic_flags & IEEE80211_F_RSNON) &&
@@ -549,7 +550,7 @@ void ieee80211_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, str
 #endif
 
         (*ic->ic_recv_mgmt)(ic, iob, ni, rxi, subtype);
-        ieee80211_iofree(iob);
+        iob_free(iob);
         return;
 
     case IEEE80211_FC0_TYPE_CTL:
@@ -579,7 +580,7 @@ void ieee80211_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, str
  err:
  out:
     if (iob != NULL) {
-        ieee80211_iofree(iob);
+        iob_free(iob);
     }
 }
 
@@ -587,7 +588,7 @@ void ieee80211_input(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, str
  * reception of fragments of three fragmented MSDUs or MMPDUs.
  */
 
-struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, int hdrlen)
+struct iob_s *ieee80211_defrag(struct ieee80211com *ic, struct iob_s *iob, int hdrlen)
 {
     const struct ieee80211_frame *owh, *wh;
     struct ieee80211_defrag *df;
@@ -595,7 +596,7 @@ struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *ic, struct ieee8
     uint8_t frag;
     int i;
 
-    wh = (FAR struct ieee80211_frame *)iob->m_data;
+    wh = (FAR struct ieee80211_frame *)iob->io_data;
     rxseq = letoh16(*(const uint16_t *)wh->i_seq);
     seq = rxseq >> IEEE80211_SEQ_SEQ_SHIFT;
     frag = rxseq & IEEE80211_SEQ_FRAG_MASK;
@@ -609,7 +610,7 @@ struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *ic, struct ieee8
             ic->ic_defrag_cur = 0;
         df = &ic->ic_defrag[ic->ic_defrag_cur];
         if (df->df_m != NULL)
-            ieee80211_iofree(df->df_m);    /* discard old entry */
+            iob_free(df->df_m);    /* discard old entry */
         df->df_seq = seq;
         df->df_frag = 0;
         df->df_m = iob;
@@ -633,7 +634,7 @@ struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *ic, struct ieee8
             continue;
           }
 
-        owh = (FAR struct ieee80211_frame *)df->df_m->m_data;
+        owh = (FAR struct ieee80211_frame *)df->df_m->io_data;
 
         /* Frame type, source and destination must match */
 
@@ -651,7 +652,7 @@ struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *ic, struct ieee8
 
     if (i == IEEE80211_DEFRAG_SIZE) {
         /* no matching entry found, discard fragment */
-        ieee80211_iofree(iob);
+        iob_free(iob);
         return NULL;
     }
 
@@ -659,9 +660,9 @@ struct ieee80211_iobuf_s *ieee80211_defrag(struct ieee80211com *ic, struct ieee8
 
     /* Strip 802.11 header and concatenate fragment */
 
-    ieee80211_iotrim_head(iob, hdrlen);
-    ieee80211_iocat(df->df_m, iob);
-    df->df_m->m_pktlen += iob->m_pktlen;
+    iob_trimhead(iob, hdrlen);
+    iob_concat(df->df_m, iob);
+    df->df_m->io_pktlen += iob->io_pktlen;
 
     if (wh->i_fc[1] & IEEE80211_FC1_MORE_FRAG)
         return NULL;    /* MSDU or MMPDU not yet complete */
@@ -682,7 +683,7 @@ void ieee80211_defrag_timeout(void *arg)
 
   /* Discard all received fragments */
 
-  ieee80211_iofree(df->df_m);
+  iob_free(df->df_m);
   df->df_m = NULL;
 
   splx(s);
@@ -693,7 +694,7 @@ void ieee80211_defrag_timeout(void *arg)
  * agreement (see 9.10.7.6).
  */
 
-void ieee80211_input_ba(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_input_ba(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni, int tid, struct ieee80211_rxinfo *rxi)
 {
     struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
@@ -701,14 +702,14 @@ void ieee80211_input_ba(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
     int idx, count;
     uint16_t sn;
 
-    wh = (FAR struct ieee80211_frame *)iob->m_data;
+    wh = (FAR struct ieee80211_frame *)iob->io_data;
     sn = letoh16(*(uint16_t *)wh->i_seq) >> IEEE80211_SEQ_SEQ_SHIFT;
 
     /* reset Block Ack inactivity timer */
     wd_start(ba->ba_to, USEC2TICK(ba->ba_timeout_val), ieee80211_rx_ba_timeout, 1, ba);
 
     if (SEQ_LT(sn, ba->ba_winstart)) {    /* SN < WinStartB */
-        ieee80211_iofree(iob);    /* discard the MPDU */
+        iob_free(iob);    /* discard the MPDU */
         return;
     }
     if (SEQ_LT(ba->ba_winend, sn)) {    /* WinEndB < SN */
@@ -735,7 +736,7 @@ void ieee80211_input_ba(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
     idx = (ba->ba_head + idx) % IEEE80211_BA_MAX_WINSZ;
     /* store the received MPDU in the buffer */
     if (ba->ba_buf[idx].iob != NULL) {
-        ieee80211_iofree(iob);
+        iob_free(iob);
         return;
     }
     ba->ba_buf[idx].iob = iob;
@@ -796,22 +797,22 @@ void ieee80211_ba_move_window(struct ieee80211com *ic, struct ieee80211_node *ni
 }
 #endif /* !CONFIG_IEEE80211_HT */
 
-void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_deliver_data(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
   struct ether_header *eh;
 #ifdef CONFIG_IEEE80211_AP
-  struct ieee80211_iobuf_s *iob1;
+  struct iob_s *iob1;
 #endif
 
-  eh = (FAR struct ether_header *)iob->m_data;
+  eh = (FAR struct ether_header *)iob->io_data;
 
   if ((ic->ic_flags & IEEE80211_F_RSNON) && !ni->ni_port_valid &&
         eh->ether_type != htons(ETHERTYPE_PAE))
     {
       ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(eh->ether_dhost));
       ic->ic_stats.is_rx_unauth++;
-      ieee80211_iofree(iob);
+      iob_free(iob);
       return;
     }
 
@@ -835,7 +836,7 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *i
           iob1 = m_copym2(iob, 0, M_COPYALL, M_DONTWAIT);
           if (iob1 != NULL)
             {
-              iob1->m_flags |= M_MCAST;
+              iob1->io_flags |= IOBFLAGS_MCAST;
             }
         }
       else
@@ -850,7 +851,7 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *i
 
       if (iob1 != NULL)
         {
-          len = iob1->m_pktlen;
+          len = iob1->io_pktlen;
           error = ieee80211_ifsend(iob1);
           if (!error)
             {
@@ -885,47 +886,47 @@ void ieee80211_deliver_data(struct ieee80211com *ic, struct ieee80211_iobuf_s *i
  * XXX -- this is horrible
  */
 
-struct ieee80211_iobuf_s *ieee80211_align_iobuf(struct ieee80211_iobuf_s *iob)
+struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
 {
-  struct ieee80211_iobuf_s *next, *next0, **np;
+  struct iob_s *next, *next0, **np;
   void *newdata;
   int off, pktlen;
 
   next0 = NULL;
   np = &next0;
   off = 0;
-  pktlen = iob->m_pktlen;
+  pktlen = iob->io_pktlen;
   while (pktlen > off)
     {
       if (next0 == NULL)
         {
-          next = ieee80211_ioalloc();
+          next = iob_alloc();
           if (next == NULL)
             {
-              ieee80211_iofree(iob);
+              iob_free(iob);
               return NULL;
             }
 
           if (m_dup_pkthdr(next, iob, M_DONTWAIT))
             {
-              ieee80211_iofree(next);
-              ieee80211_iofree(iob);
+              iob_free(next);
+              iob_free(iob);
               return (NULL);
             }
 
-          next->m_len = CONFIG_IEEE80211_BUFSIZE;
+          next->io_len = CONFIG_IEEE80211_BUFSIZE;
         }
       else
         {
-          next = ieee80211_ioalloc();
+          next = iob_alloc();
           if (next == NULL)
             {
-              ieee80211_iofree(iob);
-              ieee80211_iofree(next0);
+              iob_free(iob);
+              iob_free(next0);
               return NULL;
             }
 
-          next->m_len = 0;
+          next->io_len = 0;
         }
 
       if (pktlen - off >= MINCLSIZE)
@@ -935,41 +936,41 @@ struct ieee80211_iobuf_s *ieee80211_align_iobuf(struct ieee80211_iobuf_s *iob)
 
       if (next0 == NULL)
         {
-          newdata = (void *)ALIGN(next->m_data + ETHER_HDR_LEN) - ETHER_HDR_LEN;
-          next->m_len -= newdata - next->m_data;
-          next->m_data = newdata;
+          newdata = (void *)ALIGN(next->io_data + ETHER_HDR_LEN) - ETHER_HDR_LEN;
+          next->io_len -= newdata - next->io_data;
+          next->io_data = newdata;
         }
 
-      if (next->m_len > pktlen - off)
+      if (next->io_len > pktlen - off)
         {
-          next->m_len = pktlen - off;
+          next->io_len = pktlen - off;
         }
 
-      ieee80211_iocpy(iob, off, next->m_len, next->m_data);
-      off += next->m_len;
+      iob_copyout(next->io_data, iob, off, next->io_len);
+      off += next->io_len;
       *np = next;
-      np = &(struct ieee80211_iobuf_s *)next->m_link.flink;
+      np = &(struct iob_s *)next->io_link.flink;
     }
 
-  ieee80211_iofree(iob);
+  iob_free(iob);
   return next0;
 }
 #endif /* __STRICT_ALIGNMENT */
 
-void ieee80211_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, struct ieee80211_node *ni, int hdrlen)
+void ieee80211_decap(struct ieee80211com *ic, struct iob_s *iob, struct ieee80211_node *ni, int hdrlen)
 {
     struct ether_header eh;
     struct ieee80211_frame *wh;
     struct llc *llc;
 
-    if (iob->m_len < hdrlen + LLC_SNAPFRAMELEN &&
+    if (iob->io_len < hdrlen + LLC_SNAPFRAMELEN &&
         (iob = m_pullup(iob, hdrlen + LLC_SNAPFRAMELEN)) == NULL)
       {
         ic->ic_stats.is_rx_decap++;
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->m_data;
+    wh = (FAR struct ieee80211_frame *)iob->io_data;
     switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK)
       {
       case IEEE80211_FC1_DIR_NODS:
@@ -1003,18 +1004,18 @@ void ieee80211_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, str
         llc->llc_snap.org_code[2] == 0)
       {
         eh.ether_type = llc->llc_snap.ether_type;
-        ieee80211_iotrim_head(iob, hdrlen + LLC_SNAPFRAMELEN - ETHER_HDR_LEN);
+        iob_trimhead(iob, hdrlen + LLC_SNAPFRAMELEN - ETHER_HDR_LEN);
       }
     else
       {
-        eh.ether_type = htons(iob->m_pktlen - hdrlen);
-        ieee80211_iotrim_head(iob, hdrlen - ETHER_HDR_LEN);
+        eh.ether_type = htons(iob->io_pktlen - hdrlen);
+        iob_trimhead(iob, hdrlen - ETHER_HDR_LEN);
       }
 
-    memcpy(iob->m_data, &eh, ETHER_HDR_LEN);
+    memcpy(iob->io_data, &eh, ETHER_HDR_LEN);
 
 #ifdef __STRICT_ALIGNMENT
-    if (!ALIGNED_POINTER(iob->m_data + ETHER_HDR_LEN, uint32_t))
+    if (!ALIGNED_POINTER(iob->io_data + ETHER_HDR_LEN, uint32_t))
       {
         if ((iob = ieee80211_align_iobuf(iob)) == NULL)
           {
@@ -1030,23 +1031,23 @@ void ieee80211_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob, str
 #ifdef CONFIG_IEEE80211_HT
 /* Decapsulate an Aggregate MSDU (see 7.2.2.2) */
 
-void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_amsdu_decap(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni, int hdrlen)
 {
-    struct ieee80211_iobuf_s *next;
+    struct iob_s *next;
     struct ether_header *eh;
     struct llc *llc;
     int len, pad;
 
     /* Strip 802.11 header */
 
-    ieee80211_iotrim_head(iob, hdrlen);
+    iob_trimhead(iob, hdrlen);
 
     for (;;)
       {
         /* Process an A-MSDU subframe */
 
-        if (iob->m_len < ETHER_HDR_LEN + LLC_SNAPFRAMELEN)
+        if (iob->io_len < ETHER_HDR_LEN + LLC_SNAPFRAMELEN)
           {
             iob = m_pullup(iob, ETHER_HDR_LEN + LLC_SNAPFRAMELEN);
             if (iob == NULL)
@@ -1056,7 +1057,7 @@ void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
               }
           }
  
-        eh = (FAR struct ether_header *)iob->m_data;
+        eh = (FAR struct ether_header *)iob->io_data;
 
         /* Examine 802.3 header */
 
@@ -1068,7 +1069,7 @@ void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
             /* Stop processing A-MSDU subframes */
 
             ic->ic_stats.is_rx_decap++;
-            ieee80211_iofree(iob);
+            iob_free(iob);
             break;
           }
 
@@ -1087,7 +1088,7 @@ void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
             /* strip LLC+SNAP headers */
             memmove((uint8_t *)eh + LLC_SNAPFRAMELEN, eh,
                 ETHER_HDR_LEN);
-            ieee80211_iotrim_head(iob, LLC_SNAPFRAMELEN);
+            iob_trimhead(iob, LLC_SNAPFRAMELEN);
             len -= LLC_SNAPFRAMELEN;
         }
         len += ETHER_HDR_LEN;
@@ -1097,7 +1098,7 @@ void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
         if (next == NULL) {
             /* stop processing A-MSDU subframes */
             ic->ic_stats.is_rx_decap++;
-            ieee80211_iofree(iob);
+            iob_free(iob);
             break;
         }
         ieee80211_deliver_data(ic, iob, ni);
@@ -1107,7 +1108,7 @@ void ieee80211_amsdu_decap(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
         /* Remove padding */
 
         pad = ((len + 3) & ~3) - len;
-        ieee80211_iotrim_head(iob, pad);
+        iob_trimhead(iob, pad);
     }
 }
 #endif /* !CONFIG_IEEE80211_HT */
@@ -1395,7 +1396,7 @@ int ieee80211_save_ie(const uint8_t *frm, uint8_t **ie)
  * [tlv] HT Operation (802.11n)
  */
 
-void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int isprobe)
 {
   const struct ieee80211_frame *wh;
@@ -1443,15 +1444,15 @@ void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
 
   /* Make sure all mandatory fixed fields are present */
 
-  if (iob->m_len < sizeof(*wh) + 12)
+  if (iob->io_len < sizeof(*wh) + 12)
     {
       ndbg("ERROR: frame too short\n");
       return;
     }
 
-  wh   = (FAR struct ieee80211_frame *)iob->m_data;
+  wh   = (FAR struct ieee80211_frame *)iob->io_data;
   frm  = (const uint8_t *)&wh[1];
-  efrm = iob->m_data + iob->m_len;
+  efrm = iob->io_data + iob->io_len;
 
   tstamp  = frm; frm += 8;
   bintval = LE_READ_2(frm); frm += 2;
@@ -1820,7 +1821,7 @@ void ieee80211_recv_probe_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
  * [tlv] HT Capabilities (802.11n)
  */
 
-void ieee80211_recv_probe_req(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_probe_req(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi)
 {
     const struct ieee80211_frame *wh;
@@ -1838,9 +1839,9 @@ void ieee80211_recv_probe_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
         ic->ic_state != IEEE80211_S_RUN)
         return;
 
-    wh = (FAR struct ieee80211_frame *)iob->m_data;
+    wh = (FAR struct ieee80211_frame *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
-    efrm = iob->m_data + iob->m_len;
+    efrm = iob->io_data + iob->io_len;
 
     ssid = NULL;
     rates = NULL;
@@ -1934,7 +1935,7 @@ void ieee80211_recv_probe_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
  * [2] Status code
  */
 
-void ieee80211_recv_auth(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_auth(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi)
 {
     const struct ieee80211_frame *wh;
@@ -1943,13 +1944,13 @@ void ieee80211_recv_auth(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
 
     /* Make sure all mandatory fixed fields are present */
 
-    if (iob->m_len < sizeof(*wh) + 6)
+    if (iob->io_len < sizeof(*wh) + 6)
       {
         ndbg("ERROR: frame too short\n");
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->m_data;
+    wh = (FAR struct ieee80211_frame *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
 
     algo   = LE_READ_2(frm); frm += 2;
@@ -1991,7 +1992,7 @@ void ieee80211_recv_auth(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
  * [tlv] HT Capabilities (802.11n)
  */
 
-void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int reassoc)
 {
     const struct ieee80211_frame *wh;
@@ -2018,15 +2019,15 @@ void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
 
     /* Make sure all mandatory fixed fields are present */
 
-    if (iob->m_len < sizeof(*wh) + (reassoc ? 10 : 4))
+    if (iob->io_len < sizeof(*wh) + (reassoc ? 10 : 4))
       {
         ndbg("ERROR: frame too short\n");
         return;
       }
 
-    wh   = (FAR struct ieee80211_frame *)iob->m_data;
+    wh   = (FAR struct ieee80211_frame *)iob->io_data;
     frm  = (const uint8_t *)&wh[1];
-    efrm = iob->m_data + iob->m_len;
+    efrm = iob->io_data + iob->io_len;
 
     if (!IEEE80211_ADDR_EQ(wh->i_addr3, ic->ic_bss->ni_bssid))
       {
@@ -2333,7 +2334,7 @@ void ieee80211_recv_assoc_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
  * [tlv] HT Operation (802.11n)
  */
 
-void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni, int reassoc)
 {
     const struct ieee80211_frame *wh;
@@ -2361,15 +2362,15 @@ void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
 
     /* Make sure all mandatory fixed fields are present */
 
-    if (iob->m_len < sizeof(*wh) + 6)
+    if (iob->io_len < sizeof(*wh) + 6)
       {
         ndbg("ERROR: frame too short\n");
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->m_data;
+    wh = (FAR struct ieee80211_frame *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
-    efrm = iob->m_data + iob->m_len;
+    efrm = iob->io_data + iob->io_len;
 
     capinfo = LE_READ_2(frm); frm += 2;
     status =  LE_READ_2(frm); frm += 2;
@@ -2506,7 +2507,7 @@ void ieee80211_recv_assoc_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
  * [2] Reason code
  */
 
-void ieee80211_recv_deauth(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_deauth(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2515,13 +2516,13 @@ void ieee80211_recv_deauth(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
 
     /* Make sure all mandatory fixed fields are present */
 
-    if (iob->m_len < sizeof(*wh) + 2)
+    if (iob->io_len < sizeof(*wh) + 2)
       {
         ndbg("ERROR: frame too short\n");
         return;
       }
 
-    wh  = (FAR struct ieee80211_frame *)iob->m_data;
+    wh  = (FAR struct ieee80211_frame *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
 
     reason = LE_READ_2(frm);
@@ -2552,7 +2553,7 @@ void ieee80211_recv_deauth(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
  * [2] Reason code
  */
 
-void ieee80211_recv_disassoc(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_disassoc(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2561,13 +2562,13 @@ void ieee80211_recv_disassoc(struct ieee80211com *ic, struct ieee80211_iobuf_s *
 
     /* Make sure all mandatory fixed fields are present */
 
-    if (iob->m_len < sizeof(*wh) + 2)
+    if (iob->io_len < sizeof(*wh) + 2)
       {
         ndbg("ERROR: frame too short\n");
         return;
       }
 
-    wh  = (FAR struct ieee80211_frame *)iob->m_data;
+    wh  = (FAR struct ieee80211_frame *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
 
     reason = LE_READ_2(frm);
@@ -2604,7 +2605,7 @@ void ieee80211_recv_disassoc(struct ieee80211com *ic, struct ieee80211_iobuf_s *
  * [2] Block Ack Starting Sequence Control
  */
 
-void ieee80211_recv_addba_req(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_addba_req(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2620,7 +2621,7 @@ void ieee80211_recv_addba_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
         return;
       }
 
-    if (iob->m_len < sizeof(*wh) + 9)
+    if (iob->io_len < sizeof(*wh) + 9)
       {
         ndbg("ERROR: frame too short\n");
         return;
@@ -2628,7 +2629,7 @@ void ieee80211_recv_addba_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
 
     /* MLME-ADDBA.indication */
 
-    wh  = (FAR struct ieee80211_frame *)iob->m_data;
+    wh  = (FAR struct ieee80211_frame *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
 
     token = frm[2];
@@ -2734,7 +2735,7 @@ void ieee80211_recv_addba_req(struct ieee80211com *ic, struct ieee80211_iobuf_s 
  * [2] Block Ack Timeout Value
  */
 
-void ieee80211_recv_addba_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_addba_resp(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2743,13 +2744,13 @@ void ieee80211_recv_addba_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
     uint16_t status, params, bufsz, timeout;
     uint8_t token, tid;
 
-    if (iob->m_len < sizeof(*wh) + 9)
+    if (iob->io_len < sizeof(*wh) + 9)
       {
         ndbg("ERROR: frame too short\n");
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->m_data;
+    wh = (FAR struct ieee80211_frame *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
 
     token = frm[2];
@@ -2803,7 +2804,7 @@ void ieee80211_recv_addba_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s
  * [2] Reason Code
  */
 
-void ieee80211_recv_delba(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_delba(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2812,13 +2813,13 @@ void ieee80211_recv_delba(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob
     uint8_t tid;
     int i;
 
-    if (iob->m_len < sizeof(*wh) + 6)
+    if (iob->io_len < sizeof(*wh) + 6)
       {
         ndbg("ERROR: frame too short\n");
         return;
       }
 
-    wh  = (FAR struct ieee80211_frame *)iob->m_data;
+    wh  = (FAR struct ieee80211_frame *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
 
     params = LE_READ_2(&frm[2]);
@@ -2852,7 +2853,7 @@ void ieee80211_recv_delba(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob
               {
                 if (ba->ba_buf[i].iob != NULL)
                   {
-                    ieee80211_iofree(ba->ba_buf[i].iob);
+                    iob_free(ba->ba_buf[i].iob);
                   }
               }
 
@@ -2886,7 +2887,7 @@ void ieee80211_recv_delba(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob
  * [2] Transaction Identifier
  */
 
-void ieee80211_recv_sa_query_req(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_sa_query_req(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2899,13 +2900,13 @@ void ieee80211_recv_sa_query_req(struct ieee80211com *ic, struct ieee80211_iobuf
         return;
       }
 
-    if (iob->m_len < sizeof(*wh) + 4)
+    if (iob->io_len < sizeof(*wh) + 4)
       {
         ndbg("ERROR: frame too short\n");
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->m_data;
+    wh = (FAR struct ieee80211_frame *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
 
     /* MLME-SAQuery.indication */
@@ -2927,7 +2928,7 @@ void ieee80211_recv_sa_query_req(struct ieee80211com *ic, struct ieee80211_iobuf
  * [2] Transaction Identifier
  */
 
-void ieee80211_recv_sa_query_resp(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_sa_query_resp(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
@@ -2942,13 +2943,13 @@ void ieee80211_recv_sa_query_resp(struct ieee80211com *ic, struct ieee80211_iobu
         return;
       }
 
-    if (iob->m_len < sizeof(*wh) + 4)
+    if (iob->io_len < sizeof(*wh) + 4)
       {
         ndbg("ERROR: frame too short\n");
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->m_data;
+    wh = (FAR struct ieee80211_frame *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
 
     /* Check that Transaction Identifier matches */
@@ -2971,19 +2972,19 @@ void ieee80211_recv_sa_query_resp(struct ieee80211com *ic, struct ieee80211_iobu
  * [1] Action
  */
 
-void ieee80211_recv_action(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_action(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
     const uint8_t *frm;
 
-    if (iob->m_len < sizeof(*wh) + 2)
+    if (iob->io_len < sizeof(*wh) + 2)
       {
         ndbg("ERROR: frame too short\n");
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->m_data;
+    wh = (FAR struct ieee80211_frame *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
 
     switch (frm[0]) {
@@ -3020,7 +3021,7 @@ void ieee80211_recv_action(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
     }
 }
 
-void ieee80211_recv_mgmt(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_mgmt(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int subtype)
 {
     switch (subtype) {
@@ -3072,7 +3073,7 @@ void ieee80211_recv_mgmt(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
 #ifdef CONFIG_IEEE80211_AP
 /* Process an incoming PS-Poll control frame (see 11.2) */
 
-void ieee80211_recv_pspoll(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_pspoll(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     struct ieee80211_frame_pspoll *psp;
@@ -3086,14 +3087,14 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
         return;
       }
 
-    if (iob->m_len < sizeof(*psp))
+    if (iob->io_len < sizeof(*psp))
       {
-        ndbg("ERROR: frame too short, len %u\n", iob->m_len);
+        ndbg("ERROR: frame too short, len %u\n", iob->io_len);
         ic->ic_stats.is_rx_tooshort++;
         return;
       }
 
-    psp = (FAR struct ieee80211_frame_pspoll *)iob->m_data;
+    psp = (FAR struct ieee80211_frame_pspoll *)iob->io_data;
     if (!IEEE80211_ADDR_EQ(psp->i_bssid, ic->ic_bss->ni_bssid))
       {
         ndbg("ERROR: discard pspoll frame to BSS %s\n",
@@ -3111,7 +3112,7 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
 
     /* take the first queued frame and put it out.. */
 
-    iob = (struct ieee80211_iobuf_s *)sq_remfirst(&ni->ni_savedq);
+    iob = (struct iob_s *)sq_remfirst(&ni->ni_savedq);
     if (iob == NULL)
       {
         return;
@@ -3127,7 +3128,7 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
       {
         /* more queued frames, set the more data bit */
 
-        wh = (FAR struct ieee80211_frame *)iob->m_data;
+        wh = (FAR struct ieee80211_frame *)iob->io_data;
         wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
       }
 
@@ -3139,7 +3140,7 @@ void ieee80211_recv_pspoll(struct ieee80211com *ic, struct ieee80211_iobuf_s *io
 #ifdef CONFIG_IEEE80211_HT
 /* Process an incoming BlockAckReq control frame (see 7.2.1.7) */
 
-void ieee80211_recv_bar(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
+void ieee80211_recv_bar(struct ieee80211com *ic, struct iob_s *iob,
     struct ieee80211_node *ni)
 {
     const struct ieee80211_frame_min *wh;
@@ -3154,13 +3155,13 @@ void ieee80211_recv_bar(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
         return;
       }
 
-    if (iob->m_len < sizeof(*wh) + 4)
+    if (iob->io_len < sizeof(*wh) + 4)
       {
         ndbg("ERROR: frame too short\n");
         return;
       }
 
-    wh = (FAR struct ieee80211_frame_min *)iob->m_data;
+    wh = (FAR struct ieee80211_frame_min *)iob->io_data;
     frm = (const uint8_t *)&wh[1];
 
     /* read BlockAckReq Control field */
@@ -3172,7 +3173,7 @@ void ieee80211_recv_bar(struct ieee80211com *ic, struct ieee80211_iobuf_s *iob,
         /* Multi-TID BlockAckReq variant (PSMP only) */
         ntids = tid + 1;
 
-        if (iob->m_len < sizeof(*wh) + 2 + 4 * ntids) {
+        if (iob->io_len < sizeof(*wh) + 2 + 4 * ntids) {
             ndbg("ERROR: MTBAR frame too short\n");
             return;
         }
