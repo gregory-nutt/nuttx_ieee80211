@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/net/ieee80211/ieee80211_ifnet.h
+ * include/nuttx/net/iob.h
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,14 +33,15 @@
  *
  ****************************************************************************/
 
-#ifndef _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_IFNET_H
-#define _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_IFNET_H
+#ifndef _INCLUDE_NUTTX_NET_IOB_H
+#define _INCLUDE_NUTTX_NET_IOB_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/net/iob.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -50,65 +51,51 @@
  * Public Types
  ****************************************************************************/
 
-/* Represents one packet buffer */
+/* Represents one I/O buffer.  A packet is contained by one or more I/O
+ * buffers in a chain.
+ */
 
-struct ieee80211_iobuf_s
+struct iob_s
 {
-  sq_entry_t m_link;
-  uint16_t   m_flags;
-  uint16_t   m_len;
-  uint16_t   m_pktlen;
-#if NVLAN > 0
-  uint16_t   m_vtag;
-#endif
-  void      *m_priv;
-  uint8_t    m_data[CONFIG_IEEE80211_BUFSIZE];
+  sq_entry_t io_link;    /* Link to the next I/O buffer in the chain */
+  uint8_t    io_flags;   /* Flags associated with the I/O buffer */
+  uint16_t   io_len;     /* Length of the data in the entry */
+  uint16_t   io_pktlen;  /* Total length of the packet */
+  uint16_t   io_vtag;    /* VLAN tag */
+  void      *io_priv;    /* User private data attached to the I/O buffer */
+  uint8_t    io_data[CONFIG_IOB_BUFSIZE];
 };
 
 /****************************************************************************
  * Global Data
  ****************************************************************************/
 
-/* A list of all free, unallocated I/O buffers */
-
-extern sq_queue_t g_ieee80211_freelist;
-
-/****************************************************************************
- * Inline Functions
- ****************************************************************************/
-
-static __inline FAR struct ieee80211_iobuf_s *ieee80211_ioalloc(void)
-{
-  return (FAR struct ieee80211_iobuf_s *)sq_remfirst(&g_ieee80211_freelist);
-}
-
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ieee80211_ifinit
+ * Name: iob_initialize
  *
  * Description:
- *   Set up the devices interface I/O buffers for normal operations.
+ *   Set up the I/O buffers for normal operations.
  *
  ****************************************************************************/
 
-struct ieee80211com;
-void ieee80211_ifinit(FAR struct ieee80211com *ic);
-
-/* Start polling for queued packets if the device is ready and polling has
- * not already been started.
- */
-
-void ieee80211_ifstart(void);
-
-/* Enqueue the packet to be sent by the Ethernet driver */
-
-int ieee80211_ifsend(struct ieee80211_iobuf_s *iob);
+void iob_initialize(void);
 
 /****************************************************************************
- * Name: ieee80211_iofree
+ * Name: iob_alloc
+ *
+ * Description:
+ *   Allocate an I/O buffer by take the buffer at the head of the free list.
+ *
+ ****************************************************************************/
+
+FAR struct iob_s *iob_alloc(void);
+
+/****************************************************************************
+ * Name: iob_free
  *
  * Description:
  *   Free the I/O buffer at the head of a buffer chain returning it to the
@@ -116,20 +103,20 @@ int ieee80211_ifsend(struct ieee80211_iobuf_s *iob);
  *
  ****************************************************************************/
 
-FAR struct ieee80211_iobuf_s *ieee80211_iofree(FAR struct ieee80211_iobuf_s *iob);
+FAR struct iob_s *iob_free(FAR struct iob_s *iob);
 
 /****************************************************************************
- * Name: ieee80211_iopurge
+ * Name: iob_freeq
  *
  * Description:
  *   Free an entire buffer chain
  *
  ****************************************************************************/
 
-void ieee80211_iopurge(FAR sq_queue_t *q);
+void iob_freeq(FAR sq_queue_t *q);
 
 /****************************************************************************
- * Name: ieee80211_iocpy
+ * Name: iob_copyout
  *
  * Description:
  *  Copy data 'len' bytes of data into the user buffer starting at 'offset'
@@ -137,41 +124,37 @@ void ieee80211_iopurge(FAR sq_queue_t *q);
  *
  ****************************************************************************/
 
-void ieee80211_iocpy(FAR uint8_t *dest,
-                     FAR const struct ieee80211_iobuf_s *iob,
-                     unsigned int len, unsigned int offset);
+void iob_copyout(FAR uint8_t *dest, FAR const struct iob_s *iob,
+                 unsigned int len, unsigned int offset);
 
 /****************************************************************************
- * Name: ieee80211_iocat
+ * Name: iob_concat
  *
  * Description:
- *   Concatenate ieee80211_iobuf_s chain iob2 to iob1.
+ *   Concatenate iob_s chain iob2 to iob1.
  *
  ****************************************************************************/
 
-void ieee80211_iocat(FAR struct ieee80211_iobuf_s *iob1,
-                     FAR struct ieee80211_iobuf_s *iob2);
+void iob_concat(FAR struct iob_s *iob1, FAR struct iob_s *iob2);
 
 /****************************************************************************
- * Name: ieee80211_iotrim_head
+ * Name: iob_trimhead
  *
  * Description:
  *   Remove bytes from the beginning of an I/O chain
  *
  ****************************************************************************/
 
-void ieee80211_iotrim_head(FAR struct ieee80211_iobuf_s *iob,
-                           unsigned int trimlen);
+void iob_trimhead(FAR struct iob_s *iob, unsigned int trimlen);
 
 /****************************************************************************
- * Name: ieee80211_iotrim_tail
+ * Name: iob_trimtail
  *
  * Description:
  *   Remove bytes from the end of an I/O chain
  *
  ****************************************************************************/
 
-void ieee80211_iotrim_tail(FAR struct ieee80211_iobuf_s *iob,
-                           unsigned int trimlen);
+void iob_trimtail(FAR struct iob_s *iob, unsigned int trimlen);
 
-#endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_IFNET_H */
+#endif /* _INCLUDE_NUTTX_NET_IOB_H */

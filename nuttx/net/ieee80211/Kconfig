@@ -6,6 +6,7 @@
 config NET_IEEE80211
 	bool "IEEE 802.11 stack support"
 	default n
+	select NET_IOB
 	---help---
 		Enable support to WiFi (IEEE 802.11) stack for NuttX.
 		This IEEE80211 stack is derivated from OpenBSD kernel.
