@@ -423,7 +423,7 @@ static int ieee80211_ioctl_getfixedrate(struct ieee80211_s *ic)
 
 bool isvalidrate(enum ieee80211_phymode mode, int rate)
 {
-    int i;
+    int i, ratemode;
     static const int rates[] = {
         {   2 | IEEE80211_MODE_11B << 16},
         {   4 | IEEE80211_MODE_11B << 16},
