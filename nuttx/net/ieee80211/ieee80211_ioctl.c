@@ -323,12 +323,32 @@ static int ieee80211_ioctl_getwpaparms(struct ieee80211_s *ic,
     return 0;
 }
 
-static int ieee80211_ioctl_setmode(struct ieee80211_s *ic)
+static int ieee80211_ioctl_setphymode(struct ieee80211_s *ic, enum ieee80211_phymode mode)
 {
+    /* Sane check, we need to receive a valid mode */
+    if (mode < IEEE80211_MODE_AUTO || mode >= IEEE80211_MODE_MAX)
+        return -EINVAL;
 
+    /* Verify if chip supports requested mode */
+    if ((ic->ic_modecaps & (1<<mode)) == 0)
+        return -EINVAL;
+
+    /*
+     * Handle phy mode change.
+     */
+    if (ic->ic_curmode != mode) {     /* change phy mode */
+        error = ieee80211_setmode(ic, mode);
+        if (error != 0)
+            return error;
+
+        /* Reset chip to accept this new mode */
+        ieee80211_reset_erp(ic);
+    }
+
+    return 0;
 }
 
-static int ieee80211_ioctl_getmode(struct ieee80211_s *ic)
+static int ieee80211_ioctl_getphymode(struct ieee80211_s *ic)
 {
 
 }
