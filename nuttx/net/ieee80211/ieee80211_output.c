@@ -557,7 +557,7 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
  fallback:
     if (iob->io_len < sizeof(struct ether_header))
       {
-        iob = m_pullup(iob, sizeof(struct ether_header));
+        iob = iob_pack(iob);
         if (iob == NULL)
           {
             ic->ic_stats.is_tx_nombuf++;
@@ -603,7 +603,7 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
         addqos = 0;
       }
 
-    iob_trimhead(iob, sizeof(struct ether_header) - LLC_SNAPFRAMELEN);
+    iob = iob_trimhead(iob, sizeof(struct ether_header) - LLC_SNAPFRAMELEN);
     llc = (FAR struct llc *)iob->io_data;
     llc->llc_dsap = llc->llc_ssap = LLC_SNAP_LSAP;
     llc->llc_control = LLC_UI;

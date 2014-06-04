@@ -77,7 +77,7 @@ int ieee80211_send_eapol_key(struct ieee80211_s *ic, struct iob_s *iob,
       return -ENOMEM;
     }
 
-  /* No need to m_pullup here (ok by construction) */
+  /* No need to iob_pack here (ok by construction) */
 
   eh = (FAR struct ether_header * *)iob->io_data;
   eh->ether_type = htons(ETHERTYPE_PAE);

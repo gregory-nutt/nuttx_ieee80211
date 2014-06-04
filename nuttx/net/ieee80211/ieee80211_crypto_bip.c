@@ -234,7 +234,7 @@ struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
    * may be confused with fixed fields by upper layers.
    */
 
-  iob_trimtail(iob0, IEEE80211_MMIE_LEN);
+  iob0 = iob_trimtail(iob0, IEEE80211_MMIE_LEN);
 
   /* Update last seen packet number (MIC is validated) */
 

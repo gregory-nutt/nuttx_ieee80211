@@ -660,7 +660,7 @@ struct iob_s *ieee80211_defrag(struct ieee80211_s *ic, struct iob_s *iob, int hd
 
     /* Strip 802.11 header and concatenate fragment */
 
-    iob_trimhead(iob, hdrlen);
+    iob = iob_trimhead(iob, hdrlen);
     iob_concat(df->df_m, iob);
     df->df_m->io_pktlen += iob->io_pktlen;
 
@@ -964,7 +964,7 @@ void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
     struct llc *llc;
 
     if (iob->io_len < hdrlen + LLC_SNAPFRAMELEN &&
-        (iob = m_pullup(iob, hdrlen + LLC_SNAPFRAMELEN)) == NULL)
+        (iob = iob_pack(iob)) == NULL)
       {
         ic->ic_stats.is_rx_decap++;
         return;
@@ -1004,12 +1004,12 @@ void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         llc->llc_snap.org_code[2] == 0)
       {
         eh.ether_type = llc->llc_snap.ether_type;
-        iob_trimhead(iob, hdrlen + LLC_SNAPFRAMELEN - ETHER_HDR_LEN);
+        iob = iob_trimhead(iob, hdrlen + LLC_SNAPFRAMELEN - ETHER_HDR_LEN);
       }
     else
       {
         eh.ether_type = htons(iob->io_pktlen - hdrlen);
-        iob_trimhead(iob, hdrlen - ETHER_HDR_LEN);
+        iob = iob_trimhead(iob, hdrlen - ETHER_HDR_LEN);
       }
 
     memcpy(iob->io_data, &eh, ETHER_HDR_LEN);
@@ -1041,7 +1041,7 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
 
     /* Strip 802.11 header */
 
-    iob_trimhead(iob, hdrlen);
+    iob = iob_trimhead(iob, hdrlen);
 
     for (;;)
       {
@@ -1049,7 +1049,7 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
 
         if (iob->io_len < ETHER_HDR_LEN + LLC_SNAPFRAMELEN)
           {
-            iob = m_pullup(iob, ETHER_HDR_LEN + LLC_SNAPFRAMELEN);
+            iob = iob_pack(iob);
             if (iob == NULL)
               {
                 ic->ic_stats.is_rx_decap++;
@@ -1082,15 +1082,20 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
             llc->llc_control == LLC_UI &&
             llc->llc_snap.org_code[0] == 0 &&
             llc->llc_snap.org_code[1] == 0 &&
-            llc->llc_snap.org_code[2] == 0) {
-            /* convert to Ethernet II header */
+            llc->llc_snap.org_code[2] == 0)
+          {
+            /* Convert to Ethernet II header */
+
             eh->ether_type = llc->llc_snap.ether_type;
-            /* strip LLC+SNAP headers */
+
+            /* Strip LLC+SNAP headers */
+
             memmove((uint8_t *)eh + LLC_SNAPFRAMELEN, eh,
                 ETHER_HDR_LEN);
-            iob_trimhead(iob, LLC_SNAPFRAMELEN);
+            iob = iob_trimhead(iob, LLC_SNAPFRAMELEN);
             len -= LLC_SNAPFRAMELEN;
-        }
+          }
+
         len += ETHER_HDR_LEN;
 
         /* "detach" our A-MSDU subframe from the others */
@@ -1108,7 +1113,7 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
         /* Remove padding */
 
         pad = ((len + 3) & ~3) - len;
-        iob_trimhead(iob, pad);
+        iob = iob_trimhead(iob, pad);
     }
 }
 #endif /* !CONFIG_IEEE80211_HT */

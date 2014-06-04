@@ -91,13 +91,14 @@ void ieee80211_eapol_key_input(struct ieee80211_s *ic, struct iob_s *iob,
       goto done;
     }
 
-  iob_trimhead(iob, sizeof(struct ether_header));
-
+  iob = iob_trimhead(iob, sizeof(struct ether_header));
   if (iob->io_pktlen < sizeof(*key))
     {
       goto done;
+    }
+
   if (iob->io_len < sizeof(*key) &&
-      (iob = m_pullup(iob, sizeof(*key))) == NULL)
+      (iob = iob_pack(iob)) == NULL)
     {
       ic->ic_stats.is_rx_nombuf++;
       goto done;
@@ -160,7 +161,7 @@ void ieee80211_eapol_key_input(struct ieee80211_s *ic, struct iob_s *iob,
 
   /* Make sure the key data field is contiguous */
 
-  if (iob->io_len < totlen && (iob = m_pullup(iob, totlen)) == NULL)
+  if (iob->io_len < totlen && (iob = iob_pack(iob)) == NULL)
     {
       ic->ic_stats.is_rx_nombuf++;
       goto done;
