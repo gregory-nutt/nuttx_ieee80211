@@ -341,8 +341,9 @@ static int ieee80211_ioctl_setphymode(struct ieee80211_s *ic, enum ieee80211_phy
         if (error != 0)
             return error;
 
-        /* Reset chip to accept this new mode */
+        /* Reset chip to accept this new phy mode */
         ieee80211_reset_erp(ic);
+        return -ENETRESET;
     }
 
     return 0;
@@ -353,6 +354,39 @@ static int ieee80211_ioctl_getphymode(struct ieee80211_s *ic)
 
 }
 
+static int ieee80211_ioctl_setopmode(struct ieee80211_s *ic, enum ieee80211_opmode opmode)
+{
+    /*
+     * Handle operating mode change.
+     */
+    if (ic->ic_opmode != opmode) {
+        ic->ic_opmode = opmode;
+#ifdef CONFIG_IEEE80211_AP
+        switch (opmode) {
+            case IEEE80211_M_AHDEMO:
+            case IEEE80211_M_HOSTAP:
+            case IEEE80211_M_STA:
+            case IEEE80211_M_MONITOR:
+                ic->ic_flags &= ~IEEE80211_F_IBSSON;
+                break;
+            case IEEE80211_M_IBSS:
+                ic->ic_flags |= IEEE80211_F_IBSSON;
+                break;
+        }
+#endif
+
+        /* Reset chip to accept this new operating mode */
+        ieee80211_reset_erp(ic);
+        return -ENETRESET;
+    }
+
+    return 0;
+}
+
+static int ieee80211_ioctl_getopmode(struct ieee80211_s *ic)
+{
+
+}
 
 int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
 {
