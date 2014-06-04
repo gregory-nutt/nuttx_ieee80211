@@ -545,7 +545,6 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
         if (ni == NULL) {
             nvdbg("%s: no node for dst %s, discard raw tx frame\n",
                   ic->ic_ifname, ieee80211_addr2str(addr));
-            ic->ic_stats.is_tx_nonode++;
             goto bad;
         }
         ni->ni_inact = 0;
@@ -560,7 +559,6 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
         iob = iob_pack(iob);
         if (iob == NULL)
           {
-            ic->ic_stats.is_tx_nombuf++;
             goto bad;
           }
       }
@@ -570,7 +568,6 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
     ni = ieee80211_find_txnode(ic, eh.ether_dhost);
     if (ni == NULL) {
         ndbg("ERROR: no node for dst %s, discard frame\n", ieee80211_addr2str(eh.ether_dhost));
-        ic->ic_stats.is_tx_nonode++;
         goto bad;
     }
 
@@ -578,7 +575,6 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
         !ni->ni_port_valid &&
         eh.ether_type != htons(ETHERTYPE_PAE)) {
         ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(eh.ether_dhost));
-        ic->ic_stats.is_tx_noauth++;
         goto bad;
     }
 
@@ -614,7 +610,6 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
     M_PREPEND(iob, hdrlen, M_DONTWAIT);
     if (iob == NULL)
       {
-        ic->ic_stats.is_tx_nombuf++;
         goto bad;
       }
 
@@ -1696,119 +1691,130 @@ struct iob_s *ieee80211_get_action(struct ieee80211_s *ic, struct ieee80211_node
  * count bumped to reflect our use for an indeterminant time.
  */
 
-int ieee80211_send_mgmt(struct ieee80211_s *ic, struct ieee80211_node *ni,
-    int type, int arg1, int arg2)
+int ieee80211_send_mgmt(struct ieee80211_s *ic, struct ieee80211_node *ni, int type, int arg1, int arg2)
 {
-#define senderr(_x, _v)    do { ic->ic_stats._v++; ret = _x; goto bad; } while (0)
-    struct iob_s *iob;
-    int ret, timer;
+  struct iob_s *iob;
+  int timer;
+  int ret
 
-    DEBUGASSERT(ni != NULL);
+  DEBUGASSERT(ni != NULL);
 
-    /* Hold a reference on the node so it doesn't go away until after
-     * the xmit is complete all the way in the driver.  On error we
-     * will remove our reference.
-     */
+  /* Hold a reference on the node so it doesn't go away until after
+   * the xmit is complete all the way in the driver.  On error we
+   * will remove our reference.
+   */
 
-    ieee80211_ref_node(ni);
-    timer = 0;
-    switch (type) {
-    case IEEE80211_FC0_SUBTYPE_PROBE_REQ:
-        if ((iob = ieee80211_get_probe_req(ic, ni)) == NULL)
-            senderr(ENOMEM, is_tx_nombuf);
+  ieee80211_ref_node(ni);
+  timer = 0;
+  switch (type) {
+  case IEEE80211_FC0_SUBTYPE_PROBE_REQ:
+      if ((iob = ieee80211_get_probe_req(ic, ni)) == NULL)
+        {
+          ret = -ENOMEM;
+          goto bad;
+        }
 
-        timer = IEEE80211_TRANS_WAIT;
-        break;
+      timer = IEEE80211_TRANS_WAIT;
+      break;
 #ifdef CONFIG_IEEE80211_AP
-    case IEEE80211_FC0_SUBTYPE_PROBE_RESP:
-        if ((iob = ieee80211_get_probe_resp(ic, ni)) == NULL)
-            senderr(ENOMEM, is_tx_nombuf);
-        break;
+  case IEEE80211_FC0_SUBTYPE_PROBE_RESP:
+      if ((iob = ieee80211_get_probe_resp(ic, ni)) == NULL)
+        {
+          ret = -ENOMEM;
+          goto bad;
+        }
+      break;
 #endif
-    case IEEE80211_FC0_SUBTYPE_AUTH:
-        iob = ieee80211_get_auth(ic, ni, arg1 >> 16, arg1 & 0xffff);
-        if (iob == NULL)
-            senderr(ENOMEM, is_tx_nombuf);
+  case IEEE80211_FC0_SUBTYPE_AUTH:
+      iob = ieee80211_get_auth(ic, ni, arg1 >> 16, arg1 & 0xffff);
+      if (iob == NULL)
+        {
+          ret = -ENOMEM;
+          goto bad;
+        }
 
-        if (ic->ic_opmode == IEEE80211_M_STA)
-            timer = IEEE80211_TRANS_WAIT;
-        break;
+      if (ic->ic_opmode == IEEE80211_M_STA)
+          timer = IEEE80211_TRANS_WAIT;
+      break;
 
-    case IEEE80211_FC0_SUBTYPE_DEAUTH:
-        if ((iob = ieee80211_get_deauth(ic, ni, arg1)) == NULL)
-          {
-            senderr(ENOMEM, is_tx_nombuf);
-          }
+  case IEEE80211_FC0_SUBTYPE_DEAUTH:
+      if ((iob = ieee80211_get_deauth(ic, ni, arg1)) == NULL)
+        {
+          ret = -ENOMEM;
+          goto bad;
+        }
 
-        nvdbg("%s: station %s deauthenticate (reason %d)\n",
-              ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), arg1);
-        break;
+      nvdbg("%s: station %s deauthenticate (reason %d)\n",
+            ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), arg1);
+      break;
 
-    case IEEE80211_FC0_SUBTYPE_ASSOC_REQ:
-    case IEEE80211_FC0_SUBTYPE_REASSOC_REQ:
-        if ((iob = ieee80211_get_assoc_req(ic, ni, type)) == NULL)
-          {
-            senderr(ENOMEM, is_tx_nombuf);
-          }
+  case IEEE80211_FC0_SUBTYPE_ASSOC_REQ:
+  case IEEE80211_FC0_SUBTYPE_REASSOC_REQ:
+      if ((iob = ieee80211_get_assoc_req(ic, ni, type)) == NULL)
+        {
+          ret = -ENOMEM;
+          goto bad;
+        }
 
-        timer = IEEE80211_TRANS_WAIT;
-        break;
+      timer = IEEE80211_TRANS_WAIT;
+      break;
 
 #ifdef CONFIG_IEEE80211_AP
-    case IEEE80211_FC0_SUBTYPE_ASSOC_RESP:
-    case IEEE80211_FC0_SUBTYPE_REASSOC_RESP:
-        if ((iob = ieee80211_get_assoc_resp(ic, ni, arg1)) == NULL)
-          {
-            senderr(ENOMEM, is_tx_nombuf);
-          }
-        break;
+  case IEEE80211_FC0_SUBTYPE_ASSOC_RESP:
+  case IEEE80211_FC0_SUBTYPE_REASSOC_RESP:
+      if ((iob = ieee80211_get_assoc_resp(ic, ni, arg1)) == NULL)
+        {
+          ret = -ENOMEM;
+          goto bad;
+        }
+      break;
 #endif
-    case IEEE80211_FC0_SUBTYPE_DISASSOC:
-        if ((iob = ieee80211_get_disassoc(ic, ni, arg1)) == NULL)
-          {
-            senderr(ENOMEM, is_tx_nombuf);
-          }
+  case IEEE80211_FC0_SUBTYPE_DISASSOC:
+      if ((iob = ieee80211_get_disassoc(ic, ni, arg1)) == NULL)
+        {
+          ret = -ENOMEM;
+          goto bad;
+        }
 
-        nvdbg("%s: station %s disassociate (reason %d)\n",
-              ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), arg1);
-        break;
+      nvdbg("%s: station %s disassociate (reason %d)\n",
+            ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), arg1);
+      break;
 
-    case IEEE80211_FC0_SUBTYPE_ACTION:
-        iob = ieee80211_get_action(ic, ni, arg1 >> 16, arg1 & 0xffff, arg2);
-        if (iob == NULL)
-          {
-            senderr(ENOMEM, is_tx_nombuf);
-          }
-        break;
+  case IEEE80211_FC0_SUBTYPE_ACTION:
+      iob = ieee80211_get_action(ic, ni, arg1 >> 16, arg1 & 0xffff, arg2);
+      if (iob == NULL)
+        {
+          ret = -ENOMEM;
+          goto bad;
+        }
+      break;
 
-    default:
-        ndbg("ERROR: invalid mgmt frame type %u\n", type);
-        senderr(EINVAL, is_tx_unknownmgt);
-        /* NOTREACHED */
+  default:
+      ndbg("ERROR: invalid mgmt frame type %u\n", type);
+      ret = -EINVAL;
+      goto bad;
+  }
+
+  ret = ieee80211_mgmt_output(ic, ni, iob, type);
+  if (ret == 0)
+    {
+      if (timer)
+        {
+          ic->ic_mgt_timer = timer;
+        }
+    }
+  else
+    {
+bad:
+      ieee80211_release_node(ic, ni);
     }
 
-    ret = ieee80211_mgmt_output(ic, ni, iob, type);
-    if (ret == 0)
-      {
-        if (timer)
-          {
-            ic->ic_mgt_timer = timer;
-          }
-      }
-    else
-      {
-bad:
-        ieee80211_release_node(ic, ni);
-      }
-
-    return ret;
-#undef senderr
+  return ret;
 }
 
 /* Build a RTS (Request To Send) control frame (see 7.2.1.1) */
 
-struct iob_s *ieee80211_get_rts(struct ieee80211_s *ic, const struct ieee80211_frame *wh,
-    uint16_t dur)
+struct iob_s *ieee80211_get_rts(struct ieee80211_s *ic, const struct ieee80211_frame *wh, uint16_t dur)
 {
   struct ieee80211_frame_rts *rts;
   struct iob_s *iob;

@@ -260,14 +260,7 @@ void ieee80211_begin_scan(struct ieee80211_s *ic)
 #endif
     {
       ic->ic_flags |= IEEE80211_F_ASCAN;
-      ic->ic_stats.is_scan_active++;
     }
-#ifdef CONFIG_IEEE80211_AP
-  else
-    {
-      ic->ic_stats.is_scan_passive++;
-    }
-#endif
 
   nvdbg("%s: begin %s scan\n",
         ic->ic_ifname, (ic->ic_flags & IEEE80211_F_ASCAN) ? "active" : "passive");
@@ -880,24 +873,26 @@ struct ieee80211_node *ieee80211_alloc_node(struct ieee80211_s *ic, const uint8_
 {
   struct ieee80211_node *ni = ieee80211_alloc_node_helper(ic);
   if (ni != NULL)
+    {
       ieee80211_setup_node(ic, ni, macaddr);
-  else
-      ic->ic_stats.is_rx_nodealloc++;
+    }
+
   return ni;
 }
 
 struct ieee80211_node *ieee80211_dup_bss(struct ieee80211_s *ic, const uint8_t *macaddr)
 {
   struct ieee80211_node *ni = ieee80211_alloc_node_helper(ic);
-  if (ni != NULL) {
+  if (ni != NULL)
+    {
       ieee80211_setup_node(ic, ni, macaddr);
-      /*
-       * Inherit from ic_bss.
-       */
+
+      /* Inherit from ic_bss */
+
       IEEE80211_ADDR_COPY(ni->ni_bssid, ic->ic_bss->ni_bssid);
       ni->ni_chan = ic->ic_bss->ni_chan;
-  } else
-      ic->ic_stats.is_rx_nodealloc++;
+    }
+
   return ni;
 }
 
@@ -1263,10 +1258,12 @@ void ieee80211_clean_nodes(struct ieee80211_s *ic, int cache_timeout)
               IEEE80211_REASON_AUTH_EXPIRE);
           s = splnet();
           ieee80211_node_leave(ic, ni);
-      } else
+      }
+    else
 #endif
+      {
           ieee80211_free_node(ic, ni);
-      ic->ic_stats.is_node_timeout++;
+      }
   }
 
 #ifdef CONFIG_IEEE80211_AP
@@ -1316,7 +1313,6 @@ int ieee80211_setup_rates(struct ieee80211_s *ic, struct ieee80211_node *ni,
           nxrates = IEEE80211_RATE_MAXSIZE - rs->rs_nrates;
           ndbg("ERROR: extended rate set too large; only using %u of %u rates\n",
               nxrates, xrates[1]);
-          ic->ic_stats.is_rx_rstoobig++;
       }
       memcpy(rs->rs_rates + rs->rs_nrates, xrates+2, nxrates);
       rs->rs_nrates += nxrates;

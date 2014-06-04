@@ -704,18 +704,7 @@ int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
             ((struct ieee80211_chanreq_all *)data)->i_chans,
             sizeof(ic->ic_channels));
         break;
-#if 0
-    case SIOCG80211ZSTATS:
-#endif
-    case SIOCG80211STATS:
-        ifr = (struct ifreq *)data;
-        error = copyout(&ic->ic_stats, ifr->ifr_data,
-            sizeof(ic->ic_stats));
-#if 0
-        if (cmd == SIOCG80211ZSTATS)
-            memset(&ic->ic_stats, 0, sizeof(ic->ic_stats));
-#endif
-        break;
+
     case SIOCS80211TXPOWER:
         txpower = (struct ieee80211_txpower *)data;
         if ((ic->ic_caps & IEEE80211_C_TXPMGT) == 0) {
@@ -880,7 +869,9 @@ int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
         error = -ENETRESET;
         break;
 
-    case SIOCSIFMTU:  /* MTU is fixed by the NuttX configuration */
+    case SIOCG80211ZSTATS: /* No statistics */
+    case SIOCG80211STATS:  /* No statistics */
+    case SIOCSIFMTU:       /* MTU is fixed by the NuttX configuration */
     default:
       error = -ENOTTY;
     }

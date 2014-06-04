@@ -162,7 +162,6 @@ struct iob_s *ieee80211_bip_encap(struct ieee80211_s *ic, struct iob_s *iob0,
 
     return iob0;
  nospace:
-    ic->ic_stats.is_tx_nombuf++;
     iob_free(iob0);
     return NULL;
 }
@@ -192,7 +191,6 @@ struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
       {
         /* Replayed frame, discard */
 
-        ic->ic_stats.is_cmac_replays++;
         iob_free(iob0);
         return NULL;
       }
@@ -223,7 +221,6 @@ struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
 
   if (timingsafe_bcmp(mic, mic0, 8) != 0)
     {
-      ic->ic_stats.is_cmac_icv_errs++;
       iob_free(iob0);
       return NULL;
     }

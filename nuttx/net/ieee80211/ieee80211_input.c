@@ -222,7 +222,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
      */
     if (iob->io_len < sizeof(struct ieee80211_frame_min)) {
         ndbg("ERROR: frame too short, len %u\n", iob->io_len);
-        ic->ic_stats.is_rx_tooshort++;
         goto out;
     }
 
@@ -230,7 +229,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
     if ((wh->i_fc[0] & IEEE80211_FC0_VERSION_MASK) != IEEE80211_FC0_VERSION_0)
       {
         ndbg("ERROR: frame with wrong version: %x\n", wh->i_fc[0]);
-        ic->ic_stats.is_rx_badversion++;
         goto err;
       }
 
@@ -243,7 +241,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         if (iob->io_len < hdrlen)
           {
             ndbg("ERROR: frame too short, len %u\n", iob->io_len);
-            ic->ic_stats.is_rx_tooshort++;
             goto err;
           }
       }
@@ -268,7 +265,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         if ((wh->i_fc[1] & IEEE80211_FC1_RETRY) &&
             nrxseq == *orxseq) {
             /* duplicate, silently discarded */
-            ic->ic_stats.is_rx_dup++;
             goto out;
         }
         *orxseq = nrxseq;
@@ -318,7 +314,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
           case IEEE80211_M_STA:
             if (dir != IEEE80211_FC1_DIR_FROMDS)
               {
-                ic->ic_stats.is_rx_wrongdir++;
                 goto out;
               }
 
@@ -330,7 +325,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
                 nvdbg("discard frame from SA %s\n",
                     ieee80211_addr2str(wh->i_addr2));
 
-                ic->ic_stats.is_rx_wrongbss++;
                 goto out;
               }
 
@@ -344,7 +338,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
                  * SIMPLEX interface.
                  */
 
-                ic->ic_stats.is_rx_mcastecho++;
                 goto out;
               }
             break;
@@ -352,7 +345,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         case IEEE80211_M_IBSS:
         case IEEE80211_M_AHDEMO:
             if (dir != IEEE80211_FC1_DIR_NODS) {
-                ic->ic_stats.is_rx_wrongdir++;
                 goto out;
             }
             if (ic->ic_state != IEEE80211_S_SCAN &&
@@ -363,14 +355,12 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
                 /* Destination is not our BSS or broadcast. */
                 nvdbg("discard data frame to DA %s\n",
                     ieee80211_addr2str(wh->i_addr3));
-                ic->ic_stats.is_rx_wrongbss++;
                 goto out;
             }
             break;
         case IEEE80211_M_HOSTAP:
             if (dir != IEEE80211_FC1_DIR_TODS)
               {
-                ic->ic_stats.is_rx_wrongdir++;
                 goto out;
               }
 
@@ -382,7 +372,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
                 /* BSS is not us or broadcast. */
                 nvdbg("discard data frame to BSS %s\n",
                     ieee80211_addr2str(wh->i_addr1));
-                ic->ic_stats.is_rx_wrongbss++;
                 goto out;
             }
 
@@ -407,7 +396,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
                         IEEE80211_REASON_NOT_AUTHED);
                   }
 
-                ic->ic_stats.is_rx_notassoc++;
                 goto err;
               }
 
@@ -417,7 +405,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
                 IEEE80211_SEND_MGMT(ic, ni,
                     IEEE80211_FC0_SUBTYPE_DISASSOC,
                     IEEE80211_REASON_NOT_ASSOCED);
-                ic->ic_stats.is_rx_notassoc++;
                 goto err;
             }
             break;
@@ -457,7 +444,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
             if (!(rxi->rxi_flags & IEEE80211_RXI_HWDEC)) {
                 if (!(wh->i_fc[1] & IEEE80211_FC1_PROTECTED)) {
                     /* drop unencrypted */
-                    ic->ic_stats.is_rx_unencrypted++;
                     goto err;
                 }
 
@@ -466,7 +452,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
                 iob = ieee80211_decrypt(ic, iob, ni);
                 if (iob == NULL)
                   {
-                    ic->ic_stats.is_rx_wepfail++;
                     goto err;
                   }
 
@@ -478,7 +463,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         {
             /* Frame encrypted but protection off for Rx */
 
-            ic->ic_stats.is_rx_nowep++;
             goto out;
         }
 
@@ -493,12 +477,10 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
 
     case IEEE80211_FC0_TYPE_MGT:
         if (dir != IEEE80211_FC1_DIR_NODS) {
-            ic->ic_stats.is_rx_wrongdir++;
             goto err;
         }
 #ifdef CONFIG_IEEE80211_AP
         if (ic->ic_opmode == IEEE80211_M_AHDEMO) {
-            ic->ic_stats.is_rx_ahdemo_mgt++;
             goto out;
         }
 #endif
@@ -508,7 +490,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         if (ic->ic_state == IEEE80211_S_SCAN) {
             if (subtype != IEEE80211_FC0_SUBTYPE_BEACON &&
                 subtype != IEEE80211_FC0_SUBTYPE_PROBE_RESP) {
-                ic->ic_stats.is_rx_mgtdiscard++;
                 goto out;
             }
         }
@@ -554,7 +535,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         return;
 
     case IEEE80211_FC0_TYPE_CTL:
-        ic->ic_stats.is_rx_ctl++;
         subtype = wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK;
         switch (subtype) {
 #ifdef CONFIG_IEEE80211_AP
@@ -811,7 +791,6 @@ void ieee80211_deliver_data(struct ieee80211_s *ic, struct iob_s *iob,
         eh->ether_type != htons(ETHERTYPE_PAE))
     {
       ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(eh->ether_dhost));
-      ic->ic_stats.is_rx_unauth++;
       iob_free(iob);
       return;
     }
@@ -966,7 +945,6 @@ void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
     if (iob->io_len < hdrlen + LLC_SNAPFRAMELEN &&
         (iob = iob_pack(iob)) == NULL)
       {
-        ic->ic_stats.is_rx_decap++;
         return;
       }
 
@@ -1019,7 +997,6 @@ void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
       {
         if ((iob = ieee80211_align_iobuf(iob)) == NULL)
           {
-            ic->ic_stats.is_rx_decap++;
             return;
           }
       }
@@ -1052,7 +1029,6 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
             iob = iob_pack(iob);
             if (iob == NULL)
               {
-                ic->ic_stats.is_rx_decap++;
                 break;
               }
           }
@@ -1068,7 +1044,6 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
 
             /* Stop processing A-MSDU subframes */
 
-            ic->ic_stats.is_rx_decap++;
             iob_free(iob);
             break;
           }
@@ -1102,7 +1077,6 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
         next = m_split(iob, len, M_NOWAIT);
         if (next == NULL) {
             /* stop processing A-MSDU subframes */
-            ic->ic_stats.is_rx_decap++;
             iob_free(iob);
             break;
         }
@@ -1159,7 +1133,6 @@ int
 ieee80211_parse_edca_params(struct ieee80211_s *ic, const uint8_t *frm)
 {
     if (frm[1] < 18) {
-        ic->ic_stats.is_rx_elem_toosmall++;
         return IEEE80211_REASON_IE_INVALID;
     }
     return ieee80211_parse_edca_params_body(ic, frm + 2);
@@ -1169,7 +1142,6 @@ int
 ieee80211_parse_wmm_params(struct ieee80211_s *ic, const uint8_t *frm)
 {
     if (frm[1] < 24) {
-        ic->ic_stats.is_rx_elem_toosmall++;
         return IEEE80211_REASON_IE_INVALID;
     }
     return ieee80211_parse_edca_params_body(ic, frm + 8);
@@ -1346,7 +1318,6 @@ ieee80211_parse_rsn(struct ieee80211_s *ic, const uint8_t *frm,
     struct ieee80211_rsnparams *rsn)
 {
     if (frm[1] < 2) {
-        ic->ic_stats.is_rx_elem_toosmall++;
         return IEEE80211_STATUS_IE_INVALID;
     }
     return ieee80211_parse_rsn_body(ic, frm + 2, frm[1], rsn);
@@ -1357,7 +1328,6 @@ ieee80211_parse_wpa(struct ieee80211_s *ic, const uint8_t *frm,
     struct ieee80211_rsnparams *rsn)
 {
     if (frm[1] < 6) {
-        ic->ic_stats.is_rx_elem_toosmall++;
         return IEEE80211_STATUS_IE_INVALID;
     }
     return ieee80211_parse_rsn_body(ic, frm + 6, frm[1] - 4, rsn);
@@ -1483,7 +1453,6 @@ void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
     {
       if (frm + 2 + frm[1] > efrm)
         {
-          ic->ic_stats.is_rx_elem_toosmall++;
           break;
         }
 
@@ -1500,7 +1469,6 @@ void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
         case IEEE80211_ELEMID_DSPARMS:
           if (frm[1] < 1)
             {
-              ic->ic_stats.is_rx_elem_toosmall++;
               break;
               }
 
@@ -1514,7 +1482,6 @@ void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
         case IEEE80211_ELEMID_ERP:
           if (frm[1] < 1)
             {
-              ic->ic_stats.is_rx_elem_toosmall++;
               break;
             }
 
@@ -1542,7 +1509,6 @@ void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
         case IEEE80211_ELEMID_VENDOR:
           if (frm[1] < 4)
             {
-              ic->ic_stats.is_rx_elem_toosmall++;
               break;
             }
 
@@ -1592,7 +1558,6 @@ void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
       ndbg("ERROR: ignore %s with invalid channel %u\n",
           isprobe ? "probe response" : "beacon", chan);
 
-      ic->ic_stats.is_rx_badchan++;
       return;
     }
 
@@ -1610,7 +1575,6 @@ void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
       ndbg("ERROR: ignore %s on channel %u marked for channel %u\n",
           isprobe ? "probe response" : "beacon", bchan, chan);
 
-      ic->ic_stats.is_rx_chanmismatch++;
       return;
     }
 
@@ -1859,7 +1823,6 @@ void ieee80211_recv_probe_req(struct ieee80211_s *ic, struct iob_s *iob,
       {
         if (frm + 2 + frm[1] > efrm)
           {
-            ic->ic_stats.is_rx_elem_toosmall++;
             break;
           }
 
@@ -1897,7 +1860,6 @@ void ieee80211_recv_probe_req(struct ieee80211_s *ic, struct iob_s *iob,
         memcmp(&ssid[2], ic->ic_bss->ni_essid, ic->ic_bss->ni_esslen)))
       {
         ndbg("ERROR: SSID mismatch\n");
-        ic->ic_stats.is_rx_ssidmismatch++;
         return;
       }
 
@@ -1905,7 +1867,6 @@ void ieee80211_recv_probe_req(struct ieee80211_s *ic, struct iob_s *iob,
 
     if (ssid[1] == 0 && (ic->ic_flags & IEEE80211_F_HIDENWID)) {
         ndbg("ERROR: wildcard SSID rejected");
-        ic->ic_stats.is_rx_ssidmismatch++;
         return;
     }
 
@@ -1968,7 +1929,6 @@ void ieee80211_recv_auth(struct ieee80211_s *ic, struct iob_s *iob,
     if (algo != IEEE80211_AUTH_ALG_OPEN) {
         ndbg("ERROR: unsupported auth algorithm %d from %s\n",
             algo, ieee80211_addr2str((uint8_t *)wh->i_addr2));
-        ic->ic_stats.is_rx_auth_unsupported++;
 #ifdef CONFIG_IEEE80211_AP
         if (ic->ic_opmode == IEEE80211_M_HOSTAP)
           {
@@ -2038,7 +1998,6 @@ void ieee80211_recv_assoc_req(struct ieee80211_s *ic, struct iob_s *iob,
       {
         ndbg("ERROR: ignore other bss from %s\n",
             ieee80211_addr2str((uint8_t *)wh->i_addr2));
-        ic->ic_stats.is_rx_assoc_bss++;
         return;
       }
 
@@ -2063,7 +2022,6 @@ void ieee80211_recv_assoc_req(struct ieee80211_s *ic, struct iob_s *iob,
       {
         if (frm + 2 + frm[1] > efrm)
           {
-            ic->ic_stats.is_rx_elem_toosmall++;
             break;
           }
 
@@ -2090,7 +2048,6 @@ void ieee80211_recv_assoc_req(struct ieee80211_s *ic, struct iob_s *iob,
 #endif
         case IEEE80211_ELEMID_VENDOR:
             if (frm[1] < 4) {
-                ic->ic_stats.is_rx_elem_toosmall++;
                 break;
             }
             if (memcmp(frm + 2, MICROSOFT_OUI, 3) == 0) {
@@ -2119,7 +2076,6 @@ void ieee80211_recv_assoc_req(struct ieee80211_s *ic, struct iob_s *iob,
         memcmp(&ssid[2], ic->ic_bss->ni_essid, ic->ic_bss->ni_esslen))
       {
         ndbg("ERROR: SSID mismatch\n");
-        ic->ic_stats.is_rx_ssidmismatch++;
         return;
       }
 
@@ -2136,7 +2092,6 @@ void ieee80211_recv_assoc_req(struct ieee80211_s *ic, struct iob_s *iob,
                 IEEE80211_FC0_SUBTYPE_DEAUTH,
                 IEEE80211_REASON_ASSOC_NOT_AUTHED);
         }
-        ic->ic_stats.is_rx_assoc_notauth++;
         return;
     }
 
@@ -2162,7 +2117,6 @@ void ieee80211_recv_assoc_req(struct ieee80211_s *ic, struct iob_s *iob,
     }
 
     if (!(capinfo & IEEE80211_CAPINFO_ESS)) {
-        ic->ic_stats.is_rx_assoc_capmismatch++;
         status = IEEE80211_STATUS_CAPINFO;
         goto end;
     }
@@ -2170,7 +2124,6 @@ void ieee80211_recv_assoc_req(struct ieee80211_s *ic, struct iob_s *iob,
         IEEE80211_F_DOSORT | IEEE80211_F_DOFRATE | IEEE80211_F_DONEGO |
         IEEE80211_F_DODEL);
     if (rate & IEEE80211_RATE_BASIC) {
-        ic->ic_stats.is_rx_assoc_norate++;
         status = IEEE80211_STATUS_BASIC_RATE;
         goto end;
     }
@@ -2361,7 +2314,6 @@ void ieee80211_recv_assoc_resp(struct ieee80211_s *ic, struct iob_s *iob,
     if (ic->ic_opmode != IEEE80211_M_STA ||
         ic->ic_state != IEEE80211_S_ASSOC)
       {
-        ic->ic_stats.is_rx_mgtdiscard++;
         return;
       }
 
@@ -2390,7 +2342,6 @@ void ieee80211_recv_assoc_resp(struct ieee80211_s *ic, struct iob_s *iob,
             ni->ni_fails++;
           }
 
-        ic->ic_stats.is_rx_auth_fail++;
         return;
     }
     associd = LE_READ_2(frm); frm += 2;
@@ -2408,7 +2359,6 @@ void ieee80211_recv_assoc_resp(struct ieee80211_s *ic, struct iob_s *iob,
       {
         if (frm + 2 + frm[1] > efrm)
           {
-            ic->ic_stats.is_rx_elem_toosmall++;
             break;
           }
 
@@ -2433,7 +2383,6 @@ void ieee80211_recv_assoc_resp(struct ieee80211_s *ic, struct iob_s *iob,
 #endif
         case IEEE80211_ELEMID_VENDOR:
             if (frm[1] < 4) {
-                ic->ic_stats.is_rx_elem_toosmall++;
                 break;
             }
             if (memcmp(frm + 2, MICROSOFT_OUI, 3) == 0) {
@@ -2455,7 +2404,6 @@ void ieee80211_recv_assoc_resp(struct ieee80211_s *ic, struct iob_s *iob,
     if (rate & IEEE80211_RATE_BASIC) {
         ndbg("ERROR: rate mismatch for %s\n",
             ieee80211_addr2str((uint8_t *)wh->i_addr2));
-        ic->ic_stats.is_rx_assoc_norate++;
         return;
     }
 
@@ -2532,7 +2480,6 @@ void ieee80211_recv_deauth(struct ieee80211_s *ic, struct iob_s *iob,
 
     reason = LE_READ_2(frm);
 
-    ic->ic_stats.is_rx_deauth++;
     switch (ic->ic_opmode) {
     case IEEE80211_M_STA:
         ieee80211_new_state(ic, IEEE80211_S_AUTH,
@@ -2578,7 +2525,6 @@ void ieee80211_recv_disassoc(struct ieee80211_s *ic, struct iob_s *iob,
 
     reason = LE_READ_2(frm);
 
-    ic->ic_stats.is_rx_disassoc++;
     switch (ic->ic_opmode) {
     case IEEE80211_M_STA:
         ieee80211_new_state(ic, IEEE80211_S_ASSOC,
@@ -3070,7 +3016,6 @@ void ieee80211_recv_mgmt(struct ieee80211_s *ic, struct iob_s *iob,
     default:
         ndbg("ERROR: mgmt frame with subtype 0x%x not handled\n",
             subtype);
-        ic->ic_stats.is_rx_badsubtype++;
         break;
     }
 }
@@ -3095,7 +3040,6 @@ void ieee80211_recv_pspoll(struct ieee80211_s *ic, struct iob_s *iob,
     if (iob->io_len < sizeof(*psp))
       {
         ndbg("ERROR: frame too short, len %u\n", iob->io_len);
-        ic->ic_stats.is_rx_tooshort++;
         return;
       }
 
@@ -3104,7 +3048,6 @@ void ieee80211_recv_pspoll(struct ieee80211_s *ic, struct iob_s *iob,
       {
         ndbg("ERROR: discard pspoll frame to BSS %s\n",
             ieee80211_addr2str(psp->i_bssid));
-        ic->ic_stats.is_rx_wrongbss++;
         return;
       }
 
@@ -3224,9 +3167,6 @@ ieee80211_bar_tid(struct ieee80211_s *ic, struct ieee80211_node *ni,
     if ((ni->ni_flags & IEEE80211_NODE_MFP) &&
         (ni->ni_rsncaps & IEEE80211_RSNCAP_PBAC)) {
         /* ADDBA Requests must be used in PBAC case */
-        if (SEQ_LT(ssn, ba->ba_winstart) ||
-            SEQ_LT(ba->ba_winend, ssn))
-            ic->ic_stats.is_pbac_errs++;
         return;    /* PBAC, do not move window */
     }
     /* reset Block Ack inactivity timer */

@@ -370,7 +370,6 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     iob_free(m0);
     return next0;
  nospace:
-    ic->ic_stats.is_tx_nombuf++;
     iob_free(m0);
     if (next0 != NULL)
         iob_free(next0);
@@ -425,7 +424,6 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
           (uint64_t)ivp[7] << 40;
     if (tsc <= *prsc) {
         /* replayed frame, discard */
-        ic->ic_stats.is_tkip_replays++;
         iob_free(m0);
         return NULL;
     }
@@ -535,7 +533,6 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     crc0 = *(uint32_t *)(buf + IEEE80211_TKIP_MICLEN);
     if (crc != letoh32(crc0)) {
-        ic->ic_stats.is_tkip_icv_errs++;
         iob_free(m0);
         iob_free(next0);
         return NULL;
@@ -547,7 +544,6 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     if (timingsafe_bcmp(mic0, mic, IEEE80211_TKIP_MICLEN) != 0) {
         iob_free(m0);
         iob_free(next0);
-        ic->ic_stats.is_rx_locmicfail++;
         ieee80211_michael_mic_failure(ic, tsc);
         return NULL;
     }
@@ -560,7 +556,6 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     iob_free(m0);
     return next0;
  nospace:
-    ic->ic_stats.is_rx_nombuf++;
     iob_free(m0);
     if (next0 != NULL)
         iob_free(next0);

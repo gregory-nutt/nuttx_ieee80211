@@ -338,7 +338,6 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     return next0;
 
  nospace:
-    ic->ic_stats.is_tx_nombuf++;
     iob_free(m0);
     if (next0 != NULL)
         iob_free(next0);
@@ -413,7 +412,6 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
          (uint64_t)ivp[7] << 40;
     if (pn <= *prsc) {
         /* replayed frame, discard */
-        ic->ic_stats.is_ccmp_replays++;
         iob_free(m0);
         return NULL;
     }
@@ -550,7 +548,6 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     iob_copyout(mic0, iob, moff, IEEE80211_CCMP_MICLEN);
     if (timingsafe_bcmp(mic0, b, IEEE80211_CCMP_MICLEN) != 0)
       {
-        ic->ic_stats.is_ccmp_dec_errs++;
         iob_free(m0);
         iob_free(next0);
         return NULL;
@@ -562,7 +559,6 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     iob_free(m0);
     return next0;
  nospace:
-    ic->ic_stats.is_rx_nombuf++;
     iob_free(m0);
     if (next0 != NULL)
         iob_free(next0);

@@ -40,67 +40,10 @@
  * Public Types
  ****************************************************************************/
 
-/* per-interface statistics */
-struct ieee80211_stats {
-    uint32_t    is_rx_badversion;    /* rx frame with bad version */
-    uint32_t    is_rx_tooshort;        /* rx frame too short */
-    uint32_t    is_rx_wrongbss;        /* rx from wrong bssid */
-    uint32_t    is_rx_dup;        /* rx discard 'cuz dup */
-    uint32_t    is_rx_wrongdir;        /* rx w/ wrong direction */
-    uint32_t    is_rx_mcastecho;    /* rx discard 'cuz mcast echo */
-    uint32_t    is_rx_notassoc;        /* rx discard 'cuz sta !assoc */
-    uint32_t    is_rx_nowep;        /* rx w/ wep but wep !config */
-    uint32_t    is_rx_unencrypted;    /* rx w/o wep but wep config */
-    uint32_t    is_rx_wepfail;        /* rx wep processing failed */
-    uint32_t    is_rx_decap;        /* rx decapsulation failed */
-    uint32_t    is_rx_mgtdiscard;    /* rx discard mgt frames */
-    uint32_t    is_rx_ctl;        /* rx discard ctrl frames */
-    uint32_t    is_rx_rstoobig;        /* rx rate set truncated */
-    uint32_t    is_rx_elem_missing;    /* rx required element missing*/
-    uint32_t    is_rx_elem_toobig;    /* rx element too big */
-    uint32_t    is_rx_elem_toosmall;    /* rx element too small */
-    uint32_t    is_rx_badchan;        /* rx frame w/ invalid chan */
-    uint32_t    is_rx_chanmismatch;    /* rx frame chan mismatch */
-    uint32_t    is_rx_nodealloc;    /* rx frame dropped */
-    uint32_t    is_rx_ssidmismatch;    /* rx frame ssid mismatch  */
-    uint32_t    is_rx_auth_unsupported;    /* rx w/ unsupported auth alg */
-    uint32_t    is_rx_auth_fail;    /* rx sta auth failure */
-    uint32_t    is_rx_assoc_bss;    /* rx assoc from wrong bssid */
-    uint32_t    is_rx_assoc_notauth;    /* rx assoc w/o auth */
-    uint32_t    is_rx_assoc_capmismatch;/* rx assoc w/ cap mismatch */
-    uint32_t    is_rx_assoc_norate;    /* rx assoc w/ no rate match */
-    uint32_t    is_rx_deauth;        /* rx deauthentication */
-    uint32_t    is_rx_disassoc;        /* rx disassociation */
-    uint32_t    is_rx_badsubtype;    /* rx frame w/ unknown subtype*/
-    uint32_t    is_rx_nombuf;        /* rx failed for lack of mbuf */
-    uint32_t    is_rx_decryptcrc;    /* rx decrypt failed on crc */
-    uint32_t    is_rx_ahdemo_mgt;    /* rx discard ahdemo mgt frame*/
-    uint32_t    is_rx_bad_auth;        /* rx bad auth request */
-    uint32_t    is_tx_nombuf;        /* tx failed for lack of mbuf */
-    uint32_t    is_tx_nonode;        /* tx failed for no node */
-    uint32_t    is_tx_unknownmgt;    /* tx of unknown mgt frame */
-    uint32_t    is_scan_active;        /* active scans started */
-    uint32_t    is_scan_passive;    /* passive scans started */
-    uint32_t    is_node_timeout;    /* nodes timed out inactivity */
-    uint32_t    is_crypto_nomem;    /* no memory for crypto ctx */
-    uint32_t    is_rx_assoc_badrsnie;    /* rx assoc w/ bad RSN IE */
-    uint32_t    is_rx_unauth;        /* rx port not valid */
-    uint32_t    is_tx_noauth;        /* tx port not valid */
-    uint32_t    is_rx_eapol_key;    /* rx eapol-key frames */
-    uint32_t    is_rx_eapol_replay;    /* rx replayed eapol frames */
-    uint32_t    is_rx_eapol_badmic;    /* rx eapol frames w/ bad mic */
-    uint32_t    is_rx_remmicfail;    /* rx tkip remote mic fails */
-    uint32_t    is_rx_locmicfail;    /* rx tkip local mic fails */
-    uint32_t    is_tkip_replays;
-    uint32_t    is_tkip_icv_errs;
-    uint32_t    is_ccmp_replays;
-    uint32_t    is_ccmp_dec_errs;
-    uint32_t    is_cmac_replays;
-    uint32_t    is_cmac_icv_errs;
-    uint32_t    is_pbac_errs;
-};
+/* Statistics are not supported */
 
 #define SIOCG80211STATS        _IOWR('i', 242, struct ifreq)
+#define SIOCG80211ZSTATS       _IOWR('i', 243, struct ifreg)
 
 /* network identifier (ESSID), nwid is pointed at by ifr.ifr_data */
 

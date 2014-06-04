@@ -47,7 +47,6 @@
 #include <nuttx/net/iob.h>
 #include <nuttx/net/ieee80211/ieee80211.h>
 #include <nuttx/net/ieee80211/ieee80211_crypto.h>
-#include <nuttx/net/ieee80211/ieee80211_ioctl.h>        /* for ieee80211_stats */
 #include <nuttx/net/ieee80211/ieee80211_node.h>
 #include <nuttx/net/ieee80211/ieee80211_proto.h>
 
@@ -308,7 +307,6 @@ struct ieee80211_s
 #define ic_wep_txkey    ic_def_txkey
   int             ic_igtk_kid;    /* IGTK key index */
   uint32_t        ic_iv;        /* initial vector for wep */
-  struct ieee80211_stats ic_stats;    /* statistics */
   struct timeval  ic_last_merge_print;    /* for rate-limiting
                              * IBSS merge print-outs
                              */

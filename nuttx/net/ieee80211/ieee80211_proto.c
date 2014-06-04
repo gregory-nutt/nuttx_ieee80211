@@ -709,7 +709,6 @@ void ieee80211_auth_open(struct ieee80211_s *ic, const struct ieee80211_frame *w
             nvdbg("discard auth from %s; state %u, seq %u\n",
                 ieee80211_addr2str((uint8_t *)wh->i_addr2),
                 ic->ic_state, seq);
-            ic->ic_stats.is_rx_bad_auth++;
             return;
         }
         ieee80211_new_state(ic, IEEE80211_S_AUTH,
@@ -726,7 +725,6 @@ void ieee80211_auth_open(struct ieee80211_s *ic, const struct ieee80211_frame *w
             nvdbg("discard auth from %s; state %u, seq %u\n",
                 ieee80211_addr2str((uint8_t *)wh->i_addr2),
                 ic->ic_state, seq);
-            ic->ic_stats.is_rx_bad_auth++;
             return;
         }
         if (ni == ic->ic_bss) {
@@ -756,7 +754,6 @@ void ieee80211_auth_open(struct ieee80211_s *ic, const struct ieee80211_frame *w
     case IEEE80211_M_STA:
         if (ic->ic_state != IEEE80211_S_AUTH ||
             seq != IEEE80211_AUTH_OPEN_RESPONSE) {
-            ic->ic_stats.is_rx_bad_auth++;
             nvdbg("discard auth from %s; state %u, seq %u\n",
                 ieee80211_addr2str((uint8_t *)wh->i_addr2),
                 ic->ic_state, seq);
@@ -781,7 +778,6 @@ void ieee80211_auth_open(struct ieee80211_s *ic, const struct ieee80211_frame *w
               ni->ni_fails++;
             }
 
-          ic->ic_stats.is_rx_auth_fail++;
           return;
         }
 
