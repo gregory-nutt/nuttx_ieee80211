@@ -388,6 +388,79 @@ static int ieee80211_ioctl_getopmode(struct ieee80211_s *ic)
 
 }
 
+static int ieee80211_ioctl_setfixedrate(struct ieee80211_s *ic, int rate)
+{
+    /* Check if we received a valid rate */
+    if (rate <= 0)
+        return -EINVAL;          
+
+    /* Check if this rate is valid for the current phy mode */
+    if (!isvalidrate(ic->ic_curmode, rate))
+        return -EINVAL;
+
+    /* Check if this rate is supported by the chip in this mode */
+    if (ieee80211_findrate(ic, ic->ic_curmode, rate) == -1)
+        return -EINVAL;
+
+    /*
+     * Committed to changes, install the rate setting.
+     */
+    if (ic->ic_fixed_rate != rate) {
+        ic->ic_fixed_rate = rate;          /* set fixed tx rate */
+
+        /* Reset chip to accept this new fixed rate */
+        ieee80211_reset_erp(ic);
+        return -ENETRESET;
+    }
+
+    return 0;
+}
+
+static int ieee80211_ioctl_getfixedrate(struct ieee80211_s *ic)
+{
+
+}
+
+bool isvalidrate(enum ieee80211_phymode mode, int rate)
+{
+    int i;
+    static const int rates[] = {
+        {   2 | IEEE80211_MODE_11B << 16},
+        {   4 | IEEE80211_MODE_11B << 16},
+        {  11 | IEEE80211_MODE_11B << 16},
+        {  22 | IEEE80211_MODE_11B << 16},
+        {  44 | IEEE80211_MODE_11B << 16},
+        {  12 | IEEE80211_MODE_11A << 16},
+        {  18 | IEEE80211_MODE_11A << 16},
+        {  24 | IEEE80211_MODE_11A << 16},
+        {  36 | IEEE80211_MODE_11A << 16},
+        {  48 | IEEE80211_MODE_11A << 16},
+        {  72 | IEEE80211_MODE_11A << 16},
+        {  96 | IEEE80211_MODE_11A << 16},
+        { 108 | IEEE80211_MODE_11A << 16},
+        {   2 | IEEE80211_MODE_11G << 16},
+        {   4 | IEEE80211_MODE_11G << 16},
+        {  11 | IEEE80211_MODE_11G << 16},
+        {  22 | IEEE80211_MODE_11G << 16},
+        {  12 | IEEE80211_MODE_11G << 16},
+        {  18 | IEEE80211_MODE_11G << 16},
+        {  24 | IEEE80211_MODE_11G << 16},
+        {  36 | IEEE80211_MODE_11G << 16},
+        {  48 | IEEE80211_MODE_11G << 16},
+        {  72 | IEEE80211_MODE_11G << 16},
+        {  96 | IEEE80211_MODE_11G << 16},
+        { 108 | IEEE80211_MODE_11G << 16},
+    }
+
+    ratemode = rate & (mode << 16);
+
+    for (i = 0; i < N(rates); i++)
+        if (rates[i] == ratemode)
+            return true;
+
+    return false;
+}
+
 int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
 {
     struct ifreq *ifr = (struct ifreq *)data;
