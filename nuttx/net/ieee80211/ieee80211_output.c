@@ -190,7 +190,7 @@ fallback:
  bad:
   if (iob)
     {
-      iob_free(iob);
+      iob_freechain(iob);
     }
 
   return error;
@@ -677,15 +677,23 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
         return NULL;
     }
 #endif
-    *pni = ni;
-    return iob;
+
+  *pni = ni;
+  return iob;
+
 bad:
-    if (iob != NULL)
-        iob_free(iob);
-    if (ni != NULL)
-        ieee80211_release_node(ic, ni);
-    *pni = NULL;
-    return NULL;
+  if (iob != NULL)
+    {
+      iob_freechain(iob);
+    }
+
+  if (ni != NULL)
+    {
+      ieee80211_release_node(ic, ni);
+    }
+
+  *pni = NULL;
+  return NULL;
 }
 
 /*

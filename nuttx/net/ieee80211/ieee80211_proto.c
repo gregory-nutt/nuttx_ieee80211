@@ -684,7 +684,7 @@ ieee80211_delba_request(struct ieee80211_s *ic, struct ieee80211_node *ni,
               {
                 if (ba->ba_buf[i].m != NULL)
                   {
-                    iob_free(ba->ba_buf[i].m);
+                    iob_freechain(ba->ba_buf[i].m);
                   }
               }
 

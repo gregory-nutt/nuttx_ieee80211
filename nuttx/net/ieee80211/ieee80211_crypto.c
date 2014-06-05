@@ -206,11 +206,13 @@ struct iob_s *ieee80211_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
         m0 = ieee80211_bip_encap(ic, m0, k);
         break;
     default:
-        /* should not get there */
-        iob_free(m0);
+        /* Should not get there */
+
+        iob_freechain(m0);
         m0 = NULL;
     }
-    return m0;
+
+  return m0;
 }
 
 struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0, struct ieee80211_node *ni)
@@ -244,7 +246,7 @@ struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0
 
         if (m0->io_len < hdrlen + 4)
           {
-            iob_free(m0);
+            iob_freechain(m0);
             return NULL;
           }
 
@@ -253,22 +255,32 @@ struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0
         k = &ic->ic_nw_keys[kid];
     } else {
         /* retrieve integrity group key id from MMIE */
-        if (m0->io_len < sizeof(*wh) + IEEE80211_MMIE_LEN) {
-            iob_free(m0);
+
+        if (m0->io_len < sizeof(*wh) + IEEE80211_MMIE_LEN)
+          {
+            iob_freechain(m0);
             return NULL;
-        }
-        /* it is assumed management frames are contiguous */
+          }
+
+        /* It is assumed management frames are contiguous */
+
         mmie = (uint8_t *)wh + m0->io_len - IEEE80211_MMIE_LEN;
-        /* check that MMIE is valid */
-        if (mmie[0] != IEEE80211_ELEMID_MMIE || mmie[1] != 16) {
-            iob_free(m0);
+
+        /* Check that MMIE is valid */
+
+        if (mmie[0] != IEEE80211_ELEMID_MMIE || mmie[1] != 16)
+          {
+            iob_freechain(m0);
             return NULL;
-        }
+          }
+
         kid = LE_READ_2(&mmie[2]);
-        if (kid != 4 && kid != 5) {
-            iob_free(m0);
+        if (kid != 4 && kid != 5)
+          {
+            iob_freechain(m0);
             return NULL;
-        }
+          }
+
         k = &ic->ic_nw_keys[kid];
     }
     switch (k->k_cipher) {
@@ -286,8 +298,9 @@ struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0
         m0 = ieee80211_bip_decap(ic, m0, k);
         break;
     default:
-        /* key not defined */
-        iob_free(m0);
+        /* Key not defined */
+
+        iob_freechain(m0);
         m0 = NULL;
     }
     return m0;

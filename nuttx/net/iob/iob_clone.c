@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/iob/iob_freeq.c
+ * net/iob1/iob_copy.c
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,7 +39,11 @@
 
 #include <nuttx/config.h>
 
+#include <string.h>
 #include <queue.h>
+#include <assert.h>
+#include <errno.h>
+#include <debug.h>
 
 #include <nuttx/net/iob.h>
 
@@ -48,6 +52,10 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#ifndef MIN
+#  define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
 
 /****************************************************************************
  * Private Types
@@ -66,35 +74,117 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: iob_freeq
+ * Name: iob_clone
  *
  * Description:
- *   Free an entire buffer chain, starting at a queue head
+ *   Duplicate (and pack) the data in iob1 in iob2.  iob2 must be empty.
  *
  ****************************************************************************/
 
-void iob_freeq(FAR sq_queue_t *q)
+int iob_clone(FAR struct iob_s *iob1, FAR struct iob_s *iob2)
 {
-  /* If the free list is empty, then just move the entry queue to the free
-   * list.  Otherwise, append the list to the end of the free list.
+  FAR uint8_t *src;
+  FAR uint8_t *dest;
+  unsigned int ncopy;
+  unsigned int avail1;
+  unsigned int avail2;
+  unsigned int offset1;
+  unsigned int offset2;
+
+  DEBUGASSERT(iob2->io_len == 0 && iob2->io_offset == 0 &&
+              iob2->io_pktlen == 0 && iob2->io_link.flink == NULL);
+
+  /* Copy the header information */
+
+  iob2->io_flags = iob1->io_flags;
+  iob2->io_pktlen = iob1->io_pktlen;
+  iob2->io_priv = iob1->io_priv;
+
+  /* Handle special case where there are empty buffers at the head
+   * the the list.
    */
 
-  if (g_iob_freelist.tail)
+  while (iob1->io_len <= 0)
     {
-      g_iob_freelist.tail->flink = q->head;
-    }
-  else
-    {
-      g_iob_freelist.head = q->head;
+      iob1 = (FAR struct iob_s *)iob1->io_link.flink;
     }
 
-  /* In either case, the tail of the queue is the tail of queue becomes the
-   * tail of the free list.
-   */
+  /* Pack each entry from iob1 to iob2 */
 
-  g_iob_freelist.tail = q->tail;
+  offset1 = 0;
+  offset2 = 0;
 
-  /* Reset the queue to empty */
+  while (iob1)
+    {
+      /* Get the source I/O buffer pointer and the number of bytes to copy
+       * from this address.
+       */
 
-  sq_init(q);
+      src    = &iob1->io_data[iob1->io_offset + offset1];
+      avail1 = iob1->io_len - offset1;
+
+      /* Get the destination I/O buffer pointer and the number of bytes to
+       * copy to that address.
+       */
+
+      dest   = &iob2->io_data[offset2];
+      avail2 = CONFIG_IOB_BUFSIZE - offset2;
+
+      /* Copy the smaller of the two and update the srce and destination
+       * offsets.
+       */
+
+      ncopy = MIN(avail1, avail2);
+      memcpy(dest, src, ncopy);
+
+      offset1 += ncopy;
+      offset2 += ncopy;
+
+      /* Have we taken all of the data from the source I/O buffer? */
+
+      if (offset1 >= iob1->io_len)
+        {
+          /* Skip over empty entries in the chain (there should not be any
+           * but just to be safe).
+           */
+
+          do
+            {
+              /* Yes.. move to the next source I/O buffer */
+
+              iob1 = (FAR struct iob_s *)iob1->io_link.flink;
+            }
+          while (iob1->io_len <= 0);
+
+          /* Reset the offset to the beginning of the I/O buffer */
+
+          offset1 = 0;
+        }
+
+      /* Have we filled the destination I/O buffer? Is there more data to be
+       * transferred?
+       */
+
+       if (offset2 >= CONFIG_IOB_BUFSIZE && iob1 != NULL)
+        {
+          FAR struct iob_s *next;
+
+          /* Allocate new destination I/O buffer and hook it into the
+           * destination I/O buffer chain.
+           */
+
+          next = iob_alloc();
+          if (!next)
+            {
+              ndbg("Failed to allocate an I/O buffer/n");
+              return -ENOMEM;
+            }
+
+          iob2->io_link.flink = &next->io_link;
+          iob2 = next;
+          offset2 = 0;
+        }
+    }
+
+  return 0;
 }

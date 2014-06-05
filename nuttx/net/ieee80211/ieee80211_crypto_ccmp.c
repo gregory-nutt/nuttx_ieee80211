@@ -180,7 +180,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
         goto nospace;
       }
 
-    if (m_dup_pkthdr(next0, m0, M_DONTWAIT))
+    if (iob_clone(next0, m0) < 0)
       {
         goto nospace;
       }
@@ -334,13 +334,16 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     next->io_len += IEEE80211_CCMP_MICLEN;
     next0->io_pktlen += IEEE80211_CCMP_MICLEN;
 
-    iob_free(m0);
+    iob_freechain(m0);
     return next0;
 
  nospace:
-    iob_free(m0);
+    iob_freechain(m0);
     if (next0 != NULL)
-        iob_free(next0);
+      {
+        iob_freechain(next0);
+      }
+
     return NULL;
 }
 
@@ -376,7 +379,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     if (m0->io_pktlen < hdrlen + IEEE80211_CCMP_HDRLEN + IEEE80211_CCMP_MICLEN)
       {
-        iob_free(m0);
+        iob_freechain(m0);
         return NULL;
       }
 
@@ -384,7 +387,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     if (!(ivp[3] & IEEE80211_WEP_EXTIV))
       {
-        iob_free(m0);
+        iob_freechain(m0);
         return NULL;
       }
 
@@ -410,11 +413,14 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
          (uint64_t)ivp[5] << 24 |
          (uint64_t)ivp[6] << 32 |
          (uint64_t)ivp[7] << 40;
-    if (pn <= *prsc) {
-        /* replayed frame, discard */
-        iob_free(m0);
+
+    if (pn <= *prsc)
+      {
+        /* Replayed frame, discard */
+
+        iob_freechain(m0);
         return NULL;
-    }
+      }
 
     next0 = iob_alloc();
     if (next0 == NULL)
@@ -422,7 +428,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
         goto nospace;
       }
 
-    if (m_dup_pkthdr(next0, m0, M_DONTWAIT))
+    if (iob_clone(next0, m0) < 0)
       {
         goto nospace;
       }
@@ -548,19 +554,23 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     iob_copyout(mic0, iob, moff, IEEE80211_CCMP_MICLEN);
     if (timingsafe_bcmp(mic0, b, IEEE80211_CCMP_MICLEN) != 0)
       {
-        iob_free(m0);
-        iob_free(next0);
+        iob_freechain(m0);
+        iob_freechain(next0);
         return NULL;
       }
 
     /* update last seen packet number (MIC is validated) */
     *prsc = pn;
 
-    iob_free(m0);
+    iob_freechain(m0);
     return next0;
+
  nospace:
-    iob_free(m0);
+    iob_freechain(m0);
     if (next0 != NULL)
-        iob_free(next0);
+      {
+        iob_freechain(next0);
+      }
+
     return NULL;
 }

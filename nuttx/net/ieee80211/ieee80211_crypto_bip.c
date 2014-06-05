@@ -160,10 +160,11 @@ struct iob_s *ieee80211_bip_encap(struct ieee80211_s *ic, struct iob_s *iob0,
 
     k->k_tsc++;
 
-    return iob0;
+  return iob0;
+
  nospace:
-    iob_free(iob0);
-    return NULL;
+  iob_freechain(iob0);
+  return NULL;
 }
 
 struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
@@ -191,7 +192,7 @@ struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
       {
         /* Replayed frame, discard */
 
-        iob_free(iob0);
+        iob_freechain(iob0);
         return NULL;
       }
 
@@ -221,7 +222,7 @@ struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
 
   if (timingsafe_bcmp(mic, mic0, 8) != 0)
     {
-      iob_free(iob0);
+      iob_freechain(iob0);
       return NULL;
     }
 

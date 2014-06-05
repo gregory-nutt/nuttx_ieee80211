@@ -227,7 +227,7 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
         goto nospace;
       }
 
-    if (m_dup_pkthdr(next0, m0, M_DONTWAIT))
+    if (iob_clone(next0, m0) < 0)
       {
         goto nospace;
       }
@@ -367,13 +367,17 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     next0->io_pktlen += IEEE80211_TKIP_TAILLEN;
 
-    iob_free(m0);
-    return next0;
- nospace:
-    iob_free(m0);
-    if (next0 != NULL)
-        iob_free(next0);
-    return NULL;
+  iob_freechain(m0);
+  return next0;
+
+nospace:
+  iob_freechain(m0);
+  if (next0 != NULL)
+    {
+      iob_freechain(next0);
+    }
+
+  return NULL;
 }
 
 struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
@@ -396,7 +400,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     if (m0->io_pktlen < hdrlen + IEEE80211_TKIP_OVHD)
       {
-        iob_free(m0);
+        iob_freechain(m0);
         return NULL;
       }
 
@@ -406,7 +410,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     if (!(ivp[3] & IEEE80211_WEP_EXTIV))
       {
-        iob_free(m0);
+        iob_freechain(m0);
         return NULL;
       }
 
@@ -422,11 +426,14 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
           (uint64_t)ivp[5] << 24 |
           (uint64_t)ivp[6] << 32 |
           (uint64_t)ivp[7] << 40;
-    if (tsc <= *prsc) {
-        /* replayed frame, discard */
-        iob_free(m0);
+
+    if (tsc <= *prsc)
+      {
+        /* Replayed frame, discard */
+
+        iob_freechain(m0);
         return NULL;
-    }
+      }
 
     next0 = iob_alloc();
     if (next0 == NULL)
@@ -434,7 +441,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
         goto nospace;
       }
 
-    if (m_dup_pkthdr(next0, m0, M_DONTWAIT))
+    if (iob_clone(next0, m0) < 0)
       {
         goto nospace;
       }
@@ -532,34 +539,43 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     /* Decrypt ICV and compare it with calculated ICV */
 
     crc0 = *(uint32_t *)(buf + IEEE80211_TKIP_MICLEN);
-    if (crc != letoh32(crc0)) {
-        iob_free(m0);
-        iob_free(next0);
+    if (crc != letoh32(crc0))
+      {
+        iob_freechain(m0);
+        iob_freechain(next0);
         return NULL;
-    }
+      }
 
-    /* compute TKIP MIC over decrypted message */
+    /* Compute TKIP MIC over decrypted message */
+
     ieee80211_tkip_mic(next0, hdrlen, ctx->rxmic, mic);
-    /* check that it matches the MIC in received frame */
-    if (timingsafe_bcmp(mic0, mic, IEEE80211_TKIP_MICLEN) != 0) {
-        iob_free(m0);
-        iob_free(next0);
+
+    /* Check that it matches the MIC in received frame */
+
+    if (timingsafe_bcmp(mic0, mic, IEEE80211_TKIP_MICLEN) != 0)
+      {
+        iob_freechain(m0);
+        iob_freechain(next0);
         ieee80211_michael_mic_failure(ic, tsc);
         return NULL;
-    }
+      }
 
     /* update last seen packet number (MIC is validated) */
     *prsc = tsc;
     /* mark cached TTAK as valid */
     ctx->rxttak_ok = 1;
 
-    iob_free(m0);
-    return next0;
- nospace:
-    iob_free(m0);
-    if (next0 != NULL)
-        iob_free(next0);
-    return NULL;
+  iob_freechain(m0);
+  return next0;
+
+nospace:
+  iob_freechain(m0);
+  if (next0 != NULL)
+    {
+      iob_freechain(next0);
+    }
+
+  return NULL;
 }
 
 #ifdef CONFIG_IEEE80211_AP

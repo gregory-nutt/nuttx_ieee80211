@@ -531,7 +531,7 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
 #endif
 
         (*ic->ic_recv_mgmt)(ic, iob, ni, rxi, subtype);
-        iob_free(iob);
+        iob_freechain(iob);
         return;
 
     case IEEE80211_FC0_TYPE_CTL:
@@ -557,10 +557,12 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         /* should not come here */
         break;
     }
- err:
- out:
-    if (iob != NULL) {
-        iob_free(iob);
+
+err:
+out:
+  if (iob != NULL)
+    {
+      iob_freechain(iob);
     }
 }
 
@@ -590,7 +592,12 @@ struct iob_s *ieee80211_defrag(struct ieee80211_s *ic, struct iob_s *iob, int hd
             ic->ic_defrag_cur = 0;
         df = &ic->ic_defrag[ic->ic_defrag_cur];
         if (df->df_m != NULL)
-            iob_free(df->df_m);    /* discard old entry */
+          {
+            /* Discard old entry */
+
+            iob_freechain(df->df_m);
+          }
+
         df->df_seq = seq;
         df->df_frag = 0;
         df->df_m = iob;
@@ -630,11 +637,13 @@ struct iob_s *ieee80211_defrag(struct ieee80211_s *ic, struct iob_s *iob, int hd
         break;
       }
 
-    if (i == IEEE80211_DEFRAG_SIZE) {
-        /* no matching entry found, discard fragment */
-        iob_free(iob);
+    if (i == IEEE80211_DEFRAG_SIZE)
+      {
+        /* No matching entry found, discard fragment */
+
+        iob_freechain(iob);
         return NULL;
-    }
+      }
 
     df->df_frag = frag;
 
@@ -663,7 +672,7 @@ void ieee80211_defrag_timeout(void *arg)
 
   /* Discard all received fragments */
 
-  iob_free(df->df_m);
+  iob_freechain(df->df_m);
   df->df_m = NULL;
 
   splx(s);
@@ -688,10 +697,14 @@ void ieee80211_input_ba(struct ieee80211_s *ic, struct iob_s *iob,
     /* reset Block Ack inactivity timer */
     wd_start(ba->ba_to, USEC2TICK(ba->ba_timeout_val), ieee80211_rx_ba_timeout, 1, ba);
 
-    if (SEQ_LT(sn, ba->ba_winstart)) {    /* SN < WinStartB */
-        iob_free(iob);    /* discard the MPDU */
+    if (SEQ_LT(sn, ba->ba_winstart))
+      {
+        /* SN < WinStartB, discard the MPDU */
+
+        iob_freechain(iob);
         return;
-    }
+      }
+
     if (SEQ_LT(ba->ba_winend, sn)) {    /* WinEndB < SN */
         count = (sn - ba->ba_winend) & 0xfff;
         if (count > ba->ba_winsize)    /* no overlap */
@@ -714,17 +727,24 @@ void ieee80211_input_ba(struct ieee80211_s *ic, struct iob_s *iob,
 
     idx = (sn - ba->ba_winstart) & 0xfff;
     idx = (ba->ba_head + idx) % IEEE80211_BA_MAX_WINSZ;
-    /* store the received MPDU in the buffer */
-    if (ba->ba_buf[idx].iob != NULL) {
-        iob_free(iob);
+
+    /* Store the received MPDU in the buffer */
+
+    if (ba->ba_buf[idx].iob != NULL)
+      {
+        iob_freechain(iob);
         return;
-    }
+      }
+
     ba->ba_buf[idx].iob = iob;
-    /* store Rx meta-data too */
+
+    /* Store Rx meta-data too */
+
     rxi->rxi_flags |= IEEE80211_RXI_AMPDU_DONE;
     ba->ba_buf[idx].rxi = *rxi;
 
-    /* pass reordered MPDUs up to the next MAC process */
+    /* Pass reordered MPDUs up to the next MAC process */
+
     while (ba->ba_buf[ba->ba_head].iob != NULL) {
         ieee80211_input(ic, ba->ba_buf[ba->ba_head].iob, ni,
             &ba->ba_buf[ba->ba_head].rxi);
@@ -791,7 +811,7 @@ void ieee80211_deliver_data(struct ieee80211_s *ic, struct iob_s *iob,
         eh->ether_type != htons(ETHERTYPE_PAE))
     {
       ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(eh->ether_dhost));
-      iob_free(iob);
+      iob_freechain(iob);
       return;
     }
 
@@ -882,15 +902,15 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
           next = iob_alloc();
           if (next == NULL)
             {
-              iob_free(iob);
+              iob_freechain(iob);
               return NULL;
             }
 
-          if (m_dup_pkthdr(next, iob, M_DONTWAIT))
+          if (iob_clone(next, iob) < 0)
             {
               iob_free(next);
-              iob_free(iob);
-              return (NULL);
+              iob_freechain(iob);
+              return NULL;
             }
 
           next->io_len = CONFIG_IEEE80211_BUFSIZE;
@@ -900,8 +920,8 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
           next = iob_alloc();
           if (next == NULL)
             {
-              iob_free(iob);
-              iob_free(next0);
+              iob_freechain(iob);
+              iob_freechain(next0);
               return NULL;
             }
 
@@ -931,7 +951,7 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
       np = &(struct iob_s *)next->io_link.flink;
     }
 
-  iob_free(iob);
+  iob_freechain(iob);
   return next0;
 }
 #endif /* __STRICT_ALIGNMENT */
@@ -1044,7 +1064,7 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
 
             /* Stop processing A-MSDU subframes */
 
-            iob_free(iob);
+            iob_freechain(iob);
             break;
           }
 
@@ -1075,11 +1095,14 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
 
         /* "detach" our A-MSDU subframe from the others */
         next = m_split(iob, len, M_NOWAIT);
-        if (next == NULL) {
-            /* stop processing A-MSDU subframes */
-            iob_free(iob);
+        if (next == NULL)
+          {
+            /* Stop processing A-MSDU subframes */
+
+            iob_freechain(iob);
             break;
-        }
+          }
+
         ieee80211_deliver_data(ic, iob, ni);
 
         iob = next;
@@ -2804,7 +2827,7 @@ void ieee80211_recv_delba(struct ieee80211_s *ic, struct iob_s *iob,
               {
                 if (ba->ba_buf[i].iob != NULL)
                   {
-                    iob_free(ba->ba_buf[i].iob);
+                    iob_freechain(ba->ba_buf[i].iob);
                   }
               }
 

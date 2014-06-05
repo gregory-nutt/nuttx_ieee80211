@@ -1498,10 +1498,10 @@ void ieee80211_node_join(struct ieee80211_s *ic, struct ieee80211_node *ni, int 
 #endif
 
 #ifdef CONFIG_IEEE80211_BRIDGEPORT
-  /*
-   * If the parent interface is a bridgeport, learn
+  /* If the parent interface is a bridgeport, learn
    * the node's address dynamically on this interface.
    */
+
   if (ic->ic_bridgeport != NULL)
     {
       bridge_update(ic, (struct ether_addr *)ni->ni_macaddr, 0);
@@ -1529,7 +1529,7 @@ void ieee80211_node_leave_ht(struct ieee80211_s *ic, struct ieee80211_node *ni)
             {
               if (ba->ba_buf[i].iob != NULL)
                 {
-                  iob_free(ba->ba_buf[i].iob);
+                  iob_freechain(ba->ba_buf[i].iob);
                 }
             }
 
