@@ -194,10 +194,6 @@ void ieee80211_uninitialize(iee80211_handle handle)
   ieee80211_node_detach(ic);
   //ifmedia_delete_instance(&ic->ic_media, IFM_INST_ANY);
 
-  /* it needs send a signal to alert it need to be deleted */
-
-  ether_ifdetach(ic);
-
   /* Final, free the memory allocation for the IEEE 802.11 stack state structure */
 
   kfree(ic);
