@@ -28,6 +28,7 @@
 #include <sys/socket.h>
 
 #include <string.h>
+#include <errno.h>
 
 #include <net/if.h>
 
@@ -72,7 +73,7 @@ void ieee80211_ccmp_delete_key(struct ieee80211_s *ic, struct ieee80211_key *k)
 {
   if (k->k_priv != NULL)
     {
-      kfree(k->k_priv, M_DEVBUF);
+      kfree(k->k_priv);
     }
 
   k->k_priv = NULL;
@@ -264,7 +265,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
             noff = 0;
           }
 
-        len = min(iob->io_len - moff, next->io_len - noff);
+        len = MIN(iob->io_len - moff, next->io_len - noff);
 
         src = (FAR uint8_t *)iob->io_data + moff;
         dst = (FAR uint8_t *)next->io_data + noff;
@@ -304,7 +305,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
         struct iob_s *newbuf;
 
         newbuf = iob_alloc();
-        if (nebuf == NULL)
+        if (newbuf == NULL)
           {
             goto nospace;
           }
@@ -478,7 +479,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
               }
 
             next->io_link.flink = (sq_entry_t *)newbuf;
-            next = newbuf
+            next = newbuf;
             next->io_len = 0;
 
             if (next->io_len > left)
@@ -489,7 +490,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
             noff = 0;
           }
 
-        len = min(iob->io_len - moff, next->io_len - noff);
+        len = MIN(iob->io_len - moff, next->io_len - noff);
 
         src = (FAR uint8_t *)iob->io_data + moff;
         dst = (FAR uint8_t *)next->io_data + noff;

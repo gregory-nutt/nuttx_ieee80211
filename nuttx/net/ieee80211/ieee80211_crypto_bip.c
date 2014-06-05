@@ -152,7 +152,9 @@ struct iob_s *ieee80211_bip_encap(struct ieee80211_s *ic, struct iob_s *iob0,
 
     AES_CMAC_Update(&ctx->cmac, mmie, IEEE80211_MMIE_LEN);
     AES_CMAC_Final(mic, &ctx->cmac);
-    /* truncate AES-128-CMAC to 64-bit */
+
+    /* Truncate AES-128-CMAC to 64-bit */
+
     memcpy(&mmie[10], mic, 8);
 
     iob->io_len += IEEE80211_MMIE_LEN;

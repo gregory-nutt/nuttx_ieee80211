@@ -57,7 +57,7 @@ uint8_t *ieee80211_add_gtk_kde(uint8_t *, struct ieee80211_node *,
 uint8_t *ieee80211_add_pmkid_kde(uint8_t *, const uint8_t *);
 uint8_t *ieee80211_add_igtk_kde(uint8_t *, const struct ieee80211_key *);
 #endif
-struct iob_s *ieee80211_get_eapol_key(int, int, unsigned int);
+struct iob_s *ieee80211_get_eapol_key(int, unsigned int);
 
 /* Send an EAPOL-Key frame to node `ni'.  If MIC or encryption is required,
  * the PTK must be passed (otherwise it can be set to NULL.)
@@ -259,7 +259,7 @@ ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
 }
 #endif /* CONFIG_IEEE80211_AP */
 
-struct iob_s *ieee80211_get_eapol_key(int flags, int type, unsigned int pktlen)
+struct iob_s *ieee80211_get_eapol_key(int type, unsigned int pktlen)
 {
   struct iob_s *iob;
 
@@ -303,8 +303,8 @@ int ieee80211_send_4way_msg1(struct ieee80211_s *ic, struct ieee80211_node *ni)
       return 0;
     }
 
-  iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
-      (ni->ni_rsnprotos == IEEE80211_PROTO_RSN) ? 2 + 20 : 0);
+  iob = ieee80211_get_eapol_key(MT_DATA,
+                               (ni->ni_rsnprotos == IEEE80211_PROTO_RSN) ? 2 + 20 : 0);
   if (iob == NULL)
     {
       return -ENOMEM;
@@ -355,7 +355,7 @@ int ieee80211_send_4way_msg2(struct ieee80211_s *ic, struct ieee80211_node *ni,
   uint16_t info;
   uint8_t *frm;
 
-  iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
+  iob = ieee80211_get_eapol_key(MT_DATA,
       (ni->ni_rsnprotos == IEEE80211_PROTO_WPA) ?
       2 + IEEE80211_WPAIE_MAXLEN :
       2 + IEEE80211_RSNIE_MAXLEN);
@@ -429,7 +429,7 @@ int ieee80211_send_4way_msg3(struct ieee80211_s *ic, struct ieee80211_node *ni)
   if (ni->ni_rsnprotos == IEEE80211_PROTO_RSN)
       k = &ic->ic_nw_keys[ic->ic_def_txkey];
 
-  iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
+  iob = ieee80211_get_eapol_key(MT_DATA,
       ((ni->ni_rsnprotos == IEEE80211_PROTO_WPA) ?
       2 + IEEE80211_WPAIE_MAXLEN :
       2 + IEEE80211_RSNIE_MAXLEN + 2 + 6 + k->k_len + 15) +
@@ -511,7 +511,7 @@ int ieee80211_send_4way_msg4(struct ieee80211_s *ic, struct ieee80211_node *ni)
   struct iob_s *iob;
   uint16_t info;
 
-  iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
+  iob = ieee80211_get_eapol_key(MT_DATA, 0);
   if (iob == NULL)
     {
       return -ENOMEM;
@@ -586,7 +586,7 @@ int ieee80211_send_group_msg1(struct ieee80211_s *ic, struct ieee80211_node *ni)
 
   k = &ic->ic_nw_keys[kid];
 
-  iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA,
+  iob = ieee80211_get_eapol_key(MT_DATA,
       ((ni->ni_rsnprotos == IEEE80211_PROTO_WPA) ?
       k->k_len : 2 + 6 + k->k_len) +
       ((ni->ni_flags & IEEE80211_NODE_MFP) ? 2 + 28 : 0) +
@@ -664,7 +664,7 @@ int ieee80211_send_group_msg2(struct ieee80211_s *ic, struct ieee80211_node *ni,
   uint16_t info;
   struct iob_s *iob;
 
-  iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
+  iob = ieee80211_get_eapol_key(MT_DATA, 0);
   if (iob == NULL)
     {
       return -ENOMEM;
@@ -712,7 +712,7 @@ int ieee80211_send_eapol_key_req(struct ieee80211_s *ic,
   struct ieee80211_eapol_key *key;
   struct iob_s *iob;
 
-  iob = ieee80211_get_eapol_key(M_DONTWAIT, MT_DATA, 0);
+  iob = ieee80211_get_eapol_key(MT_DATA, 0);
   if (iob == NULL)
     {
       return -ENOMEM;

@@ -423,42 +423,47 @@ static int ieee80211_ioctl_getfixedrate(struct ieee80211_s *ic)
 
 bool isvalidrate(enum ieee80211_phymode mode, int rate)
 {
-    int i, ratemode;
-    static const int rates[] = {
-        {   2 | IEEE80211_MODE_11B << 16},
-        {   4 | IEEE80211_MODE_11B << 16},
-        {  11 | IEEE80211_MODE_11B << 16},
-        {  22 | IEEE80211_MODE_11B << 16},
-        {  44 | IEEE80211_MODE_11B << 16},
-        {  12 | IEEE80211_MODE_11A << 16},
-        {  18 | IEEE80211_MODE_11A << 16},
-        {  24 | IEEE80211_MODE_11A << 16},
-        {  36 | IEEE80211_MODE_11A << 16},
-        {  48 | IEEE80211_MODE_11A << 16},
-        {  72 | IEEE80211_MODE_11A << 16},
-        {  96 | IEEE80211_MODE_11A << 16},
-        { 108 | IEEE80211_MODE_11A << 16},
-        {   2 | IEEE80211_MODE_11G << 16},
-        {   4 | IEEE80211_MODE_11G << 16},
-        {  11 | IEEE80211_MODE_11G << 16},
-        {  22 | IEEE80211_MODE_11G << 16},
-        {  12 | IEEE80211_MODE_11G << 16},
-        {  18 | IEEE80211_MODE_11G << 16},
-        {  24 | IEEE80211_MODE_11G << 16},
-        {  36 | IEEE80211_MODE_11G << 16},
-        {  48 | IEEE80211_MODE_11G << 16},
-        {  72 | IEEE80211_MODE_11G << 16},
-        {  96 | IEEE80211_MODE_11G << 16},
-        { 108 | IEEE80211_MODE_11G << 16},
+  int i, ratemode;
+  static const int rates[] =
+  {
+    {   2 | IEEE80211_MODE_11B << 16},
+    {   4 | IEEE80211_MODE_11B << 16},
+    {  11 | IEEE80211_MODE_11B << 16},
+    {  22 | IEEE80211_MODE_11B << 16},
+    {  44 | IEEE80211_MODE_11B << 16},
+    {  12 | IEEE80211_MODE_11A << 16},
+    {  18 | IEEE80211_MODE_11A << 16},
+    {  24 | IEEE80211_MODE_11A << 16},
+    {  36 | IEEE80211_MODE_11A << 16},
+    {  48 | IEEE80211_MODE_11A << 16},
+    {  72 | IEEE80211_MODE_11A << 16},
+    {  96 | IEEE80211_MODE_11A << 16},
+    { 108 | IEEE80211_MODE_11A << 16},
+    {   2 | IEEE80211_MODE_11G << 16},
+    {   4 | IEEE80211_MODE_11G << 16},
+    {  11 | IEEE80211_MODE_11G << 16},
+    {  22 | IEEE80211_MODE_11G << 16},
+    {  12 | IEEE80211_MODE_11G << 16},
+    {  18 | IEEE80211_MODE_11G << 16},
+    {  24 | IEEE80211_MODE_11G << 16},
+    {  36 | IEEE80211_MODE_11G << 16},
+    {  48 | IEEE80211_MODE_11G << 16},
+    {  72 | IEEE80211_MODE_11G << 16},
+    {  96 | IEEE80211_MODE_11G << 16},
+    { 108 | IEEE80211_MODE_11G << 16},
+  };
+
+  ratemode = rate & (mode << 16);
+
+  for (i = 0; i < N(rates); i++)
+    {
+      if (rates[i] == ratemode)
+        {
+          return true;
+        }
     }
 
-    ratemode = rate & (mode << 16);
-
-    for (i = 0; i < N(rates); i++)
-        if (rates[i] == ratemode)
-            return true;
-
-    return false;
+  return false;
 }
 
 int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)

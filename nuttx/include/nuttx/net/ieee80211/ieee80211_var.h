@@ -73,6 +73,14 @@
 #define IOB_ALIGN(iob, len) \
   (iob)->io_data += (CONFIG_IOB_BUFSIZE - (len)) & ~(sizeof(long) - 1)
 
+#ifndef MIN
+#  define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
+#ifndef MAX
+#  define MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif
+
 enum ieee80211_phytype
 {
   IEEE80211_T_DS,               /* Direct sequence spread spectrum */

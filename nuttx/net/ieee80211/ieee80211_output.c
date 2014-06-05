@@ -69,7 +69,7 @@ int ieee80211_mgmt_output(struct ieee80211_s *, struct ieee80211_node *,
         struct iob_s *, int);
 uint8_t *ieee80211_add_rsn_body(uint8_t *, struct ieee80211_s *,
         const struct ieee80211_node *, int);
-struct iob_s *ieee80211_getmgmt(int, int, unsigned int);
+struct iob_s *ieee80211_getmgmt(int, unsigned int);
 struct iob_s *ieee80211_get_probe_req(struct ieee80211_s *,
         struct ieee80211_node *);
 #ifdef CONFIG_IEEE80211_AP
@@ -749,7 +749,7 @@ ieee80211_add_rates(uint8_t *frm, const struct ieee80211_rateset *rs)
     int nrates;
 
     *frm++ = IEEE80211_ELEMID_RATES;
-    nrates = min(rs->rs_nrates, IEEE80211_RATE_SIZE);
+    nrates = MIN(rs->rs_nrates, IEEE80211_RATE_SIZE);
     *frm++ = nrates;
     memcpy(frm, rs->rs_rates, nrates);
     return frm + nrates;
@@ -1115,7 +1115,7 @@ ieee80211_add_tie(uint8_t *frm, uint8_t type, uint32_t value)
 }
 #endif
 
-struct iob_s *ieee80211_getmgmt(int flags, int type, unsigned int pktlen)
+struct iob_s *ieee80211_getmgmt(int type, unsigned int pktlen)
 {
   struct iob_s *iob;
 
@@ -1154,9 +1154,9 @@ struct iob_s *ieee80211_get_probe_req(struct ieee80211_s *ic, struct ieee80211_n
     struct iob_s *iob;
     uint8_t *frm;
 
-    iob = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
+    iob = ieee80211_getmgmt(MT_DATA,
         2 + ic->ic_des_esslen +
-        2 + min(rs->rs_nrates, IEEE80211_RATE_SIZE) +
+        2 + MIN(rs->rs_nrates, IEEE80211_RATE_SIZE) +
         ((rs->rs_nrates > IEEE80211_RATE_SIZE) ?
         2 + rs->rs_nrates - IEEE80211_RATE_SIZE : 0) +
         ((ni->ni_flags & IEEE80211_NODE_HT) ? 28 : 0));
@@ -1207,10 +1207,10 @@ struct iob_s *ieee80211_get_probe_resp(struct ieee80211_s *ic, struct ieee80211_
     struct iob_s *iob;
     uint8_t *frm;
 
-    iob = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
+    iob = ieee80211_getmgmt(MT_DATA,
         8 + 2 + 2 +
         2 + ni->ni_esslen +
-        2 + min(rs->rs_nrates, IEEE80211_RATE_SIZE) +
+        2 + MIN(rs->rs_nrates, IEEE80211_RATE_SIZE) +
         2 + 1 +
         ((ic->ic_opmode == IEEE80211_M_IBSS) ? 2 + 2 : 0) +
         ((ic->ic_curmode == IEEE80211_MODE_11G) ? 2 + 1 : 0) +
@@ -1352,12 +1352,12 @@ struct iob_s *ieee80211_get_assoc_req(struct ieee80211_s *ic, struct ieee80211_n
     uint8_t *frm;
     uint16_t capinfo;
 
-    iob = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
+    iob = ieee80211_getmgmt(MT_DATA,
         2 + 2 +
         ((type == IEEE80211_FC0_SUBTYPE_REASSOC_REQ) ?
         IEEE80211_ADDR_LEN : 0) +
         2 + ni->ni_esslen +
-        2 + min(rs->rs_nrates, IEEE80211_RATE_SIZE) +
+        2 + MIN(rs->rs_nrates, IEEE80211_RATE_SIZE) +
         ((rs->rs_nrates > IEEE80211_RATE_SIZE) ?
         2 + rs->rs_nrates - IEEE80211_RATE_SIZE : 0) +
         (((ic->ic_flags & IEEE80211_F_RSNON) &&
@@ -1430,9 +1430,9 @@ struct iob_s *ieee80211_get_assoc_resp(struct ieee80211_s *ic, struct ieee80211_
     struct iob_s *iob;
     uint8_t *frm;
 
-    iob = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
+    iob = ieee80211_getmgmt(MT_DATA,
         2 + 2 + 2 +
-        2 + min(rs->rs_nrates, IEEE80211_RATE_SIZE) +
+        2 + MIN(rs->rs_nrates, IEEE80211_RATE_SIZE) +
         ((rs->rs_nrates > IEEE80211_RATE_SIZE) ?
         2 + rs->rs_nrates - IEEE80211_RATE_SIZE : 0) +
         ((ni->ni_flags & IEEE80211_NODE_QOS) ? 2 + 18 : 0) +
@@ -1524,7 +1524,7 @@ struct iob_s *ieee80211_get_addba_req(struct ieee80211_s *ic, struct ieee80211_n
   uint8_t *frm;
   uint16_t params;
 
-  iob = ieee80211_getmgmt(M_DONTWAIT, MT_DATA, 9);
+  iob = ieee80211_getmgmt(MT_DATA, 9);
   if (iob == NULL)
     {
       return iob;
@@ -1560,7 +1560,7 @@ struct iob_s *ieee80211_get_addba_resp(struct ieee80211_s *ic, struct ieee80211_
   uint8_t *frm;
   uint16_t params;
 
-  iob = ieee80211_getmgmt(M_DONTWAIT, MT_DATA, 9);
+  iob = ieee80211_getmgmt(MT_DATA, 9);
   if (iob == NULL)
     {
       return iob;
@@ -1607,7 +1607,7 @@ struct iob_s *ieee80211_get_delba(struct ieee80211_s *ic, struct ieee80211_node 
   uint8_t *frm;
   uint16_t params;
 
-  iob = ieee80211_getmgmt(M_DONTWAIT, MT_DATA, 6);
+  iob = ieee80211_getmgmt(MT_DATA, 6);
   if (iob == NULL)
     {
       return iob;
@@ -1641,7 +1641,7 @@ struct iob_s *ieee80211_get_sa_query(struct ieee80211_s *ic, struct ieee80211_no
   struct iob_s *iob;
   uint8_t *frm;
 
-  iob = ieee80211_getmgmt(M_DONTWAIT, MT_DATA, 4);
+  iob = ieee80211_getmgmt(MT_DATA, 4);
   if (iob == NULL)
     {
       return NULL;
@@ -1893,10 +1893,10 @@ struct iob_s *ieee80211_beacon_alloc(struct ieee80211_s *ic, struct ieee80211_no
   struct iob_s *iob;
   uint8_t *frm;
 
-  iob = ieee80211_getmgmt(M_DONTWAIT, MT_DATA,
+  iob = ieee80211_getmgmt(MT_DATA,
       8 + 2 + 2 +
       2 + ((ic->ic_flags & IEEE80211_F_HIDENWID) ? 0 : ni->ni_esslen) +
-      2 + min(rs->rs_nrates, IEEE80211_RATE_SIZE) +
+      2 + MIN(rs->rs_nrates, IEEE80211_RATE_SIZE) +
       2 + 1 +
       2 + ((ic->ic_opmode == IEEE80211_M_IBSS) ? 2 : 254) +
       ((ic->ic_curmode == IEEE80211_MODE_11G) ? 2 + 1 : 0) +
