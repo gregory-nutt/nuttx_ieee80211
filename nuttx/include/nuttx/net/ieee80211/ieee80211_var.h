@@ -227,6 +227,7 @@ struct ieee80211_defrag
 
 #define IEEE80211_GROUP_NKID    6
 
+struct ifmedia;
 struct ieee80211_s
 {
   void            (*ic_recv_mgmt)(struct ieee80211_s *,
@@ -280,7 +281,6 @@ struct ieee80211_s
   uint32_t       *ic_aid_bitmap;
   uint16_t        ic_max_aid;
   enum ieee80211_protmode ic_protmode;    /* 802.11g protection mode */
-#warning REVISIT:  Do we need to manage media for NuttX?
   struct ifmedia  ic_media;    /* interface media config */
   void           *ic_rawbpf;    /* packet filter structure */
   struct ieee80211_node    *ic_bss;    /* information for this node */
@@ -432,7 +432,6 @@ struct ifmediareq;
 typedef int (*ifm_change_cb_t)(struct ieee80211_s *);
 typedef void (*ifm_stat_cb_t)(struct ieee80211_s *, struct ifmediareq *);
 
-#warning REVISIT: I think that these media interfaces should go away??? They are not used internally.
 void ieee80211_media_init(struct ieee80211_s *, ifm_change_cb_t, ifm_stat_cb_t);
 int ieee80211_media_change(struct ieee80211_s *);
 void ieee80211_media_status(struct ieee80211_s *, struct ifmediareq *);

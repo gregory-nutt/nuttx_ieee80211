@@ -140,7 +140,7 @@ int ieee80211_output(struct ieeeu80211com *ic, struct iob_s *iob, struct sockadd
       unsigned int dlt = *(unsigned int *)(mtag + 1);
 
       /* Fallback to ethernet for non-802.11 linktypes */
-#warning Probably need to remove this
+
       if (!(dlt == DLT_IEEE802_11 || dlt == DLT_IEEE802_11_RADIO))
         {
           goto fallback;
