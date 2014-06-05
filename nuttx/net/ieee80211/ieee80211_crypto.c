@@ -75,7 +75,7 @@ void ieee80211_crypto_detach(struct ieee80211_s *ic)
   while ((pmk = (FAR struct ieee80211_pmk *)sq_peek(&ic->ic_pmksa)) != NULL)
     {
       sq_remfirst(&ic->ic_pmksa);
-      explicit_bzero(pmk, sizeof(struct ieee80211_pmk));
+      memset(pmk, 0, sizeof(struct ieee80211_pmk));
       kfree(pmk);
     }
 
@@ -89,12 +89,12 @@ void ieee80211_crypto_detach(struct ieee80211_s *ic)
             (*ic->ic_delete_key)(ic, NULL, k);
           }
 
-        explicit_bzero(k, sizeof(*k));
+        memset(k, 0, sizeof(*k));
     }
 
   /* Clear pre-shared key from memory */
 
-  explicit_bzero(ic->ic_psk, IEEE80211_PMK_LEN);
+  memset(ic->ic_psk, 0, IEEE80211_PMK_LEN);
 }
 
 /*
@@ -166,7 +166,8 @@ void ieee80211_delete_key(struct ieee80211_s *ic, struct ieee80211_node *ni,
         /* should not get there */
         break;
     }
-    explicit_bzero(k, sizeof(*k));
+
+  memset(k, 0, sizeof(*k));
 }
 
 struct ieee80211_key *ieee80211_get_txkey(struct ieee80211_s *ic, const struct ieee80211_frame *wh,
