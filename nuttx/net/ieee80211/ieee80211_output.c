@@ -437,7 +437,7 @@ ieee80211_classify(struct ieee80211_s *ic, struct iob_s *iob)
     struct ether_header *eh;
     uint8_t ds_field;
 #endif
-#if NVLAN > 0
+#ifdef __NO_VLAN__
     if (iob->io_flags & IOBFLAGS_VLANTAG)    /* use VLAN 802.1D user-priority */
         return EVL_PRIOFTAG(iob->io_vtag);
 #endif
