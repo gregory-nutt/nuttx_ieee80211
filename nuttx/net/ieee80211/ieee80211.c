@@ -152,29 +152,34 @@ iee80211_handle ieee80211_initialize(FAR const char *ifname)
         }
     }
 
-    /* validate ic->ic_curmode */
+  /* validate ic->ic_curmode */
 
-    if ((ic->ic_modecaps & (1<<ic->ic_curmode)) == 0)
-      {
-        ic->ic_curmode = IEEE80211_MODE_AUTO;
-      }
+  if ((ic->ic_modecaps & (1<<ic->ic_curmode)) == 0)
+    {
+      ic->ic_curmode = IEEE80211_MODE_AUTO;
+    }
 
-    ic->ic_des_chan = IEEE80211_CHAN_ANYC;    /* any channel is ok */
-    ic->ic_scan_lock = IEEE80211_SCAN_UNLOCKED;
+  ic->ic_des_chan = IEEE80211_CHAN_ANYC;    /* any channel is ok */
+  ic->ic_scan_lock = IEEE80211_SCAN_UNLOCKED;
 
-    /* IEEE 802.11 defines a MTU >= 2290 */
+  /* IEEE 802.11 defines a MTU >= 2290 */
 
-    ieee80211_setbasicrates(ic);
-    (void)ieee80211_setmode(ic, ic->ic_curmode);
+  ieee80211_setbasicrates(ic);
+  (void)ieee80211_setmode(ic, ic->ic_curmode);
 
-    if (ic->ic_lintval == 0)
-        ic->ic_lintval = 100;        /* default sleep */
-    ic->ic_bmisstimeout = 7*ic->ic_lintval;    /* default 7 beacons */
-    ic->ic_dtim_period = 1;    /* all TIMs are DTIMs */
+  if (ic->ic_lintval == 0)
+    {
+      ic->ic_lintval = 100;        /* default sleep */
+    }
 
-    dq_addfirst((FAR dq_entry_t *)ic, &ieee80211_s_head);
-    ieee80211_node_attach(ic);
-    ieee80211_proto_attach(ic);
+  ic->ic_bmisstimeout = 7*ic->ic_lintval;    /* default 7 beacons */
+  ic->ic_dtim_period = 1;    /* all TIMs are DTIMs */
+
+  dq_addfirst((FAR dq_entry_t *)ic, &ieee80211_s_head);
+  ieee80211_node_attach(ic);
+  ieee80211_proto_attach(ic);
+
+  return (iee80211_handle)ic;
 }
 
 /****************************************************************************
