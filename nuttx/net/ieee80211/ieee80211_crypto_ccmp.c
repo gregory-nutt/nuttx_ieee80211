@@ -188,11 +188,6 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     next0->io_pktlen += IEEE80211_CCMP_HDRLEN;
     next0->io_len = CONFIG_IEEE80211_BUFSIZE;
 
-    if (next0->io_pktlen >= MINCLSIZE - IEEE80211_CCMP_MICLEN)
-      {
-        MCLGET(next0, M_DONTWAIT);
-      }
-
     if (next0->io_len > next0->io_pktlen)
       {
         next0->io_len = next0->io_pktlen;
@@ -260,10 +255,6 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
             next = newbuf;
             next->io_len = 0;
 
-            if (left >= MINCLSIZE - IEEE80211_CCMP_MICLEN)
-              {
-                MCLGET(next, M_DONTWAIT);
-              }
 
             if (next->io_len > left)
               {
@@ -435,11 +426,10 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     next0->io_pktlen -= IEEE80211_CCMP_HDRLEN + IEEE80211_CCMP_MICLEN;
     next0->io_len = CONFIG_IEEE80211_BUFSIZE;
-    if (next0->io_pktlen >= MINCLSIZE) {
-        MCLGET(next0, M_DONTWAIT);
-    }
     if (next0->io_len > next0->io_pktlen)
+      {
         next0->io_len = next0->io_pktlen;
+      }
 
     /* Construct initial B, A and S_0 blocks */
 
@@ -490,10 +480,6 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
             next->io_link.flink = (sq_entry_t *)newbuf;
             next = newbuf
             next->io_len = 0;
-            if (left >= MINCLSIZE)
-              {
-                MCLGET(next, M_DONTWAIT);
-              }
 
             if (next->io_len > left)
               {

@@ -928,11 +928,6 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
           next->io_len = 0;
         }
 
-      if (pktlen - off >= MINCLSIZE)
-        {
-          MCLGET(next, M_DONTWAIT);
-        }
-
       if (next0 == NULL)
         {
           newdata = (void *)ALIGN(next->io_data + ETHER_HDR_LEN) - ETHER_HDR_LEN;

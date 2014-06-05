@@ -66,6 +66,13 @@
 #  define howmany(x, y)   (((x)+((y)-1))/(y))
 #endif
 
+/* Set the io_offset of a newly-allocated I/O buffer to place an object of
+ * the specified size at the end of the mbuf, longword aligned.
+ */
+
+#define IOB_ALIGN(iob, len) \
+  (iob)->io_data += (CONFIG_IOB_BUFSIZE - (len)) & ~(sizeof(long) - 1)
+
 enum ieee80211_phytype
 {
   IEEE80211_T_DS,               /* Direct sequence spread spectrum */

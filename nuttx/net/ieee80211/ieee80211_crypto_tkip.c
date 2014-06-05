@@ -234,13 +234,10 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     next0->io_pktlen += IEEE80211_TKIP_HDRLEN;
     next0->io_len = CONFIG_IEEE80211_BUFSIZE;
-    if (next0->io_pktlen >= MINCLSIZE - IEEE80211_TKIP_TAILLEN)
-      {
-        MCLGET(next0, M_DONTWAIT);
-      }
-
     if (next0->io_len > next0->io_pktlen)
+      {
         next0->io_len = next0->io_pktlen;
+      }
 
     /* Copy 802.11 header */
 
@@ -305,11 +302,6 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
             next->io_link.flink = (sq_entry_t *)newbuf;
             next = newbuf;
             next->io_len = 0;
-
-            if (left >= MINCLSIZE - IEEE80211_TKIP_TAILLEN)
-              {
-                MCLGET(next, M_DONTWAIT);
-              }
 
             if (next->io_len > left)
               {
@@ -448,13 +440,11 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     next0->io_pktlen -= IEEE80211_TKIP_OVHD;
     next0->io_len = CONFIG_IEEE80211_BUFSIZE;
-    if (next0->io_pktlen >= MINCLSIZE)
-      {
-        MCLGET(next0, M_DONTWAIT);
-      }
 
     if (next0->io_len > next0->io_pktlen)
+      {
         next0->io_len = next0->io_pktlen;
+      }
 
     /* Copy 802.11 header and clear protected bit */
 
@@ -501,11 +491,6 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
             next->io_link.flink = (sq_entry_t *)newbuf;
             next = newbuf;
             next->io_len = 0;
-
-            if (left >= MINCLSIZE)
-              {
-                MCLGET(next, M_DONTWAIT);
-              }
 
             if (next->io_len > left)
               {

@@ -1132,7 +1132,6 @@ struct iob_s *ieee80211_getmgmt(int flags, int type, unsigned int pktlen)
 
   if (pktlen > CONFIG_IEEE80211_BUFSIZE)
     {
-      MCLGET(iob, flags);
       iob_free(iob);
       return NULL;
     }
@@ -1300,7 +1299,7 @@ struct iob_s *ieee80211_get_auth(struct ieee80211_s *ic, struct ieee80211_node *
       return NULL;
     }
 
-  MH_ALIGN(iob, 2 * 3);
+  IOB_ALIGN(iob, 2 * 3);
   iob->io_pktlen = iob->io_len = 2 * 3;
 
   frm = (FAR uint8_t *)iob->io_data;
@@ -1325,7 +1324,7 @@ struct iob_s *ieee80211_get_deauth(struct ieee80211_s *ic, struct ieee80211_node
       return NULL;
     }
 
-  MH_ALIGN(iob, 2);
+  IOB_ALIGN(iob, 2);
 
   iob->io_pktlen = iob->io_len  = 2;
   (FAR uint16_t *)iob->io_data = htole16(reason);
@@ -1500,7 +1499,7 @@ struct iob_s *ieee80211_get_disassoc(struct ieee80211_s *ic, struct ieee80211_no
       return NULL;
     }
 
-  MH_ALIGN(iob, 2);
+  IOB_ALIGN(iob, 2);
 
   iob->io_pktlen = iob->io_len  = 2;
   (FAR uint16_t *)iob->io_data = htole16(reason);

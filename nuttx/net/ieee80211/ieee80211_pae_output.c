@@ -277,7 +277,6 @@ struct iob_s *ieee80211_get_eapol_key(int flags, int type, unsigned int pktlen)
 
   if (pktlen > CONFIG_IEEE80211_BUFSIZE)
     {
-      MCLGET(iob, flags);
       return iob_free(iob);
     }
 
