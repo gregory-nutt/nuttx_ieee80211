@@ -484,7 +484,7 @@ int ieee80211_setmode(struct ieee80211_s *ic, enum ieee80211_phymode mode)
 
 enum ieee80211_phymode ieee80211_next_mode(struct ieee80211_s *ic)
 {
-  if (IFM_MODE(ic->ic_media.ifm_cur->ifm_media) != IFM_AUTO) {
+  if (ic->ic_curmode != IEEE80211_MODE_AUTO) {
       /*
        * Reset the scan state and indicate a wrap around
        * if we're running in a fixed, user-specified phy mode.
