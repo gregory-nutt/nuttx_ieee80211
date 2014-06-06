@@ -227,7 +227,6 @@ struct ieee80211_defrag
 
 #define IEEE80211_GROUP_NKID    6
 
-struct ifmedia;
 struct ieee80211_s
 {
   void            (*ic_recv_mgmt)(struct ieee80211_s *,
@@ -281,7 +280,6 @@ struct ieee80211_s
   uint32_t       *ic_aid_bitmap;
   uint16_t        ic_max_aid;
   enum ieee80211_protmode ic_protmode;    /* 802.11g protection mode */
-  struct ifmedia  ic_media;    /* interface media config */
   void           *ic_rawbpf;    /* packet filter structure */
   struct ieee80211_node    *ic_bss;    /* information for this node */
   struct ieee80211_channel *ic_ibss_chan;
@@ -428,20 +426,11 @@ extern dq_queue_t ieee80211_s_head;
 #warning REVISIT: These don't make sense with NuttX.
 
 struct ieee80211_s;
-struct ifmediareq;
-typedef int (*ifm_change_cb_t)(struct ieee80211_s *);
-typedef void (*ifm_stat_cb_t)(struct ieee80211_s *, struct ifmediareq *);
 
-void ieee80211_media_init(struct ieee80211_s *, ifm_change_cb_t, ifm_stat_cb_t);
-int ieee80211_media_change(struct ieee80211_s *);
-void ieee80211_media_status(struct ieee80211_s *, struct ifmediareq *);
 int ieee80211_ioctl(struct ieee80211_s *, unsigned long, void *);
 int ieee80211_get_rate(struct ieee80211_s *);
 void ieee80211_watchdog(struct ieee80211_s *);
 int ieee80211_fix_rate(struct ieee80211_s *, struct ieee80211_node *, int);
-int ieee80211_rate2media(struct ieee80211_s *, int,
-        enum ieee80211_phymode);
-int ieee80211_media2rate(int);
 uint8_t ieee80211_rate2plcp(uint8_t, enum ieee80211_phymode);
 uint8_t ieee80211_plcp2rate(uint8_t, enum ieee80211_phymode);
 unsigned int ieee80211_mhz2ieee(unsigned int, unsigned int);
