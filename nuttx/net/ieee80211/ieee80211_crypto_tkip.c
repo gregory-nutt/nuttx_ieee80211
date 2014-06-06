@@ -323,7 +323,7 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* reserve trailing space for TKIP MIC and WEP ICV */
 
-    if (M_TRAILINGSPACE(next) < IEEE80211_TKIP_TAILLEN)
+    if (IOB_FREESPACE(next) < IEEE80211_TKIP_TAILLEN)
       {
         struct iob_s *newbuf;
 

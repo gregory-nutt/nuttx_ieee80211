@@ -126,7 +126,7 @@ struct iob_s *ieee80211_bip_encap(struct ieee80211_s *ic, struct iob_s *iob0,
 
     /* Reserve trailing space for MMIE */
 
-    if (M_TRAILINGSPACE(iob) < IEEE80211_MMIE_LEN)
+    if (IOB_FREESPACE(iob) < IEEE80211_MMIE_LEN)
       {
         struct iob_s *newbuf;
 

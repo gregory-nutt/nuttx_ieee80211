@@ -207,7 +207,7 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* reserve trailing space for WEP ICV */
 
-    if (M_TRAILINGSPACE(next) < IEEE80211_WEP_CRCLEN)
+    if (IOB_FREESPACE(next) < IEEE80211_WEP_CRCLEN)
       {
         struct iob_s *newbuf;
 

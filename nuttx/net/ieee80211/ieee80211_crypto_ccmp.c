@@ -300,7 +300,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* Reserve trailing space for MIC */
 
-    if (M_TRAILINGSPACE(next) < IEEE80211_CCMP_MICLEN)
+    if (IOB_FREESPACE(next) < IEEE80211_CCMP_MICLEN)
       {
         struct iob_s *newbuf;
 

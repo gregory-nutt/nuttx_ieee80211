@@ -54,6 +54,10 @@
 
 #define IOBFLAGS_MCAST   (1 << 0) /* Multicast packet */
 
+/* IOB helpers */
+
+#define IOB_FREESPACE(n) (CONFIG_IOB_BUFSIZE - (n)->io_len - (n)->io_offset)
+
 /* Queue helpers */
 
 #define IOB_QINIT(q)     do { (q)->qh_head = 0; (q)->qh_tail = 0; } while (0)
