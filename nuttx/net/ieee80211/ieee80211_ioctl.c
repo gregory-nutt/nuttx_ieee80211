@@ -390,6 +390,9 @@ static int ieee80211_ioctl_getopmode(struct ieee80211_s *ic)
 
 static int ieee80211_ioctl_setfixedrate(struct ieee80211_s *ic, int rate)
 {
+    /* ic_fix_rate is the index to rate, it isn't the rate value */
+    int idxrate = 0;
+
     /* Check if we received a valid rate */
     if (rate <= 0)
         return -EINVAL;          
@@ -398,15 +401,14 @@ static int ieee80211_ioctl_setfixedrate(struct ieee80211_s *ic, int rate)
     if (!isvalidrate(ic->ic_curmode, rate))
         return -EINVAL;
 
-    /* Check if this rate is supported by the chip in this mode */
-    if (ieee80211_findrate(ic, ic->ic_curmode, rate) == -1)
-        return -EINVAL;
+    /* Find the index for this rate in this current mode */
+    idxrate = ieee80211_findrate(ic, ic->ic_curmode, rate);
 
     /*
      * Committed to changes, install the rate setting.
      */
-    if (ic->ic_fixed_rate != rate) {
-        ic->ic_fixed_rate = rate;          /* set fixed tx rate */
+    if (ic->ic_fixed_rate != idxrate) {
+        ic->ic_fixed_rate = idxrate;          /* set fixed tx rate */
 
         /* Reset chip to accept this new fixed rate */
         ieee80211_reset_erp(ic);
