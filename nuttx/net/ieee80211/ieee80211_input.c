@@ -130,67 +130,34 @@ void ieee80211_recv_bar(struct ieee80211_s *, struct iob_s *,
 void ieee80211_bar_tid(struct ieee80211_s *, struct ieee80211_node *,
         uint8_t, uint16_t);
 #endif
-#if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
-void ieee80211_input_print(struct ieee80211_s *,  struct ieee80211_s *,
-        struct ieee80211_frame *, struct ieee80211_rxinfo *);
-#endif
-void ieee80211_input_print_task(void *, void *);
 
 /* Retrieve the length in bytes of an 802.11 header */
 
-unsigned int ieee80211_get_hdrlen(const struct ieee80211_frame *wh)
+unsigned int ieee80211_get_hdrlen(FAR const struct ieee80211_frame *wh)
 {
-    unsigned int size = sizeof(*wh);
+  unsigned int size = sizeof(*wh);
 
-    /* NB: does not work with control frames */
-    DEBUGASSERT(ieee80211_has_seq(wh));
+  /* NB: does not work with control frames */
 
-    if (ieee80211_has_addr4(wh))
-        size += IEEE80211_ADDR_LEN;    /* i_addr4 */
-    if (ieee80211_has_qos(wh))
-        size += sizeof(uint16_t);    /* i_qos */
-    if (ieee80211_has_htc(wh))
-        size += sizeof(uint32_t);    /* i_ht */
-    return size;
-}
+  DEBUGASSERT(ieee80211_has_seq(wh));
 
-#if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
-/* Work queue task that prints a received frame.  Avoids nvdbg() from
- * interrupt context at IPL_NET making slow machines unusable when many
- * frames are received and the interface is put in debug mode.
- */
-
-void ieee80211_input_print_task(void *arg1, void *arg2)
-{
-  char *msg = arg1;
-
-  nvdbg("%s", msg);
-  kfree(msg);
-}
-
-static void ieee80211_input_print(struct ieee80211_s *ic, struct ieee80211_frame *wh, struct ieee80211_rxinfo *rxi)
-{
-  int error;
-  char *msg;
-  msg = kmalloc(1024);
-  if (msg == NULL)
+  if (ieee80211_has_addr4(wh))
     {
-      return;
+      size += IEEE80211_ADDR_LEN;    /* i_addr4 */
     }
 
-  snprintf(msg, 1024, "%s: received %s from %s rssi %d mode %s\n",
-           ic->ic_ifname,
-           ieee80211_mgt_subtype_name[subtype >> IEEE80211_FC0_SUBTYPE_SHIFT],
-           ieee80211_addr2str(wh->i_addr2), rxi->rxi_rssi,
-           ieee80211_phymode_name[ieee80211_chan2mode(ic, ic->ic_bss->ni_chan)]);
-
-  error = workq_add_task(NULL, 0, ieee80211_input_print_task, msg, NULL);
-  if (error)
+  if (ieee80211_has_qos(wh))
     {
-      kfree(msg);
+      size += sizeof(uint16_t);    /* i_qos */
     }
+
+  if (ieee80211_has_htc(wh))
+    {
+      size += sizeof(uint32_t);    /* i_ht */
+    }
+
+  return size;
 }
-#endif
 
 /* Process a received frame.  The node associated with the sender
  * should be supplied.  If nothing was found in the node table then
@@ -202,8 +169,8 @@ static void ieee80211_input_print(struct ieee80211_s *ic, struct ieee80211_frame
  * by the 802.11 layer.
  */
 
-void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211_node *ni,
-    struct ieee80211_rxinfo *rxi)
+void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob,
+                     struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi)
 {
     struct ieee80211_frame *wh;
     uint16_t *orxseq, nrxseq, qos;
@@ -304,7 +271,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
 
                 iob = iob_remove_queue(&ni->ni_savedq);
                 iob_add_queue(iob, &ic->ic_pwrsaveq);
-                ieee80211_ifstart();
               }
         }
     }
@@ -529,9 +495,11 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
           goto out;
         }
 
-#if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
-     ieee80211_input_print(ic, ic, wh, rxi);
-#endif
+       nvdbg("%s: received %s from %s rssi %d mode %s\n",
+           ic->ic_ifname,
+           ieee80211_mgt_subtype_name[subtype >> IEEE80211_FC0_SUBTYPE_SHIFT],
+           ieee80211_addr2str(wh->i_addr2), rxi->rxi_rssi,
+           ieee80211_phymode_name[ieee80211_chan2mode(ic, ic->ic_bss->ni_chan)]);
 
         (*ic->ic_recv_mgmt)(ic, iob, ni, rxi, subtype);
         iob_free_chain(iob);
@@ -712,20 +680,25 @@ void ieee80211_input_ba(struct ieee80211_s *ic, struct iob_s *iob,
         count = (sn - ba->ba_winend) & 0xfff;
         if (count > ba->ba_winsize)    /* no overlap */
             count = ba->ba_winsize;
-        while (count-- > 0) {
-            /* gaps may exist */
-            if (ba->ba_buf[ba->ba_head].iob != NULL) {
+        while (count-- > 0)
+          {
+            /* Gaps may exist */
+
+            if (ba->ba_buf[ba->ba_head].iob != NULL)
+              {
                 ieee80211_input(ic, ba->ba_buf[ba->ba_head].iob,
                     ni, &ba->ba_buf[ba->ba_head].rxi);
                 ba->ba_buf[ba->ba_head].iob = NULL;
-            }
-            ba->ba_head = (ba->ba_head + 1) %
-                IEEE80211_BA_MAX_WINSZ;
-        }
-        /* move window forward */
+              }
+
+            ba->ba_head = (ba->ba_head + 1) % IEEE80211_BA_MAX_WINSZ;
+          }
+
+        /* Move window forward */
+
         ba->ba_winend = sn;
         ba->ba_winstart = (sn - ba->ba_winsize + 1) & 0xfff;
-    }
+      }
     /* WinStartB <= SN <= WinEndB */
 
     idx = (sn - ba->ba_winstart) & 0xfff;
@@ -748,15 +721,19 @@ void ieee80211_input_ba(struct ieee80211_s *ic, struct iob_s *iob,
 
     /* Pass reordered MPDUs up to the next MAC process */
 
-    while (ba->ba_buf[ba->ba_head].iob != NULL) {
+    while (ba->ba_buf[ba->ba_head].iob != NULL)
+      {
         ieee80211_input(ic, ba->ba_buf[ba->ba_head].iob, ni,
-            &ba->ba_buf[ba->ba_head].rxi);
+                        &ba->ba_buf[ba->ba_head].rxi);
         ba->ba_buf[ba->ba_head].iob = NULL;
 
         ba->ba_head = (ba->ba_head + 1) % IEEE80211_BA_MAX_WINSZ;
-        /* move window forward */
+
+        /* Move window forward */
+
         ba->ba_winstart = (ba->ba_winstart + 1) & 0xfff;
-    }
+      }
+
     ba->ba_winend = (ba->ba_winstart + ba->ba_winsize - 1) & 0xfff;
 }
 
@@ -764,7 +741,9 @@ void ieee80211_input_ba(struct ieee80211_s *ic, struct iob_s *iob,
  * BlockAckReq frame or an ADDBA Request (PBAC).
  */
 
-void ieee80211_ba_move_window(struct ieee80211_s *ic, struct ieee80211_node *ni, uint8_t tid, uint16_t ssn)
+void ieee80211_ba_move_window(struct ieee80211_s *ic,
+                              struct ieee80211_node *ni, uint8_t tid,
+                              uint16_t ssn)
 {
     struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
     int count;
@@ -774,28 +753,39 @@ void ieee80211_ba_move_window(struct ieee80211_s *ic, struct ieee80211_node *ni,
     count = (ssn - ba->ba_winstart) & 0xfff;
     if (count > ba->ba_winsize)    /* no overlap */
         count = ba->ba_winsize;
-    while (count-- > 0) {
-        /* gaps may exist */
-        if (ba->ba_buf[ba->ba_head].iob != NULL) {
+    while (count-- > 0)
+      {
+        /* Gaps may exist */
+
+        if (ba->ba_buf[ba->ba_head].iob != NULL)
+          {
             ieee80211_input(ic, ba->ba_buf[ba->ba_head].iob, ni,
-                &ba->ba_buf[ba->ba_head].rxi);
+                            &ba->ba_buf[ba->ba_head].rxi);
             ba->ba_buf[ba->ba_head].iob = NULL;
-        }
+          }
+
         ba->ba_head = (ba->ba_head + 1) % IEEE80211_BA_MAX_WINSZ;
-    }
-    /* move window forward */
+      }
+
+    /* Move window forward */
+
     ba->ba_winstart = ssn;
 
-    /* pass reordered MPDUs up to the next MAC process */
-    while (ba->ba_buf[ba->ba_head].iob != NULL) {
+    /* Pass reordered MPDUs up to the next MAC process */
+
+    while (ba->ba_buf[ba->ba_head].iob != NULL)
+      {
         ieee80211_input(ic, ba->ba_buf[ba->ba_head].iob, ni,
-            &ba->ba_buf[ba->ba_head].rxi);
+                        &ba->ba_buf[ba->ba_head].rxi);
         ba->ba_buf[ba->ba_head].iob = NULL;
 
         ba->ba_head = (ba->ba_head + 1) % IEEE80211_BA_MAX_WINSZ;
-        /* move window forward */
+
+        /* Move window forward */
+
         ba->ba_winstart = (ba->ba_winstart + 1) & 0xfff;
-    }
+      }
+
     ba->ba_winend = (ba->ba_winstart + ba->ba_winsize - 1) & 0xfff;
 }
 #endif /* !CONFIG_IEEE80211_HT */
@@ -855,10 +845,6 @@ void ieee80211_deliver_data(struct ieee80211_s *ic, struct iob_s *iob,
         {
           len = iob1->io_pktlen;
           error = ieee80211_ifsend(iob1);
-          if (!error)
-            {
-              ieee80211_ifstart();
-            }
         }
     }
 #endif
@@ -1050,7 +1036,7 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
                 break;
               }
           }
- 
+
         eh = (FAR struct ether_header *)iob->io_data;
 
         /* Examine 802.3 header */
@@ -2414,67 +2400,90 @@ void ieee80211_recv_assoc_resp(struct ieee80211_s *ic, struct iob_s *iob,
         }
         frm += 2 + frm[1];
     }
-    /* supported rates element is mandatory */
-    if (rates == NULL || rates[1] > IEEE80211_RATE_MAXSIZE) {
+
+  /* Supported rates element is mandatory */
+
+  if (rates == NULL || rates[1] > IEEE80211_RATE_MAXSIZE)
+    {
         ndbg("ERROR: invalid supported rates element\n");
         return;
     }
-    rate = ieee80211_setup_rates(ic, ni, rates, xrates,
-        IEEE80211_F_DOSORT | IEEE80211_F_DOFRATE | IEEE80211_F_DONEGO |
-        IEEE80211_F_DODEL);
-    if (rate & IEEE80211_RATE_BASIC) {
-        ndbg("ERROR: rate mismatch for %s\n",
-            ieee80211_addr2str((uint8_t *)wh->i_addr2));
-        return;
+
+  rate = ieee80211_setup_rates(ic, ni, rates, xrates,
+    IEEE80211_F_DOSORT | IEEE80211_F_DOFRATE | IEEE80211_F_DONEGO | IEEE80211_F_DODEL);
+
+  if (rate & IEEE80211_RATE_BASIC)
+    {
+      ndbg("ERROR: rate mismatch for %s\n",
+          ieee80211_addr2str((uint8_t *)wh->i_addr2));
+      return;
     }
 
-    ni->ni_capinfo = capinfo;
-    ni->ni_associd = associd;
-    if (edcaie != NULL || wmmie != NULL)
-      {
-        /* force update of EDCA parameters */
-        ic->ic_edca_updtcount = -1;
+  ni->ni_capinfo = capinfo;
+  ni->ni_associd = associd;
 
-        if ((edcaie != NULL &&
-             ieee80211_parse_edca_params(ic, edcaie) == 0) ||
-            (wmmie != NULL &&
-             ieee80211_parse_wmm_params(ic, wmmie) == 0))
+  if (edcaie != NULL || wmmie != NULL)
+    {
+      /* Force update of EDCA parameters */
+
+      ic->ic_edca_updtcount = -1;
+
+      if ((edcaie != NULL &&
+           ieee80211_parse_edca_params(ic, edcaie) == 0) ||
+          (wmmie != NULL &&
+           ieee80211_parse_wmm_params(ic, wmmie) == 0))
+          {
             ni->ni_flags |= IEEE80211_NODE_QOS;
-        else    /* for Reassociation */
+          }
+        else
+          {
+            /* for Reassociation */
+
             ni->ni_flags &= ~IEEE80211_NODE_QOS;
+          }
       }
 
-    /*
-     * Configure state now that we are associated.
-     */
-    if (ic->ic_curmode == IEEE80211_MODE_11A ||
-        (ni->ni_capinfo & IEEE80211_CAPINFO_SHORT_PREAMBLE))
-        ic->ic_flags |= IEEE80211_F_SHPREAMBLE;
-    else
-        ic->ic_flags &= ~IEEE80211_F_SHPREAMBLE;
+  /* Configure state now that we are associated */
 
-    ieee80211_set_shortslottime(ic,
-        ic->ic_curmode == IEEE80211_MODE_11A ||
-        (ni->ni_capinfo & IEEE80211_CAPINFO_SHORT_SLOTTIME));
-    /*
-     * Honor ERP protection.
-     */
-    if (ic->ic_curmode == IEEE80211_MODE_11G &&
-        (ni->ni_erp & IEEE80211_ERP_USE_PROTECTION))
-        ic->ic_flags |= IEEE80211_F_USEPROT;
-    else
-        ic->ic_flags &= ~IEEE80211_F_USEPROT;
-    /*
-     * If not an RSNA, mark the port as valid, otherwise wait for
-     * 802.1X authentication and 4-way handshake to complete..
-     */
-    if (ic->ic_flags & IEEE80211_F_RSNON) {
-        /* XXX ic->ic_mgt_timer = 5; */
-    } else if (ic->ic_flags & IEEE80211_F_WEPON)
-        ni->ni_flags |= IEEE80211_NODE_TXRXPROT;
+  if (ic->ic_curmode == IEEE80211_MODE_11A ||
+      (ni->ni_capinfo & IEEE80211_CAPINFO_SHORT_PREAMBLE))
+    {
+      ic->ic_flags |= IEEE80211_F_SHPREAMBLE;
+    }
+  else
+    {
+      ic->ic_flags &= ~IEEE80211_F_SHPREAMBLE;
+    }
 
-    ieee80211_new_state(ic, IEEE80211_S_RUN,
-        IEEE80211_FC0_SUBTYPE_ASSOC_RESP);
+  ieee80211_set_shortslottime(ic,
+                              ic->ic_curmode == IEEE80211_MODE_11A ||
+                              (ni->ni_capinfo & IEEE80211_CAPINFO_SHORT_SLOTTIME));
+  /* Honor ERP protection */
+
+  if (ic->ic_curmode == IEEE80211_MODE_11G &&
+      (ni->ni_erp & IEEE80211_ERP_USE_PROTECTION))
+    {
+      ic->ic_flags |= IEEE80211_F_USEPROT;
+    }
+  else
+    {
+      ic->ic_flags &= ~IEEE80211_F_USEPROT;
+    }
+
+  /* If not an RSNA, mark the port as valid, otherwise wait for
+   * 802.1X authentication and 4-way handshake to complete..
+   */
+
+  if (ic->ic_flags & IEEE80211_F_RSNON)
+    {
+      /* XXX ic->ic_mgt_timer = 5; */
+    }
+  else if (ic->ic_flags & IEEE80211_F_WEPON)
+    {
+      ni->ni_flags |= IEEE80211_NODE_TXRXPROT;
+    }
+
+  ieee80211_new_state(ic, IEEE80211_S_RUN, IEEE80211_FC0_SUBTYPE_ASSOC_RESP);
 }
 
 /* Deauthentication frame format:
@@ -2482,7 +2491,7 @@ void ieee80211_recv_assoc_resp(struct ieee80211_s *ic, struct iob_s *iob,
  */
 
 void ieee80211_recv_deauth(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+                           struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
     const uint8_t *frm;
@@ -2501,7 +2510,8 @@ void ieee80211_recv_deauth(struct ieee80211_s *ic, struct iob_s *iob,
 
     reason = LE_READ_2(frm);
 
-    switch (ic->ic_opmode) {
+    switch (ic->ic_opmode)
+      {
     case IEEE80211_M_STA:
         ieee80211_new_state(ic, IEEE80211_S_AUTH,
             IEEE80211_FC0_SUBTYPE_DEAUTH);
@@ -2527,7 +2537,7 @@ void ieee80211_recv_deauth(struct ieee80211_s *ic, struct iob_s *iob,
  */
 
 void ieee80211_recv_disassoc(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+                             struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
     const uint8_t *frm;
@@ -2578,7 +2588,7 @@ void ieee80211_recv_disassoc(struct ieee80211_s *ic, struct iob_s *iob,
  */
 
 void ieee80211_recv_addba_req(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+                              struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
     const uint8_t *frm;
@@ -2612,45 +2622,59 @@ void ieee80211_recv_addba_req(struct ieee80211_s *ic, struct iob_s *iob,
     ssn = LE_READ_2(&frm[7]) >> 4;
 
     ba = &ni->ni_rx_ba[tid];
+
     /* check if we already have a Block Ack agreement for this RA/TID */
-    if (ba->ba_state == IEEE80211_BA_AGREED) {
+
+    if (ba->ba_state == IEEE80211_BA_AGREED)
+      {
         /* XXX should we update the timeout value? */
         /* reset Block Ack inactivity timer */
+
         wd_start(ba->ba_to, USEC2TICK(ba->ba_timeout_val), ieee80211_rx_ba_timeout, 1, ba);
 
         /* check if it's a Protected Block Ack agreement */
+
         if (!(ni->ni_flags & IEEE80211_NODE_MFP) ||
             !(ni->ni_rsncaps & IEEE80211_RSNCAP_PBAC))
             return;    /* not a PBAC, ignore */
 
         /* PBAC: treat the ADDBA Request like a BlockAckReq */
+
         if (SEQ_LT(ba->ba_winstart, ssn))
             ieee80211_ba_move_window(ic, ni, tid, ssn);
         return;
-    }
+      }
+
     /* if PBAC required but RA does not support it, refuse request */
+
     if ((ic->ic_flags & IEEE80211_F_PBAR) &&
         (!(ni->ni_flags & IEEE80211_NODE_MFP) ||
          !(ni->ni_rsncaps & IEEE80211_RSNCAP_PBAC))) {
         status = IEEE80211_STATUS_REFUSED;
         goto resp;
     }
-    /*
-     * If the TID for which the Block Ack agreement is requested is
+
+    /* If the TID for which the Block Ack agreement is requested is
      * configured with a no-ACK policy, refuse the agreement.
      */
-    if (ic->ic_tid_noack & (1 << tid)) {
+
+    if (ic->ic_tid_noack & (1 << tid))
+      {
         status = IEEE80211_STATUS_REFUSED;
         goto resp;
-    }
+      }
+
     /* check that we support the requested Block Ack Policy */
+
     if (!(ic->ic_htcaps & IEEE80211_HTCAP_DELAYEDBA) &&
-        !(params & IEEE80211_BA_ACK_POLICY)) {
+        !(params & IEEE80211_BA_ACK_POLICY))
+      {
         status = IEEE80211_STATUS_INVALID_PARAM;
         goto resp;
-    }
+      }
 
     /* setup Block Ack agreement */
+
     ba->ba_state = IEEE80211_BA_INIT;
     ba->ba_timeout_val = timeout * IEEE80211_DUR_TU;
     if (ba->ba_timeout_val < IEEE80211_BA_MIN_TIMEOUT)
@@ -2708,7 +2732,7 @@ void ieee80211_recv_addba_req(struct ieee80211_s *ic, struct iob_s *iob,
  */
 
 void ieee80211_recv_addba_resp(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+                               struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
     const uint8_t *frm;
@@ -2735,10 +2759,10 @@ void ieee80211_recv_addba_resp(struct ieee80211_s *ic, struct iob_s *iob,
     nvdbg("received ADDBA resp from %s, TID %d, status %d\n",
         ieee80211_addr2str(ni->ni_macaddr), tid, status);
 
-    /*
-     * Ignore if no ADDBA request has been sent for this RA/TID or
+    /* Ignore if no ADDBA request has been sent for this RA/TID or
      * if we already have a Block Ack agreement.
      */
+
     ba = &ni->ni_tx_ba[tid];
     if (ba->ba_state != IEEE80211_BA_REQUESTED) {
         ndbg("ERROR: no matching ADDBA req found\n");
@@ -2749,22 +2773,29 @@ void ieee80211_recv_addba_resp(struct ieee80211_s *ic, struct iob_s *iob,
             ieee80211_addr2str(ni->ni_macaddr), token, ba->ba_token);
         return;
     }
+
     /* we got an ADDBA Response matching our request, stop timeout */
+
     wd_cancel(ba->ba_to);
 
     if (status != IEEE80211_STATUS_SUCCESS) {
         /* MLME-ADDBA.confirm(Failure) */
+
         ba->ba_state = IEEE80211_BA_INIT;
         return;
     }
+
     /* MLME-ADDBA.confirm(Success) */
+
     ba->ba_state = IEEE80211_BA_AGREED;
 
     /* notify drivers of this new Block Ack agreement */
+
     if (ic->ic_ampdu_tx_start != NULL)
         (void)ic->ic_ampdu_tx_start(ic, ni, tid);
 
     /* start Block Ack inactivity timeout */
+
     if (ba->ba_timeout_val != 0)
         wd_start(ba->ba_to, USEC2TICK(ba->ba_timeout_val), ieee80211_rx_ba_timeout, 1, ba);
 }
@@ -2777,7 +2808,7 @@ void ieee80211_recv_addba_resp(struct ieee80211_s *ic, struct iob_s *iob,
  */
 
 void ieee80211_recv_delba(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+                          struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
     const uint8_t *frm;
@@ -2803,18 +2834,23 @@ void ieee80211_recv_delba(struct ieee80211_s *ic, struct iob_s *iob,
 
     if (params & IEEE80211_DELBA_INITIATOR) {
         /* MLME-DELBA.indication(Originator) */
+
         struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
 
         if (ba->ba_state != IEEE80211_BA_AGREED) {
             ndbg("ERROR: no matching Block Ack agreement\n");
             return;
         }
+
         /* notify drivers of the end of the Block Ack agreement */
+
         if (ic->ic_ampdu_rx_stop != NULL)
             ic->ic_ampdu_rx_stop(ic, ni, tid);
 
         ba->ba_state = IEEE80211_BA_INIT;
+
         /* stop Block Ack inactivity timer */
+
         wd_cancel(ba->ba_to);
 
         if (ba->ba_buf != NULL)
@@ -2836,13 +2872,16 @@ void ieee80211_recv_delba(struct ieee80211_s *ic, struct iob_s *iob,
           }
     } else {
         /* MLME-DELBA.indication(Recipient) */
+
         struct ieee80211_tx_ba *ba = &ni->ni_tx_ba[tid];
 
         if (ba->ba_state != IEEE80211_BA_AGREED) {
             ndbg("ERROR: no matching Block Ack agreement\n");
             return;
         }
+
         /* notify drivers of the end of the Block Ack agreement */
+
         if (ic->ic_ampdu_tx_stop != NULL)
             ic->ic_ampdu_tx_stop(ic, ni, tid);
 
@@ -2860,7 +2899,7 @@ void ieee80211_recv_delba(struct ieee80211_s *ic, struct iob_s *iob,
  */
 
 void ieee80211_recv_sa_query_req(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+                                 struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
     const uint8_t *frm;
@@ -2901,7 +2940,7 @@ void ieee80211_recv_sa_query_req(struct ieee80211_s *ic, struct iob_s *iob,
  */
 
 void ieee80211_recv_sa_query_resp(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+                                  struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
     const uint8_t *frm;
@@ -2945,7 +2984,7 @@ void ieee80211_recv_sa_query_resp(struct ieee80211_s *ic, struct iob_s *iob,
  */
 
 void ieee80211_recv_action(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+                           struct ieee80211_node *ni)
 {
     const struct ieee80211_frame *wh;
     const uint8_t *frm;
@@ -2994,7 +3033,8 @@ void ieee80211_recv_action(struct ieee80211_s *ic, struct iob_s *iob,
 }
 
 void ieee80211_recv_mgmt(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni, struct ieee80211_rxinfo *rxi, int subtype)
+                         struct ieee80211_node *ni,
+                         struct ieee80211_rxinfo *rxi, int subtype)
 {
     switch (subtype) {
     case IEEE80211_FC0_SUBTYPE_BEACON:
@@ -3045,64 +3085,64 @@ void ieee80211_recv_mgmt(struct ieee80211_s *ic, struct iob_s *iob,
 /* Process an incoming PS-Poll control frame (see 11.2) */
 
 void ieee80211_recv_pspoll(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+                           struct ieee80211_node *ni)
 {
-    struct ieee80211_frame_pspoll *psp;
-    struct ieee80211_frame *wh;
-    uint16_t aid;
+  struct ieee80211_frame_pspoll *psp;
+  struct ieee80211_frame *wh;
+  uint16_t aid;
 
-    if (ic->ic_opmode != IEEE80211_M_HOSTAP ||
-        !(ic->ic_caps & IEEE80211_C_APPMGT) ||
-        ni->ni_state != IEEE80211_STA_ASSOC)
-      {
-        return;
-      }
-
-    if (iob->io_len < sizeof(*psp))
-      {
-        ndbg("ERROR: frame too short, len %u\n", iob->io_len);
-        return;
-      }
-
-    psp = (FAR struct ieee80211_frame_pspoll *)iob->io_data;
-    if (!IEEE80211_ADDR_EQ(psp->i_bssid, ic->ic_bss->ni_bssid))
-      {
-        ndbg("ERROR: discard pspoll frame to BSS %s\n",
-            ieee80211_addr2str(psp->i_bssid));
-        return;
-      }
-
-    aid = letoh16(*(uint16_t *)psp->i_aid);
-    if (aid != ni->ni_associd) {
-        ndbg("ERROR: invalid pspoll aid %x from %s\n", aid,
-            ieee80211_addr2str(psp->i_ta));
-        return;
+  if (ic->ic_opmode != IEEE80211_M_HOSTAP ||
+      !(ic->ic_caps & IEEE80211_C_APPMGT) ||
+      ni->ni_state != IEEE80211_STA_ASSOC)
+    {
+      return;
     }
 
-    /* take the first queued frame and put it out.. */
+  if (iob->io_len < sizeof(*psp))
+    {
+      ndbg("ERROR: frame too short, len %u\n", iob->io_len);
+      return;
+    }
 
-    iob = iob_remove_queue(&ni->ni_savedq);
-    if (iob == NULL)
-      {
-        return;
-      }
+  psp = (FAR struct ieee80211_frame_pspoll *)iob->io_data;
+  if (!IEEE80211_ADDR_EQ(psp->i_bssid, ic->ic_bss->ni_bssid))
+    {
+      ndbg("ERROR: discard pspoll frame to BSS %s\n",
+          ieee80211_addr2str(psp->i_bssid));
+      return;
+    }
 
-    if (IOB_QEMPTY(&ni->ni_savedq))
-      {
-        /* last queued frame, turn off the TIM bit */
+  aid = letoh16(*(uint16_t *)psp->i_aid);
+  if (aid != ni->ni_associd)
+    {
+      ndbg("ERROR: invalid pspoll aid %x from %s\n", aid,
+          ieee80211_addr2str(psp->i_ta));
+      return;
+    }
 
-        (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
-      }
-    else
-      {
-        /* more queued frames, set the more data bit */
+  /* Take the first queued frame and put it out.. */
 
-        wh = (FAR struct ieee80211_frame *)iob->io_data;
-        wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
-      }
+  iob = iob_remove_queue(&ni->ni_savedq);
+  if (iob == NULL)
+    {
+      return;
+    }
 
-    iob_add_queue(iob, &ic->ic_pwrsaveq);
-    ieee80211_ifstart();
+  if (IOB_QEMPTY(&ni->ni_savedq))
+    {
+      /* Last queued frame, turn off the TIM bit */
+
+      (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
+    }
+  else
+    {
+      /* more queued frames, set the more data bit */
+
+      wh = (FAR struct ieee80211_frame *)iob->io_data;
+      wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
+    }
+
+  iob_add_queue(iob, &ic->ic_pwrsaveq);
 }
 #endif /* CONFIG_IEEE80211_AP */
 
@@ -3110,7 +3150,7 @@ void ieee80211_recv_pspoll(struct ieee80211_s *ic, struct iob_s *iob,
 /* Process an incoming BlockAckReq control frame (see 7.2.1.7) */
 
 void ieee80211_recv_bar(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+                        struct ieee80211_node *ni)
 {
     const struct ieee80211_frame_min *wh;
     const uint8_t *frm;

@@ -179,7 +179,6 @@ int ieee80211_output(struct ieeeu80211com *ic, struct iob_s *iob, struct sockadd
           return error;
         }
 
-      ieee80211_ifstart();
       splx(s);
       return error;
     }
@@ -280,12 +279,10 @@ int ieee80211_mgmt_output(struct ieee80211_s *ic, struct ieee80211_node *ni,
 #endif
 
     iob_add_queue(iob, &ic->ic_mgtq);
-    ieee80211_ifstart();
     return 0;
 }
 
-/*-
- * EDCA tables are computed using the following formulas:
+/* EDCA tables are computed using the following formulas:
  *
  * 1) EDCATable (non-AP QSTA)
  *

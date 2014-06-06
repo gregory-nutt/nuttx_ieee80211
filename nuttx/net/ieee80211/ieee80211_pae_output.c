@@ -156,11 +156,6 @@ int ieee80211_send_eapol_key(struct ieee80211_s *ic, struct iob_s *iob,
 #endif
 
   error = ieee80211_ifsend(iob);
-  if (error == 0)
-    {
-      ieee80211_ifstart();
-    }
-
   splx(s);
   return error;
 }

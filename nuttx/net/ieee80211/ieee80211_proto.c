@@ -993,8 +993,9 @@ justcleanup:
         case IEEE80211_S_RUN:
             ndbg("ERROR: invalid transition\n");
             break;
+
         case IEEE80211_S_SCAN:        /* adhoc/hostap mode */
-        case IEEE80211_S_ASSOC:        /* infra mode */
+        case IEEE80211_S_ASSOC:       /* infra mode */
             DEBUGASSERT(ni->ni_txrate < ni->ni_rates.rs_nrates);
 
 #if defined(CONFIG_DEBUG_NET) && defined(CONFIG_DEBUG_VERBOSE)
@@ -1002,8 +1003,10 @@ justcleanup:
                    ic->ic_ifname,
                    ic->ic_opmode == IEEE80211_M_STA ? "associated" : "synchronized",
                    ieee80211_addr2str(ni->ni_bssid));
+
             ieee80211_print_essid(ic->ic_bss->ni_essid, ni->ni_esslen);
             rate = ni->ni_rates.rs_rates[ni->ni_txrate] & IEEE80211_RATE_VAL;
+
             nvdbg(" channel %d start %u%sMb",
                   ieee80211_chan2ieee(ic, ni->ni_chan),
                   rate / 2, (rate & 1) ? ".5" : "");
@@ -1023,7 +1026,6 @@ justcleanup:
               }
 
             ic->ic_mgt_timer = 0;
-            ieee80211_ifstart();
             break;
         }
         break;

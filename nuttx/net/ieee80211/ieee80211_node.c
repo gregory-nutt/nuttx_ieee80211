@@ -1852,8 +1852,7 @@ void ieee80211_notify_dtim(struct ieee80211_s *ic)
           wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
         }
 
-      iob_add_last(iob, &ic->ic_pwrsaveq);
-      ieee80211_ifstart();
+      iob_add_queue(iob, &ic->ic_pwrsaveq);
     }
 
   /* XXX assumes everything has been sent */

@@ -93,3 +93,32 @@ void ieee80211_ifinit(FAR struct ieee80211_s *ic)
   /* Perform pre-instance initialization */
   /* NONE */
 }
+
+/****************************************************************************
+ * Name: ieee80211_ifsend
+ *
+ * Description:
+ *   Enqueue the packet to be sent by the Ethernet driver and begin
+ *   accepting TX polls from the Ethernet driver (if we are not already doing
+ *   so.
+ *
+ ****************************************************************************/
+
+int ieee80211_ifsend(FAR struct iob_s *iob)
+{
+  /* Add the I/O buffer chain to the driver output queue */
+#warning Missing logic
+
+  /* Are we currently accepting driver polls? */
+#warning Missing logic
+
+    /* No.. Allocate a callback structure */
+#warning Missing logic
+
+    /* Initialize the callback structure */
+#warning Missing logic
+
+    /* Indicate that we are accepting driver polls */
+#warning Missing logic
+}
+

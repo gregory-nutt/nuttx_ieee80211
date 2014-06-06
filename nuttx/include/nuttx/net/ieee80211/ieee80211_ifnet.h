@@ -70,14 +70,16 @@
 struct ieee80211_s;
 void ieee80211_ifinit(FAR struct ieee80211_s *ic);
 
-/* Start polling for queued packets if the device is ready and polling has
- * not already been started.
- */
+/****************************************************************************
+ * Name: ieee80211_ifsend
+ *
+ * Description:
+ *   Enqueue the packet to be sent by the Ethernet driver and begin
+ *   accepting TX polls from the Ethernet driver (if we are not already doing
+ *   so.
+ *
+ ****************************************************************************/
 
-void ieee80211_ifstart(void);
-
-/* Enqueue the packet to be sent by the Ethernet driver */
-
-int ieee80211_ifsend(struct iob_s *iob);
+int ieee80211_ifsend(FAR struct iob_s *iob);
 
 #endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_IFNET_H */
