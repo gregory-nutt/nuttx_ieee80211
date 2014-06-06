@@ -494,10 +494,6 @@ int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
     int bit;
 
     switch (cmd) {
-    case SIOCSIFMEDIA:
-    case SIOCGIFMEDIA:
-        error = ifmedia_ioctl(ic, ifr, &ic->ic_media, cmd);
-        break;
     case SIOCS80211NWID:
         if ((error = copyin(ifr->ifr_data, &nwid, sizeof(nwid))) != 0)
             break;
