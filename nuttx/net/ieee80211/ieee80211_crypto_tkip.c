@@ -192,7 +192,7 @@ ieee80211_tkip_mic(struct iob_s *m0, int off, const uint8_t *key,
     for (;;)
       {
         michael_update(&ctx, pos, len);
-        if ((iob = (struct iob_s *)iob->io_link.flink) == NULL)
+        if ((iob = iob->io_flink) == NULL)
           {
             break;
           }
@@ -283,7 +283,7 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
           {
             /* Nothing left to copy from iob */
 
-            iob = (struct iob_s *)iob->io_link.flink;
+            iob  = iob->io_flink;
             moff = 0;
           }
 
@@ -299,7 +299,7 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
                 goto nospace;
               }
 
-            next->io_link.flink = (sq_entry_t *)newbuf;
+            next->io_flink = newbuf;
             next = newbuf;
             next->io_len = 0;
 
@@ -333,7 +333,7 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
             goto nospace;
           }
 
-        next->io_link.flink = (sq_entry_t *)newbuf;
+        next->io_flink = newbuf;
         next = newbuf;
         next->io_len = 0;
       }
@@ -359,14 +359,14 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     next0->io_pktlen += IEEE80211_TKIP_TAILLEN;
 
-  iob_freechain(m0);
+  iob_free_chain(m0);
   return next0;
 
 nospace:
-  iob_freechain(m0);
+  iob_free_chain(m0);
   if (next0 != NULL)
     {
-      iob_freechain(next0);
+      iob_free_chain(next0);
     }
 
   return NULL;
@@ -392,7 +392,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     if (m0->io_pktlen < hdrlen + IEEE80211_TKIP_OVHD)
       {
-        iob_freechain(m0);
+        iob_free_chain(m0);
         return NULL;
       }
 
@@ -402,7 +402,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     if (!(ivp[3] & IEEE80211_WEP_EXTIV))
       {
-        iob_freechain(m0);
+        iob_free_chain(m0);
         return NULL;
       }
 
@@ -423,7 +423,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
       {
         /* Replayed frame, discard */
 
-        iob_freechain(m0);
+        iob_free_chain(m0);
         return NULL;
       }
 
@@ -472,7 +472,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
           {
             /* Nothing left to copy from iob */
 
-            iob = (struct iob_s *)iob->io_link.flink;
+            iob = iob->io_flink;
             moff = 0;
           }
 
@@ -488,7 +488,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
                 goto nospace;
               }
 
-            next->io_link.flink = (sq_entry_t *)newbuf;
+            next->io_flink = newbuf;
             next = newbuf;
             next->io_len = 0;
 
@@ -526,8 +526,8 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     crc0 = *(uint32_t *)(buf + IEEE80211_TKIP_MICLEN);
     if (crc != letoh32(crc0))
       {
-        iob_freechain(m0);
-        iob_freechain(next0);
+        iob_free_chain(m0);
+        iob_free_chain(next0);
         return NULL;
       }
 
@@ -539,8 +539,8 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     if (timingsafe_bcmp(mic0, mic, IEEE80211_TKIP_MICLEN) != 0)
       {
-        iob_freechain(m0);
-        iob_freechain(next0);
+        iob_free_chain(m0);
+        iob_free_chain(next0);
         ieee80211_michael_mic_failure(ic, tsc);
         return NULL;
       }
@@ -550,14 +550,14 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     /* mark cached TTAK as valid */
     ctx->rxttak_ok = 1;
 
-  iob_freechain(m0);
+  iob_free_chain(m0);
   return next0;
 
 nospace:
-  iob_freechain(m0);
+  iob_free_chain(m0);
   if (next0 != NULL)
     {
-      iob_freechain(next0);
+      iob_free_chain(next0);
     }
 
   return NULL;

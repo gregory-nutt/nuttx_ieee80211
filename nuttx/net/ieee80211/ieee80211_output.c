@@ -190,7 +190,7 @@ fallback:
  bad:
   if (iob)
     {
-      iob_freechain(iob);
+      iob_free_chain(iob);
     }
 
   return error;
@@ -278,7 +278,8 @@ int ieee80211_mgmt_output(struct ieee80211_s *ic, struct ieee80211_node *ni,
         ieee80211_pwrsave(ic, iob, ni) != 0)
         return 0;
 #endif
-    sq_addlast((sq_entry_t *)iob, &ic->ic_mgtq);
+
+    iob_add_queue(iob, &ic->ic_mgtq);
     ieee80211_ifstart();
     return 0;
 }
@@ -684,7 +685,7 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
 bad:
   if (iob != NULL)
     {
-      iob_freechain(iob);
+      iob_free_chain(iob);
     }
 
   if (ni != NULL)
@@ -2034,7 +2035,7 @@ int ieee80211_pwrsave(struct ieee80211_s *ic, struct iob_s *iob, struct ieee8021
           return 0;
         }
 
-      if (sq_empty(&ni->ni_savedq))
+      if (IOB_QEMPTY(&ni->ni_savedq))
         {
           (*ic->ic_set_tim)(ic, ni->ni_associd, 1);
         }
@@ -2042,7 +2043,7 @@ int ieee80211_pwrsave(struct ieee80211_s *ic, struct iob_s *iob, struct ieee8021
 
   /* NB: ni == ic->ic_bss for broadcast/multicast */
 
-  sq_addlast((sq_entry_t)iob, &ni->ni_savedq);
+  iob_add_queue(iob, &ni->ni_savedq);
 
   /* Similar to ieee80211_mgmt_output, store the node in a
    * special pkthdr field.

@@ -214,7 +214,7 @@ struct ieee80211_node
   /* power saving mode */
 
   uint8_t         ni_pwrsave;
-  sq_queue_t      ni_savedq;           /* packets queued for pspoll */
+  struct iob_queue_s ni_savedq;        /* Packets queued for pspoll */
 
   /* RSN */
 

@@ -228,7 +228,7 @@ void ieee80211_eapol_key_input(struct ieee80211_s *ic, struct iob_s *iob,
  done:
   if (iob != NULL)
     {
-      iob_freechain(iob);
+      iob_free_chain(iob);
     }
 }
 

@@ -57,6 +57,7 @@
 /* Queue helpers */
 
 #define IOB_QINIT(q)     do { (q)->qh_head = 0; (q)->qh_tail = 0; } while (0)
+#define IOB_QEMPTY(q)    ((q)->head == NULL)
 
 /****************************************************************************
  * Public Types

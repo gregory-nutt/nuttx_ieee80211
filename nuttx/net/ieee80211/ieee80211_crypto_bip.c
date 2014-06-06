@@ -131,12 +131,12 @@ struct iob_s *ieee80211_bip_encap(struct ieee80211_s *ic, struct iob_s *iob0,
         struct iob_s *newbuf;
 
         newbuf = iob_alloc();
-        if (iob->io_link.flink == NULL)
+        if (iob->io_flink == NULL)
           {
             goto nospace;
           }
 
-        iob->io_link.flink = (sq_entry_t *)newbuf;
+        iob->io_flink = newbuf;
         iob = newbuf;
         iob->io_len = 0;
       }
@@ -165,7 +165,7 @@ struct iob_s *ieee80211_bip_encap(struct ieee80211_s *ic, struct iob_s *iob0,
   return iob0;
 
  nospace:
-  iob_freechain(iob0);
+  iob_free_chain(iob0);
   return NULL;
 }
 
@@ -194,7 +194,7 @@ struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
       {
         /* Replayed frame, discard */
 
-        iob_freechain(iob0);
+        iob_free_chain(iob0);
         return NULL;
       }
 
@@ -224,7 +224,7 @@ struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
 
   if (timingsafe_bcmp(mic, mic0, 8) != 0)
     {
-      iob_freechain(iob0);
+      iob_free_chain(iob0);
       return NULL;
     }
 

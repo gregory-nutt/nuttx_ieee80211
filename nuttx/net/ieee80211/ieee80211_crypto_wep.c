@@ -167,7 +167,7 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
           {
             /* Nothing left to copy from iob */
 
-            iob = (struct iob_s *)iob->io_link.flink;
+            iob  = iob->io_flink;
             moff = 0;
           }
 
@@ -183,7 +183,7 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
                 goto nospace;
               }
 
-            next->io_link.flink = (sq_entry_t *)newbuf;
+            next->io_flink = newbuf;
             next = newbuf;
             next->io_len = 0;
 
@@ -217,7 +217,7 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
             goto nospace;
           }
 
-        next->io_link.flink = (sq_entry_t *)newbuf;
+        next->io_flink = newbuf;
         next = newbuf;
         next->io_len = 0;
       }
@@ -234,14 +234,14 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     next->io_len += IEEE80211_WEP_CRCLEN;
     next0->io_pktlen += IEEE80211_WEP_CRCLEN;
 
-  iob_freechain(m0);
+  iob_free_chain(m0);
   return next0;
 
 nospace:
-  iob_freechain(m0);
+  iob_free_chain(m0);
   if (next0 != NULL)
     {
-      iob_freechain(next0);
+      iob_free_chain(next0);
     }
 
   return NULL;
@@ -263,7 +263,7 @@ struct iob_s *ieee80211_wep_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     if (m0->io_pktlen < hdrlen + IEEE80211_WEP_TOTLEN)
       {
-        iob_freechain(m0);
+        iob_free_chain(m0);
         return NULL;
       }
 
@@ -313,7 +313,7 @@ struct iob_s *ieee80211_wep_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
           {
             /* Nothing left to copy from iob */
 
-            iob =(struct iob_s *) iob->io_link.flink;
+            iob  = iob->io_flink;
             moff = 0;
           }
 
@@ -329,7 +329,7 @@ struct iob_s *ieee80211_wep_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
                 goto nospace;
               }
 
-            next->io_link.flink = (sq_entry_t *)newbuf;
+            next->io_flink = newbuf;
             next = newbuf;
             next->io_len = 0;
 
@@ -358,19 +358,19 @@ struct iob_s *ieee80211_wep_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     crc = ~crc;
     if (crc != letoh32(crc0))
       {
-        iob_freechain(m0);
-        iob_freechain(next0);
+        iob_free_chain(m0);
+        iob_free_chain(next0);
         return NULL;
      }
 
-  iob_freechain(m0);
+  iob_free_chain(m0);
   return next0;
 
 nospace:
-  iob_freechain(m0);
+  iob_free_chain(m0);
   if (next0 != NULL)
     {
-      iob_freechain(next0);
+      iob_free_chain(next0);
     }
 
   return NULL;

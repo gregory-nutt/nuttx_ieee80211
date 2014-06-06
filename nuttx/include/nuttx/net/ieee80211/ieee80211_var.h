@@ -266,8 +266,8 @@ struct ieee80211_s
   uint8_t         ic_chan_avail[howmany(IEEE80211_CHAN_MAX, 8)];
   uint8_t         ic_chan_active[howmany(IEEE80211_CHAN_MAX, 8)];
   uint8_t         ic_chan_scan[howmany(IEEE80211_CHAN_MAX, 8)];
-  sq_queue_t      ic_mgtq;
-  sq_queue_t      ic_pwrsaveq;
+  struct iob_queue_s ic_mgtq;
+  struct iob_queue_s ic_pwrsaveq;
   unsigned int    ic_scan_lock;    /* user-initiated scan */
   uint8_t         ic_scan_count;    /* count scans */
   uint32_t        ic_flags;    /* state flags */

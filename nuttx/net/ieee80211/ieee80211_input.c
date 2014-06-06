@@ -297,12 +297,15 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
             (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
 
             /* dequeue buffered unicast frames */
-            while (!sq_empty(&ni->ni_savedq)) {
-                struct iob_s *iob;
-                iob = (struct iob_s *iob)sq_remfirst(&ni->ni_savedq);
-                sq_addlast((sq_entry_t *)iob, &ic->ic_pwrsaveq);
+
+            while (!IOB_QEMPTY(&ni->ni_savedq))
+              {
+                FAR struct iob_s *iob;
+
+                iob = iob_remove_queue(&ni->ni_savedq);
+                iob_add_queue(iob, &ic->ic_pwrsaveq);
                 ieee80211_ifstart();
-            }
+              }
         }
     }
 #endif
@@ -531,7 +534,7 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
 #endif
 
         (*ic->ic_recv_mgmt)(ic, iob, ni, rxi, subtype);
-        iob_freechain(iob);
+        iob_free_chain(iob);
         return;
 
     case IEEE80211_FC0_TYPE_CTL:
@@ -562,7 +565,7 @@ err:
 out:
   if (iob != NULL)
     {
-      iob_freechain(iob);
+      iob_free_chain(iob);
     }
 }
 
@@ -595,7 +598,7 @@ struct iob_s *ieee80211_defrag(struct ieee80211_s *ic, struct iob_s *iob, int hd
           {
             /* Discard old entry */
 
-            iob_freechain(df->df_m);
+            iob_free_chain(df->df_m);
           }
 
         df->df_seq = seq;
@@ -641,7 +644,7 @@ struct iob_s *ieee80211_defrag(struct ieee80211_s *ic, struct iob_s *iob, int hd
       {
         /* No matching entry found, discard fragment */
 
-        iob_freechain(iob);
+        iob_free_chain(iob);
         return NULL;
       }
 
@@ -672,7 +675,7 @@ void ieee80211_defrag_timeout(void *arg)
 
   /* Discard all received fragments */
 
-  iob_freechain(df->df_m);
+  iob_free_chain(df->df_m);
   df->df_m = NULL;
 
   splx(s);
@@ -701,7 +704,7 @@ void ieee80211_input_ba(struct ieee80211_s *ic, struct iob_s *iob,
       {
         /* SN < WinStartB, discard the MPDU */
 
-        iob_freechain(iob);
+        iob_free_chain(iob);
         return;
       }
 
@@ -732,7 +735,7 @@ void ieee80211_input_ba(struct ieee80211_s *ic, struct iob_s *iob,
 
     if (ba->ba_buf[idx].iob != NULL)
       {
-        iob_freechain(iob);
+        iob_free_chain(iob);
         return;
       }
 
@@ -811,7 +814,7 @@ void ieee80211_deliver_data(struct ieee80211_s *ic, struct iob_s *iob,
         eh->ether_type != htons(ETHERTYPE_PAE))
     {
       ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(eh->ether_dhost));
-      iob_freechain(iob);
+      iob_free_chain(iob);
       return;
     }
 
@@ -902,14 +905,14 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
           next = iob_alloc();
           if (next == NULL)
             {
-              iob_freechain(iob);
+              iob_free_chain(iob);
               return NULL;
             }
 
           if (iob_clone(next, iob) < 0)
             {
               iob_free(next);
-              iob_freechain(iob);
+              iob_free_chain(iob);
               return NULL;
             }
 
@@ -920,8 +923,8 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
           next = iob_alloc();
           if (next == NULL)
             {
-              iob_freechain(iob);
-              iob_freechain(next0);
+              iob_free_chain(iob);
+              iob_free_chain(next0);
               return NULL;
             }
 
@@ -943,10 +946,10 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
       iob_copyout(next->io_data, iob, off, next->io_len);
       off += next->io_len;
       *np = next;
-      np = &(struct iob_s *)next->io_link.flink;
+      np = next->io_flink;
     }
 
-  iob_freechain(iob);
+  iob_free_chain(iob);
   return next0;
 }
 #endif /* __STRICT_ALIGNMENT */
@@ -1059,7 +1062,7 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
 
             /* Stop processing A-MSDU subframes */
 
-            iob_freechain(iob);
+            iob_free_chain(iob);
             break;
           }
 
@@ -1094,7 +1097,7 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
           {
             /* Stop processing A-MSDU subframes */
 
-            iob_freechain(iob);
+            iob_free_chain(iob);
             break;
           }
 
@@ -2822,7 +2825,7 @@ void ieee80211_recv_delba(struct ieee80211_s *ic, struct iob_s *iob,
               {
                 if (ba->ba_buf[i].iob != NULL)
                   {
-                    iob_freechain(ba->ba_buf[i].iob);
+                    iob_free_chain(ba->ba_buf[i].iob);
                   }
               }
 
@@ -3078,13 +3081,13 @@ void ieee80211_recv_pspoll(struct ieee80211_s *ic, struct iob_s *iob,
 
     /* take the first queued frame and put it out.. */
 
-    iob = (struct iob_s *)sq_remfirst(&ni->ni_savedq);
+    iob = iob_remove_queue(&ni->ni_savedq);
     if (iob == NULL)
       {
         return;
       }
 
-    if (sq_empty(&ni->ni_savedq))
+    if (IOB_QEMPTY(&ni->ni_savedq))
       {
         /* last queued frame, turn off the TIM bit */
 
@@ -3098,7 +3101,7 @@ void ieee80211_recv_pspoll(struct ieee80211_s *ic, struct iob_s *iob,
         wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
       }
 
-    sq_addlast((sq_entry_t*)iob, &ic->ic_pwrsaveq);
+    iob_add_queue(iob, &ic->ic_pwrsaveq);
     ieee80211_ifstart();
 }
 #endif /* CONFIG_IEEE80211_AP */

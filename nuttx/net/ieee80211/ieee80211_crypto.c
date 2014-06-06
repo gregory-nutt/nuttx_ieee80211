@@ -209,7 +209,7 @@ struct iob_s *ieee80211_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     default:
         /* Should not get there */
 
-        iob_freechain(m0);
+        iob_free_chain(m0);
         m0 = NULL;
     }
 
@@ -247,7 +247,7 @@ struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0
 
         if (m0->io_len < hdrlen + 4)
           {
-            iob_freechain(m0);
+            iob_free_chain(m0);
             return NULL;
           }
 
@@ -259,7 +259,7 @@ struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0
 
         if (m0->io_len < sizeof(*wh) + IEEE80211_MMIE_LEN)
           {
-            iob_freechain(m0);
+            iob_free_chain(m0);
             return NULL;
           }
 
@@ -271,14 +271,14 @@ struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0
 
         if (mmie[0] != IEEE80211_ELEMID_MMIE || mmie[1] != 16)
           {
-            iob_freechain(m0);
+            iob_free_chain(m0);
             return NULL;
           }
 
         kid = LE_READ_2(&mmie[2]);
         if (kid != 4 && kid != 5)
           {
-            iob_freechain(m0);
+            iob_free_chain(m0);
             return NULL;
           }
 
@@ -301,7 +301,7 @@ struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0
     default:
         /* Key not defined */
 
-        iob_freechain(m0);
+        iob_free_chain(m0);
         m0 = NULL;
     }
     return m0;

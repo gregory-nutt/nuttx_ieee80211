@@ -1129,10 +1129,11 @@ void ieee80211_free_node(struct ieee80211_s *ic, struct ieee80211_node *ni)
 #endif
   RB_REMOVE(ieee80211_tree, &ic->ic_tree, ni);
   ic->ic_nnodes--;
+
 #ifdef CONFIG_IEEE80211_AP
-  if (!sq_empty(&ni->ni_savedq))
+  if (!IOB_QEMPTY(&ni->ni_savedq))
     {
-      iob_freeq(&ni->ni_savedq);
+      iob_free_queue(&ni->ni_savedq);
       if (ic->ic_set_tim != NULL)
         {
           (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
@@ -1524,7 +1525,7 @@ void ieee80211_node_leave_ht(struct ieee80211_s *ic, struct ieee80211_node *ni)
             {
               if (ba->ba_buf[i].iob != NULL)
                 {
-                  iob_freechain(ba->ba_buf[i].iob);
+                  iob_free_chain(ba->ba_buf[i].iob);
                 }
             }
 
@@ -1637,9 +1638,9 @@ void ieee80211_node_leave(struct ieee80211_s *ic, struct ieee80211_node *ni)
       ni->ni_pwrsave = IEEE80211_PS_AWAKE;
     }
 
-  if (!sq_empty(&ni->ni_savedq))
+  if (!IOB_QEMPTY(&ni->ni_savedq))
     {
-      iob_freeq(&ni->ni_savedq);
+      iob_free_queue(&ni->ni_savedq);
       if (ic->ic_set_tim != NULL)
         {
           (*ic->ic_set_tim)(ic, ni->ni_associd, 0);
@@ -1837,13 +1838,13 @@ void ieee80211_notify_dtim(struct ieee80211_s *ic)
 
   for (;;)
     {
-      iob = (struct iob_s *)sq_remfirst(&ni->ni_savedq);
+      iob = iob_remove_queue(&ni->ni_savedq);
       if (iob == NULL)
         {
           break;
         }
 
-      if (!sq_empty(&ni->ni_savedq))
+      if (!IOB_QEMPTY(&ni->ni_savedq))
         {
           /* more queued frames, set the more data bit */
 
@@ -1851,7 +1852,7 @@ void ieee80211_notify_dtim(struct ieee80211_s *ic)
           wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
         }
 
-      sq_addlast((sq_entry_t *)iob, &ic->ic_pwrsaveq);
+      iob_add_last(iob, &ic->ic_pwrsaveq);
       ieee80211_ifstart();
     }
 
