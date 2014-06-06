@@ -277,11 +277,6 @@ void ieee80211_begin_scan(struct ieee80211_s *ic)
    * reset scan state.
    */
 
-  if (IFM_MODE(ic->ic_media.ifm_cur->ifm_media) == IFM_AUTO)
-    {
-      ic->ic_curmode = IEEE80211_MODE_AUTO;
-    }
-
   ieee80211_setmode(ic, ic->ic_curmode);
   ic->ic_scan_count = 0;
 
