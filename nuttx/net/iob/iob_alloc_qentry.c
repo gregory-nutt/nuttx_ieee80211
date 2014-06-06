@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/iob/iob.h
+ * net/iob/iob_alloc_qentry.c
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,16 +33,16 @@
  *
  ****************************************************************************/
 
-#ifndef __NET_IOB_IOB_H
-#define __NET_IOB_IOB_H 1
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/net/iob.h>
+
+#include "iob.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -53,23 +53,15 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
+ * Private Data
  ****************************************************************************/
-
-/* A list of all free, unallocated I/O buffers */
-
-extern FAR struct iob_s *g_iob_freelist;
-
-/* A list of all free, unallocated I/O buffer queue containers */
-
-extern FAR struct iob_qentry_s *g_iob_freeqlist;
 
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Function Prototypes
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
@@ -82,17 +74,28 @@ extern FAR struct iob_qentry_s *g_iob_freeqlist;
  *
  ****************************************************************************/
 
-FAR struct iob_qentry_s *iob_alloc_qentry(void);
+FAR struct iob_qentry_s *iob_alloc_qentry(void)
+{
+  FAR struct iob_qentry_s *iobq;
+  irqstate_t flags;
 
-/****************************************************************************
- * Name: iob_free_qentry
- *
- * Description:
- *   Free the I/O buffer chain container by returning it to the  free list.
- *   The link to  the next I/O buffer in the chain is return.
- *
- ****************************************************************************/
+  /* We don't know what context we are called from so we use extreme measures
+   * to protect the free list:  We disable interrupts very briefly.
+   */
 
-FAR struct iob_qentry_s *iob_free_qentry(FAR struct iob_qentry_s *iobq);
+  flags = irqsave();
+  iobq  = g_iob_freeqlist;
+  if (iobq)
+    {
+      /* Remove the I/O buffer chain container from the free list */
 
-#endif /* __NET_IOB_IOB_H */
+      g_iob_freeqlist = iobq->qe_flink;
+
+      /* Put the I/O buffer in a known state */
+
+      iobq->qe_head = NULL; /* Nothing is contained */
+    }
+
+  irqrestore(flags);
+  return iobq;
+}
