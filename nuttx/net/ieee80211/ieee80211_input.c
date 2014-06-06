@@ -54,6 +54,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/clock.h>
 
+#include <nuttx/net/arp.h>
 #include <nuttx/net/iob.h>
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
@@ -790,20 +791,20 @@ void ieee80211_ba_move_window(struct ieee80211_s *ic,
 }
 #endif /* !CONFIG_IEEE80211_HT */
 
-void ieee80211_deliver_data(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+void ieee80211_deliver_data(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                            FAR struct ieee80211_node *ni)
 {
-  struct ether_header *eh;
+  FAR struct uip_eth_hdr *ethhdr;
 #ifdef CONFIG_IEEE80211_AP
-  struct iob_s *iob1;
+  FAR struct iob_s *iob1;
 #endif
 
-  eh = (FAR struct ether_header *)iob->io_data;
+  ethhdr = (FAR struct uip_eth_hdr *)iob->io_data;
 
   if ((ic->ic_flags & IEEE80211_F_RSNON) && !ni->ni_port_valid &&
-        eh->ether_type != htons(ETHERTYPE_PAE))
+        ethhdr->type != htons(ETHERTYPE_PAE))
     {
-      ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(eh->ether_dhost));
+      ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(ethhdr->dest));
       iob_free_chain(iob);
       return;
     }
@@ -817,13 +818,13 @@ void ieee80211_deliver_data(struct ieee80211_s *ic, struct iob_s *iob,
 
   if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
       !(ic->ic_flags & IEEE80211_F_NOBRIDGE) &&
-      eh->ether_type != htons(ETHERTYPE_PAE))
+      ethhdr->type != htons(ETHERTYPE_PAE))
     {
       struct ieee80211_node *ni1;
       int len;
       int error;
 
-      if (ETHER_IS_MULTICAST(eh->ether_dhost))
+      if (ETHER_IS_MULTICAST(ethhdr->dest))
         {
           iob1 = m_copym2(iob, 0, M_COPYALL, M_DONTWAIT);
           if (iob1 != NULL)
@@ -833,7 +834,7 @@ void ieee80211_deliver_data(struct ieee80211_s *ic, struct iob_s *iob,
         }
       else
         {
-          ni1 = ieee80211_find_node(ic, eh->ether_dhost);
+          ni1 = ieee80211_find_node(ic, ethhdr->dest);
           if (ni1 != NULL && ni1->ni_state == IEEE80211_STA_ASSOC)
             {
               iob1 = iob;
@@ -851,7 +852,7 @@ void ieee80211_deliver_data(struct ieee80211_s *ic, struct iob_s *iob,
     if (iob != NULL)
       {
         if ((ic->ic_flags & IEEE80211_F_RSNON) &&
-            eh->ether_type == htons(ETHERTYPE_PAE))
+            ethhdr->type == htons(ETHERTYPE_PAE))
           {
             ieee80211_eapol_key_input(ic, iob, ni);
           }
@@ -942,7 +943,7 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
 
 void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211_node *ni, int hdrlen)
 {
-    struct ether_header eh;
+    struct uip_eth_hdr ethhdr;
     struct ieee80211_frame *wh;
     struct llc *llc;
 
@@ -956,23 +957,23 @@ void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
     switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK)
       {
       case IEEE80211_FC1_DIR_NODS:
-        IEEE80211_ADDR_COPY(eh.ether_dhost, wh->i_addr1);
-        IEEE80211_ADDR_COPY(eh.ether_shost, wh->i_addr2);
+        IEEE80211_ADDR_COPY(ethhdr.dest, wh->i_addr1);
+        IEEE80211_ADDR_COPY(ethhdr.src, wh->i_addr2);
         break;
 
       case IEEE80211_FC1_DIR_TODS:
-        IEEE80211_ADDR_COPY(eh.ether_dhost, wh->i_addr3);
-        IEEE80211_ADDR_COPY(eh.ether_shost, wh->i_addr2);
+        IEEE80211_ADDR_COPY(ethhdr.dest, wh->i_addr3);
+        IEEE80211_ADDR_COPY(ethhdr.src, wh->i_addr2);
         break;
 
       case IEEE80211_FC1_DIR_FROMDS:
-        IEEE80211_ADDR_COPY(eh.ether_dhost, wh->i_addr1);
-        IEEE80211_ADDR_COPY(eh.ether_shost, wh->i_addr3);
+        IEEE80211_ADDR_COPY(ethhdr.dest, wh->i_addr1);
+        IEEE80211_ADDR_COPY(ethhdr.src, wh->i_addr3);
         break;
 
       case IEEE80211_FC1_DIR_DSTODS:
-        IEEE80211_ADDR_COPY(eh.ether_dhost, wh->i_addr3);
-        IEEE80211_ADDR_COPY(eh.ether_shost,
+        IEEE80211_ADDR_COPY(ethhdr.dest, wh->i_addr3);
+        IEEE80211_ADDR_COPY(ethhdr.src,
                             ((struct ieee80211_frame_addr4 *)wh)->i_addr4);
         break;
     }
@@ -985,16 +986,16 @@ void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         llc->llc_snap.org_code[1] == 0 &&
         llc->llc_snap.org_code[2] == 0)
       {
-        eh.ether_type = llc->llc_snap.ether_type;
+        ethhdr.type = llc->llc_snap.type;
         iob = iob_trimhead(iob, hdrlen + LLC_SNAPFRAMELEN - ETHER_HDR_LEN);
       }
     else
       {
-        eh.ether_type = htons(iob->io_pktlen - hdrlen);
+        ethhdr.type = htons(iob->io_pktlen - hdrlen);
         iob = iob_trimhead(iob, hdrlen - ETHER_HDR_LEN);
       }
 
-    memcpy(iob->io_data, &eh, ETHER_HDR_LEN);
+    memcpy(iob->io_data, &ethhdr, ETHER_HDR_LEN);
 
 #ifdef __STRICT_ALIGNMENT
     if (!ALIGNED_POINTER(iob->io_data + ETHER_HDR_LEN, uint32_t))
@@ -1016,7 +1017,7 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
     struct ieee80211_node *ni, int hdrlen)
 {
     struct iob_s *next;
-    struct ether_header *eh;
+    struct uip_eth_hdr *ethhdr;
     struct llc *llc;
     int len, pad;
 
@@ -1037,11 +1038,11 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
               }
           }
 
-        eh = (FAR struct ether_header *)iob->io_data;
+        ethhdr = (FAR struct uip_eth_hdr *)iob->io_data;
 
         /* Examine 802.3 header */
 
-        len = ntohs(eh->ether_type);
+        len = ntohs(ethhdr->type);
         if (len < LLC_SNAPFRAMELEN)
           {
             ndbg("ERROR: A-MSDU subframe too short (%d)\n", len);
@@ -1052,7 +1053,7 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
             break;
           }
 
-        llc = (struct llc *)&eh[1];
+        llc = (struct llc *)&ethhdr[1];
 
         /* Examine 802.2 LLC header */
 
@@ -1065,11 +1066,11 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
           {
             /* Convert to Ethernet II header */
 
-            eh->ether_type = llc->llc_snap.ether_type;
+            ethhdr->type = llc->llc_snap.type;
 
             /* Strip LLC+SNAP headers */
 
-            memmove((uint8_t *)eh + LLC_SNAPFRAMELEN, eh,
+            memmove((uint8_t *)ethhdr + LLC_SNAPFRAMELEN, ethhdr,
                 ETHER_HDR_LEN);
             iob = iob_trimhead(iob, LLC_SNAPFRAMELEN);
             len -= LLC_SNAPFRAMELEN;

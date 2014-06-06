@@ -43,6 +43,7 @@
 #  include <netinet/ip.h>
 #endif
 
+#include <nuttx/net/arp.h>
 #include <nuttx/net/iob.h>
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
@@ -63,15 +64,16 @@ struct iob_s *ieee80211_get_eapol_key(int, unsigned int);
  * the PTK must be passed (otherwise it can be set to NULL.)
  */
 
-int ieee80211_send_eapol_key(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni, const struct ieee80211_ptk *ptk)
+int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                             FAR struct ieee80211_node *ni,
+                             FAR const struct ieee80211_ptk *ptk)
 {
-  struct ether_header *eh;
+  FAR struct uip_eth_hdr *ethhdr;
   struct ieee80211_eapol_key *key;
   uint16_t info;
   int s, len, error;
 
-  M_PREPEND(iob, sizeof(struct ether_header), M_DONTWAIT);
+  M_PREPEND(iob, sizeof(struct uip_eth_hdr), M_DONTWAIT);
   if (iob == NULL)
     {
       return -ENOMEM;
@@ -79,12 +81,12 @@ int ieee80211_send_eapol_key(struct ieee80211_s *ic, struct iob_s *iob,
 
   /* No need to iob_pack here (ok by construction) */
 
-  eh = (FAR struct ether_header * *)iob->io_data;
-  eh->ether_type = htons(ETHERTYPE_PAE);
-  IEEE80211_ADDR_COPY(eh->ether_shost, ic->ic_myaddr);
-  IEEE80211_ADDR_COPY(eh->ether_dhost, ni->ni_macaddr);
+  ethhdr = (FAR struct uip_eth_hdr * *)iob->io_data;
+  ethhdr->type = htons(ETHERTYPE_PAE);
+  IEEE80211_ADDR_COPY(ethhdr->src, ic->ic_myaddr);
+  IEEE80211_ADDR_COPY(ethhdr->dest, ni->ni_macaddr);
 
-  key = (struct ieee80211_eapol_key *)&eh[1];
+  key = (struct ieee80211_eapol_key *)&ethhdr[1];
   key->version = EAPOL_VERSION;
   key->type = EAPOL_KEY;
   key->desc = (ni->ni_rsnprotos == IEEE80211_PROTO_RSN) ? EAPOL_KEY_DESC_IEEE80211 : EAPOL_KEY_DESC_WPA;
@@ -112,7 +114,7 @@ int ieee80211_send_eapol_key(struct ieee80211_s *ic, struct iob_s *iob,
 
   BE_WRITE_2(key->info, info);
 
-  len = iob->io_len - sizeof(struct ether_header);
+  len = iob->io_len - sizeof(struct uip_eth_hdr);
   BE_WRITE_2(key->paylen, len - sizeof(*key));
   BE_WRITE_2(key->len, len - 4);
 
@@ -133,7 +135,7 @@ int ieee80211_send_eapol_key(struct ieee80211_s *ic, struct iob_s *iob,
         {
           /* AES Key Wrap adds 8 bytes + padding */
 
-          iob->io_pktlen = iob->io_len = sizeof(*eh) + 4 + BE_READ_2(key->len);
+          iob->io_pktlen = iob->io_len = sizeof(*ethhdr) + 4 + BE_READ_2(key->len);
         }
     }
 #endif

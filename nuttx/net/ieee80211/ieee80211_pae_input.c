@@ -41,6 +41,7 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
+#include <nuttx/net/arp.h>
 #include <nuttx/net/iob.h>
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
@@ -77,21 +78,21 @@ void    ieee80211_recv_eapol_key_req(struct ieee80211_s *,
  * EAPOL-Key frames with an IEEE 802.11 or WPA descriptor type.
  */
 
-void ieee80211_eapol_key_input(struct ieee80211_s *ic, struct iob_s *iob,
-    struct ieee80211_node *ni)
+void ieee80211_eapol_key_input(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                               FAR struct ieee80211_node *ni)
 {
-  struct ether_header *eh;
+  FAR struct uip_eth_hdr *ethhdr;
   struct ieee80211_eapol_key *key;
   uint16_t info, desc;
   int totlen;
 
-  eh = (FAR struct ether_header *)iob->io_data;
-  if (IEEE80211_IS_MULTICAST(eh->ether_dhost))
+  ethhdr = (FAR struct uip_eth_hdr *)iob->io_data;
+  if (IEEE80211_IS_MULTICAST(ethhdr->dest))
     {
       goto done;
     }
 
-  iob = iob_trimhead(iob, sizeof(struct ether_header));
+  iob = iob_trimhead(iob, sizeof(struct uip_eth_hdr));
   if (iob->io_pktlen < sizeof(*key))
     {
       goto done;

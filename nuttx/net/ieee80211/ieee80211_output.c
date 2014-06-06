@@ -55,6 +55,7 @@
 #  endif
 #endif
 
+#include <nuttx/net/arp.h>
 #include <nuttx/net/iob.h>
 #include <nuttx/net/uip/uip-arch.h>
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
@@ -424,15 +425,14 @@ ieee80211_up_to_ac(struct ieee80211_s *ic, int up)
     return ac;
 }
 
-/*
- * Get buffer's user-priority: if buffer is not VLAN tagged, select user-priority
+/* Get buffer's user-priority: if buffer is not VLAN tagged, select user-priority
  * based on the DSCP (Differentiated Services Codepoint) field.
  */
-int
-ieee80211_classify(struct ieee80211_s *ic, struct iob_s *iob)
+
+int ieee80211_classify(struct ieee80211_s *ic, struct iob_s *iob)
 {
 #ifdef CONFIG_NET_ETHERNET
-    struct ether_header *eh;
+    FAR struct uip_eth_hdr *ethhdr;
     uint8_t ds_field;
 #endif
 #ifdef __NO_VLAN__
@@ -440,10 +440,10 @@ ieee80211_classify(struct ieee80211_s *ic, struct iob_s *iob)
         return EVL_PRIOFTAG(iob->io_vtag);
 #endif
 #ifdef CONFIG_NET_ETHERNET
-    eh = (FAR struct ether_header *)iob->io_data;
-    if (eh->ether_type == htons(ETHERTYPE_IP))
+    ethhdr = (FAR struct uip_eth_hdr *)iob->io_data;
+    if (ethhdr->type == htons(ETHERTYPE_IP))
       {
-        struct ip *ip = (struct ip *)&eh[1];
+        struct ip *ip = (struct ip *)&ethhdr[1];
         if (ip->ip_v != 4)
           {
             return 0;
@@ -452,8 +452,8 @@ ieee80211_classify(struct ieee80211_s *ic, struct iob_s *iob)
         ds_field = ip->ip_tos;
       }
 #ifdef CONFIG_NET_IPv6
-    else if (eh->ether_type == htons(ETHERTYPE_IPV6)) {
-        struct ip6_hdr *ip6 = (struct ip6_hdr *)&eh[1];
+    else if (ethhdr->type == htons(ETHERTYPE_IPV6)) {
+        struct ip6_hdr *ip6 = (struct ip6_hdr *)&ethhdr[1];
         uint32_t flowlabel;
 
         flowlabel = ntohl(ip6->ip6_flow);
@@ -500,7 +500,7 @@ ieee80211_classify(struct ieee80211_s *ic, struct iob_s *iob)
 
 struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211_node **pni)
 {
-    struct ether_header eh;
+    struct uip_eth_hdr ethhdr;
     struct ieee80211_frame *wh;
     struct ieee80211_node *ni = NULL;
     struct llc *llc;
@@ -552,7 +552,7 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
     }
 
  fallback:
-    if (iob->io_len < sizeof(struct ether_header))
+    if (iob->io_len < sizeof(struct uip_eth_hdr))
       {
         iob = iob_pack(iob);
         if (iob == NULL)
@@ -561,18 +561,18 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
           }
       }
 
-    memcpy(&eh, iob->io_data, sizeof(struct ether_header));
+    memcpy(&ethhdr, iob->io_data, sizeof(struct uip_eth_hdr));
 
-    ni = ieee80211_find_txnode(ic, eh.ether_dhost);
+    ni = ieee80211_find_txnode(ic, ethhdr.dest);
     if (ni == NULL) {
-        ndbg("ERROR: no node for dst %s, discard frame\n", ieee80211_addr2str(eh.ether_dhost));
+        ndbg("ERROR: no node for dst %s, discard frame\n", ieee80211_addr2str(ethhdr.dest));
         goto bad;
     }
 
     if ((ic->ic_flags & IEEE80211_F_RSNON) &&
         !ni->ni_port_valid &&
-        eh.ether_type != htons(ETHERTYPE_PAE)) {
-        ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(eh.ether_dhost));
+        ethhdr.type != htons(ETHERTYPE_PAE)) {
+        ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(ethhdr.dest));
         goto bad;
     }
 
@@ -585,7 +585,7 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
     if ((ic->ic_flags & IEEE80211_F_QOS) &&
         (ni->ni_flags & IEEE80211_NODE_QOS) &&
         /* do not QoS-encapsulate EAPOL frames */
-        eh.ether_type != htons(ETHERTYPE_PAE))
+        ethhdr.type != htons(ETHERTYPE_PAE))
       {
         tid = ieee80211_classify(ic, iob);
         hdrlen = sizeof(struct ieee80211_qosframe);
@@ -597,14 +597,14 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
         addqos = 0;
       }
 
-    iob = iob_trimhead(iob, sizeof(struct ether_header) - LLC_SNAPFRAMELEN);
+    iob = iob_trimhead(iob, sizeof(struct uip_eth_hdr) - LLC_SNAPFRAMELEN);
     llc = (FAR struct llc *)iob->io_data;
     llc->llc_dsap = llc->llc_ssap = LLC_SNAP_LSAP;
     llc->llc_control = LLC_UI;
     llc->llc_snap.org_code[0] = 0;
     llc->llc_snap.org_code[1] = 0;
     llc->llc_snap.org_code[2] = 0;
-    llc->llc_snap.ether_type = eh.ether_type;
+    llc->llc_snap.type = ethhdr.type;
     M_PREPEND(iob, hdrlen, M_DONTWAIT);
     if (iob == NULL)
       {
@@ -640,22 +640,22 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
     case IEEE80211_M_STA:
         wh->i_fc[1] = IEEE80211_FC1_DIR_TODS;
         IEEE80211_ADDR_COPY(wh->i_addr1, ni->ni_bssid);
-        IEEE80211_ADDR_COPY(wh->i_addr2, eh.ether_shost);
-        IEEE80211_ADDR_COPY(wh->i_addr3, eh.ether_dhost);
+        IEEE80211_ADDR_COPY(wh->i_addr2, ethhdr.src);
+        IEEE80211_ADDR_COPY(wh->i_addr3, ethhdr.dest);
         break;
 #ifdef CONFIG_IEEE80211_AP
     case IEEE80211_M_IBSS:
     case IEEE80211_M_AHDEMO:
         wh->i_fc[1] = IEEE80211_FC1_DIR_NODS;
-        IEEE80211_ADDR_COPY(wh->i_addr1, eh.ether_dhost);
-        IEEE80211_ADDR_COPY(wh->i_addr2, eh.ether_shost);
+        IEEE80211_ADDR_COPY(wh->i_addr1, ethhdr.dest);
+        IEEE80211_ADDR_COPY(wh->i_addr2, ethhdr.src);
         IEEE80211_ADDR_COPY(wh->i_addr3, ic->ic_bss->ni_bssid);
         break;
     case IEEE80211_M_HOSTAP:
         wh->i_fc[1] = IEEE80211_FC1_DIR_FROMDS;
-        IEEE80211_ADDR_COPY(wh->i_addr1, eh.ether_dhost);
+        IEEE80211_ADDR_COPY(wh->i_addr1, ethhdr.dest);
         IEEE80211_ADDR_COPY(wh->i_addr2, ni->ni_bssid);
-        IEEE80211_ADDR_COPY(wh->i_addr3, eh.ether_shost);
+        IEEE80211_ADDR_COPY(wh->i_addr3, ethhdr.src);
         break;
 #endif
     default:
