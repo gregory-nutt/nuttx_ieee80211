@@ -439,11 +439,28 @@ int ieee80211_classify(struct ieee80211_s *ic, struct iob_s *iob)
     if (iob->io_flags & IOBFLAGS_VLANTAG)    /* use VLAN 802.1D user-priority */
         return EVL_PRIOFTAG(iob->io_vtag);
 #endif
+
 #ifdef CONFIG_NET_ETHERNET
     ethhdr = (FAR struct uip_eth_hdr *)iob->io_data;
-    if (ethhdr->type == htons(ETHERTYPE_IP))
+
+#ifdef CONFIG_NET_IPv6
+    if (ethhdr->type == htons(UIP_ETHTYPE_IP6))
       {
-        struct ip *ip = (struct ip *)&ethhdr[1];
+        FAR struct ip6_hdr *ip6 = (struct ip6_hdr *)&ethhdr[1];
+        uint32_t flowlabel;
+
+        flowlabel = ntohl(ip6->ip6_flow);
+        if ((flowlabel >> 28) != 6)
+          {
+            return 0;
+          }
+
+        ds_field = (flowlabel >> 20) & 0xff;
+      }
+#else
+    if (ethhdr->type == htons(UIP_ETHTYPE_IP))
+      {
+        FAR struct ip *ip = (struct ip *)&ethhdr[1];
         if (ip->ip_v != 4)
           {
             return 0;
@@ -451,24 +468,20 @@ int ieee80211_classify(struct ieee80211_s *ic, struct iob_s *iob)
 
         ds_field = ip->ip_tos;
       }
-#ifdef CONFIG_NET_IPv6
-    else if (ethhdr->type == htons(ETHERTYPE_IPV6)) {
-        struct ip6_hdr *ip6 = (struct ip6_hdr *)&ethhdr[1];
-        uint32_t flowlabel;
 
-        flowlabel = ntohl(ip6->ip6_flow);
-        if ((flowlabel >> 28) != 6)
-            return 0;
-        ds_field = (flowlabel >> 20) & 0xff;
-    }
 #endif /* CONFIG_NET_IPv6 */
-    else    /* neither IPv4 nor IPv6 */
-        return 0;
 
-    /*
-     * Map Differentiated Services Codepoint field (see RFC2474).
+    /* Not IPv4/IPv6 */
+
+    else
+      {
+        return 0;
+      }
+
+    /* Map Differentiated Services Codepoint field (see RFC2474).
      * Preserves backward compatibility with IP Precedence field.
      */
+
     switch (ds_field & 0xfc) {
     case IPTOS_PREC_PRIORITY:
         return 2;
@@ -571,7 +584,7 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
 
     if ((ic->ic_flags & IEEE80211_F_RSNON) &&
         !ni->ni_port_valid &&
-        ethhdr.type != htons(ETHERTYPE_PAE)) {
+        ethhdr.type != htons(UIP_ETHTYPE_PAE)) {
         ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(ethhdr.dest));
         goto bad;
     }
@@ -585,7 +598,7 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
     if ((ic->ic_flags & IEEE80211_F_QOS) &&
         (ni->ni_flags & IEEE80211_NODE_QOS) &&
         /* do not QoS-encapsulate EAPOL frames */
-        ethhdr.type != htons(ETHERTYPE_PAE))
+        ethhdr.type != htons(UIP_ETHTYPE_PAE))
       {
         tid = ieee80211_classify(ic, iob);
         hdrlen = sizeof(struct ieee80211_qosframe);

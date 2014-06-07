@@ -802,7 +802,7 @@ void ieee80211_deliver_data(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
   ethhdr = (FAR struct uip_eth_hdr *)iob->io_data;
 
   if ((ic->ic_flags & IEEE80211_F_RSNON) && !ni->ni_port_valid &&
-        ethhdr->type != htons(ETHERTYPE_PAE))
+        ethhdr->type != htons(UIP_ETHTYPE_PAE))
     {
       ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(ethhdr->dest));
       iob_free_chain(iob);
@@ -818,7 +818,7 @@ void ieee80211_deliver_data(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
 
   if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
       !(ic->ic_flags & IEEE80211_F_NOBRIDGE) &&
-      ethhdr->type != htons(ETHERTYPE_PAE))
+      ethhdr->type != htons(UIP_ETHTYPE_PAE))
     {
       struct ieee80211_node *ni1;
       int len;
@@ -852,7 +852,7 @@ void ieee80211_deliver_data(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
     if (iob != NULL)
       {
         if ((ic->ic_flags & IEEE80211_F_RSNON) &&
-            ethhdr->type == htons(ETHERTYPE_PAE))
+            ethhdr->type == htons(UIP_ETHTYPE_PAE))
           {
             ieee80211_eapol_key_input(ic, iob, ni);
           }
@@ -920,7 +920,7 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
 
       if (next0 == NULL)
         {
-          newdata = (void *)ALIGN(next->io_data + ETHER_HDR_LEN) - ETHER_HDR_LEN;
+          newdata = (void *)ALIGN(next->io_data + UIP_ETHH_LEN) - UIP_ETHH_LEN;
           next->io_len -= newdata - next->io_data;
           next->io_data = newdata;
         }
@@ -987,18 +987,18 @@ void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         llc->llc_snap.org_code[2] == 0)
       {
         ethhdr.type = llc->llc_snap.type;
-        iob = iob_trimhead(iob, hdrlen + LLC_SNAPFRAMELEN - ETHER_HDR_LEN);
+        iob = iob_trimhead(iob, hdrlen + LLC_SNAPFRAMELEN - UIP_ETHH_LEN);
       }
     else
       {
         ethhdr.type = htons(iob->io_pktlen - hdrlen);
-        iob = iob_trimhead(iob, hdrlen - ETHER_HDR_LEN);
+        iob = iob_trimhead(iob, hdrlen - UIP_ETHH_LEN);
       }
 
-    memcpy(iob->io_data, &ethhdr, ETHER_HDR_LEN);
+    memcpy(iob->io_data, &ethhdr, UIP_ETHH_LEN);
 
 #ifdef __STRICT_ALIGNMENT
-    if (!ALIGNED_POINTER(iob->io_data + ETHER_HDR_LEN, uint32_t))
+    if (!ALIGNED_POINTER(iob->io_data + UIP_ETHH_LEN, uint32_t))
       {
         if ((iob = ieee80211_align_iobuf(iob)) == NULL)
           {
@@ -1029,7 +1029,7 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
       {
         /* Process an A-MSDU subframe */
 
-        if (iob->io_len < ETHER_HDR_LEN + LLC_SNAPFRAMELEN)
+        if (iob->io_len < UIP_ETHH_LEN + LLC_SNAPFRAMELEN)
           {
             iob = iob_pack(iob);
             if (iob == NULL)
@@ -1071,12 +1071,12 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
             /* Strip LLC+SNAP headers */
 
             memmove((uint8_t *)ethhdr + LLC_SNAPFRAMELEN, ethhdr,
-                ETHER_HDR_LEN);
+                UIP_ETHH_LEN);
             iob = iob_trimhead(iob, LLC_SNAPFRAMELEN);
             len -= LLC_SNAPFRAMELEN;
           }
 
-        len += ETHER_HDR_LEN;
+        len += UIP_ETHH_LEN;
 
         /* "detach" our A-MSDU subframe from the others */
         next = m_split(iob, len, M_NOWAIT);

@@ -82,7 +82,7 @@ int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
   /* No need to iob_pack here (ok by construction) */
 
   ethhdr = (FAR struct uip_eth_hdr * *)iob->io_data;
-  ethhdr->type = htons(ETHERTYPE_PAE);
+  ethhdr->type = htons(UIP_ETHTYPE_PAE);
   IEEE80211_ADDR_COPY(ethhdr->src, ic->ic_myaddr);
   IEEE80211_ADDR_COPY(ethhdr->dest, ni->ni_macaddr);
 
