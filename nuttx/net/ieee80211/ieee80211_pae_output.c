@@ -73,7 +73,7 @@ int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
   uint16_t info;
   int s, len, error;
 
-  M_PREPEND(iob, sizeof(struct uip_eth_hdr), M_DONTWAIT);
+  iob_contig(iob, sizeof(struct uip_eth_hdr), M_DONTWAIT);
   if (iob == NULL)
     {
       return -ENOMEM;
@@ -157,7 +157,7 @@ int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
     }
 #endif
 
-  error = ieee80211_ifsend(iob);
+  error = ieee80211_ifsend(ic, iob);
   splx(s);
   return error;
 }

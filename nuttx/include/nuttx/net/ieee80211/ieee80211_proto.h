@@ -75,15 +75,19 @@ extern const char * const ieee80211_phymode_name[];
 void ieee80211_proto_attach(struct ieee80211_s *);
 void ieee80211_proto_detach(struct ieee80211_s *);
 
+struct iob_s;
+struct rtentry;
+struct sockaddr;
 struct ieee80211_node;
 struct ieee80211_rxinfo;
 struct ieee80211_rsnparams;
+
 void ieee80211_set_link_state(struct ieee80211_s *ic, enum ieee80211_linkstate_e linkstate);
 unsigned int ieee80211_get_hdrlen(const struct ieee80211_frame *);
 void ieee80211_input(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
-int ieee80211_output(struct ieee80211_s *, struct iob_s *, struct sockaddr *,
-        struct rtentry *);
+int ieee80211_output(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                     FAR struct sockaddr *dst, struct rtentry *rt)
 void ieee80211_recv_mgmt(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 int ieee80211_send_mgmt(struct ieee80211_s *, struct ieee80211_node *,

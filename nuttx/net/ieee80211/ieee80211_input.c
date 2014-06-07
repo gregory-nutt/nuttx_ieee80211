@@ -845,7 +845,7 @@ void ieee80211_deliver_data(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
       if (iob1 != NULL)
         {
           len = iob1->io_pktlen;
-          error = ieee80211_ifsend(iob1);
+          error = ieee80211_ifsend(ic, iob1);
         }
     }
 #endif

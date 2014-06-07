@@ -57,13 +57,14 @@
 
 #include <nuttx/net/arp.h>
 #include <nuttx/net/iob.h>
+#include <nuttx/net/uip/uip.h>
 #include <nuttx/net/uip/uip-arch.h>
 #include <nuttx/net/ieee80211/ieee80211_debug.h>
 #include <nuttx/net/ieee80211/ieee80211_ifnet.h>
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-#inlcude "net_internal.h"
+#include "net_internal.h"
 
 int ieee80211_classify(struct ieee80211_s *, struct iob_s *);
 int ieee80211_mgmt_output(struct ieee80211_s *, struct ieee80211_node *,
@@ -108,8 +109,12 @@ struct iob_s *ieee80211_get_action(struct ieee80211_s *,
  * if the buffer has been tagged with a 802.11 data link type.
  */
 
-#warning REVISIT:  This was registered via the ifnet structure for use the driver level.  It is not currently integrated with the rest of the logic
-int ieee80211_output(struct ieeeu80211com *ic, struct iob_s *iob, struct sockaddr *dst, struct rtentry *rt)
+#warning REVISIT: This was registered via the ifnet structure for use the driver level.
+#warning REVISIT: It is not currently integrated with the rest of the logic
+#warning REVISIT: Perhaps it should be included in ieee80211_ifsend()?
+
+int ieee80211_output(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                     FAR struct sockaddr *dst, struct rtentry *rt)
 {
   FAR struct uip_driver_s *dev;
   FAR struct ieee80211_frame *wh;
@@ -170,7 +175,7 @@ int ieee80211_output(struct ieeeu80211com *ic, struct iob_s *iob, struct sockadd
        */
 
       s = splnet();
-      error = ieee80211_ifsend(iob);
+      error = ieee80211_ifsend(ic, iob);
       if (error)
         {
           /* buffer is already freed */
@@ -185,7 +190,7 @@ int ieee80211_output(struct ieeeu80211com *ic, struct iob_s *iob, struct sockadd
     }
 
 fallback:
-  return (ether_output(ic, iob, dst, rt));
+  return ether_output(ic, iob, dst, rt);
 
  bad:
   if (iob)
@@ -206,53 +211,56 @@ fallback:
 int ieee80211_mgmt_output(struct ieee80211_s *ic, struct ieee80211_node *ni,
     struct iob_s *iob, int type)
 {
-    struct ieee80211_frame *wh;
+  struct ieee80211_frame *wh;
+  int error;
 
-    DEBUGASSERT(ni != NULL);
-    ni->ni_inact = 0;
+  DEBUGASSERT(ni != NULL);
+  ni->ni_inact = 0;
 
-    /* We want to pass the node down to the driver's start
-     * routine.  We could stick this in an m_tag and tack that
-     * on to the buffer.  However that's rather expensive to do
-     * for every frame so instead we stuff it in a special pkthdr
-     * field.
-     */
+  /* We want to pass the node down to the driver's start
+   * routine.  We could stick this in an m_tag and tack that
+   * on to the buffer.  However that's rather expensive to do
+   * for every frame so instead we stuff it in a special pkthdr
+   * field.
+   */
 
-    M_PREPEND(iob, sizeof(struct ieee80211_frame), M_DONTWAIT);
-    if (iob == NULL)
-      {
-        return -ENOMEM;
-      }
+  error = iob_contig(iob, sizeof(struct ieee80211_frame));
+  if (error < 0)
+    {
+      ndbg("ERROR: Failed to make contiguous: %d\n", error);
+      return error;
+    }
 
-    iob->io_priv = ni;
+  iob->io_priv = ni;
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
-    wh->i_fc[0] = IEEE80211_FC0_VERSION_0 | IEEE80211_FC0_TYPE_MGT | type;
-    wh->i_fc[1] = IEEE80211_FC1_DIR_NODS;
-    *(uint16_t *)&wh->i_dur[0] = 0;
-    *(uint16_t *)&wh->i_seq[0] = htole16(ni->ni_txseq << IEEE80211_SEQ_SEQ_SHIFT);
-    ni->ni_txseq++;
-    IEEE80211_ADDR_COPY(wh->i_addr1, ni->ni_macaddr);
-    IEEE80211_ADDR_COPY(wh->i_addr2, ic->ic_myaddr);
-    IEEE80211_ADDR_COPY(wh->i_addr3, ni->ni_bssid);
+  wh = (FAR struct ieee80211_frame *)iob->io_data;
+  wh->i_fc[0] = IEEE80211_FC0_VERSION_0 | IEEE80211_FC0_TYPE_MGT | type;
+  wh->i_fc[1] = IEEE80211_FC1_DIR_NODS;
+  *(uint16_t *)&wh->i_dur[0] = 0;
+  *(uint16_t *)&wh->i_seq[0] = htole16(ni->ni_txseq << IEEE80211_SEQ_SEQ_SHIFT);
+  ni->ni_txseq++;
+  IEEE80211_ADDR_COPY(wh->i_addr1, ni->ni_macaddr);
+  IEEE80211_ADDR_COPY(wh->i_addr2, ic->ic_myaddr);
+  IEEE80211_ADDR_COPY(wh->i_addr3, ni->ni_bssid);
 
-    /* Check if protection is required for this mgmt frame */
+  /* Check if protection is required for this mgmt frame */
 
-    if ((ic->ic_caps & IEEE80211_C_MFP) &&
-        (type == IEEE80211_FC0_SUBTYPE_DISASSOC ||
-         type == IEEE80211_FC0_SUBTYPE_DEAUTH ||
-         type == IEEE80211_FC0_SUBTYPE_ACTION)) {
-        /*
-         * Hack: we should not set the Protected bit in outgoing
-         * group management frames, however it is used as an
-         * indication to the drivers that they must encrypt the
-         * frame.  Drivers should clear this bit from group
-         * management frames (software crypto code will do it).
-         * XXX could use an buffer flag..
-         */
-        if (IEEE80211_IS_MULTICAST(wh->i_addr1) ||
-            (ni->ni_flags & IEEE80211_NODE_TXMGMTPROT))
-            wh->i_fc[1] |= IEEE80211_FC1_PROTECTED;
+  if ((ic->ic_caps & IEEE80211_C_MFP) &&
+      (type == IEEE80211_FC0_SUBTYPE_DISASSOC ||
+       type == IEEE80211_FC0_SUBTYPE_DEAUTH ||
+       type == IEEE80211_FC0_SUBTYPE_ACTION))
+    {
+      /* Hack: we should not set the Protected bit in outgoing
+       * group management frames, however it is used as an
+       * indication to the drivers that they must encrypt the
+       * frame.  Drivers should clear this bit from group
+       * management frames (software crypto code will do it).
+       */
+
+      if (IEEE80211_IS_MULTICAST(wh->i_addr1) || (ni->ni_flags & IEEE80211_NODE_TXMGMTPROT))
+        {
+          wh->i_fc[1] |= IEEE80211_FC1_PROTECTED;
+        }
     }
 
 #if defined(CONFIG_DEBUG_NET) && defined (CONFIG_DEBUG_VERBOSE)
@@ -274,13 +282,14 @@ int ieee80211_mgmt_output(struct ieee80211_s *ic, struct ieee80211_node *ni,
 #endif
 
 #ifdef CONFIG_IEEE80211_AP
-    if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
-        ieee80211_pwrsave(ic, iob, ni) != 0)
-        return 0;
+  if (ic->ic_opmode == IEEE80211_M_HOSTAP && ieee80211_pwrsave(ic, iob, ni) != 0)
+    {
+      return 0;
+    }
 #endif
 
-    iob_add_queue(iob, &ic->ic_mgtq);
-    return 0;
+  iob_add_queue(iob, &ic->ic_mgtq);
+  return 0;
 }
 
 /* EDCA tables are computed using the following formulas:
@@ -446,10 +455,10 @@ int ieee80211_classify(struct ieee80211_s *ic, struct iob_s *iob)
 #ifdef CONFIG_NET_IPv6
     if (ethhdr->type == htons(UIP_ETHTYPE_IP6))
       {
-        FAR struct ip6_hdr *ip6 = (struct ip6_hdr *)&ethhdr[1];
+        FAR struct uip_ip_hdr6_hdr *ip6hdr = (FAR struct uip_ip_hdr6_hdr *)&ethhdr[1];
         uint32_t flowlabel;
 
-        flowlabel = ntohl(ip6->ip6_flow);
+        flowlabel = ntohl(ip6hdr->flow);
         if ((flowlabel >> 28) != 6)
           {
             return 0;
@@ -460,13 +469,13 @@ int ieee80211_classify(struct ieee80211_s *ic, struct iob_s *iob)
 #else
     if (ethhdr->type == htons(UIP_ETHTYPE_IP))
       {
-        FAR struct ip *ip = (struct ip *)&ethhdr[1];
-        if (ip->ip_v != 4)
+        FAR struct uip_ip_hdr *iphdr = (FAR struct uip_ip_hdr *)&ethhdr[1];
+        if (iphdr->vhl != 4)
           {
             return 0;
           }
 
-        ds_field = ip->ip_tos;
+        ds_field = iphdr->tos;
       }
 
 #endif /* CONFIG_NET_IPv6 */
@@ -511,151 +520,166 @@ int ieee80211_classify(struct ieee80211_s *ic, struct iob_s *iob)
  *     maintain that.
  */
 
-struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211_node **pni)
+FAR struct iob_s *ieee80211_encap(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                                  FAR struct ieee80211_node **pni)
 {
-    struct uip_eth_hdr ethhdr;
-    struct ieee80211_frame *wh;
-    struct ieee80211_node *ni = NULL;
-    struct llc *llc;
-    struct m_tag *mtag;
-    uint8_t *addr;
-    unsigned int dlt, hdrlen;
-    int addqos, tid;
+  struct uip_eth_hdr ethhdr;
+  FAR struct ieee80211_frame *wh;
+  FAR struct ieee80211_node *ni = NULL;
+  struct llc *llc;
+  FAR struct m_tag *mtag;
+  FAR uint8_t *addr;
+  unsigned int dlt;
+  unsigned int hdrlen;
+  int addqos;
+  int tid;
+  int error;
 
-    /* Handle raw frames if buffer is tagged as 802.11 */
+  /* Handle raw frames if buffer is tagged as 802.11 */
 
-    if ((mtag = m_tag_find(iob, PACKET_TAG_DLT, NULL)) != NULL)
-      {
-        dlt = *(unsigned int *)(mtag + 1);
+  if ((mtag = m_tag_find(iob, PACKET_TAG_DLT, NULL)) != NULL)
+    {
+      dlt = *(unsigned int *)(mtag + 1);
 
-        if (!(dlt == DLT_IEEE802_11 || dlt == DLT_IEEE802_11_RADIO))
-          {
-            goto fallback;
-           }
+      if (!(dlt == DLT_IEEE802_11 || dlt == DLT_IEEE802_11_RADIO))
+        {
+          goto fallback;
+         }
 
-        wh = (FAR struct ieee80211_frame *)iob->io_data;
-        switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK)
-          {
-          case IEEE80211_FC1_DIR_NODS:
-          case IEEE80211_FC1_DIR_FROMDS:
-            addr = wh->i_addr1;
-            break;
+      wh = (FAR struct ieee80211_frame *)iob->io_data;
+      switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK)
+        {
+        case IEEE80211_FC1_DIR_NODS:
+        case IEEE80211_FC1_DIR_FROMDS:
+          addr = wh->i_addr1;
+          break;
 
-          case IEEE80211_FC1_DIR_DSTODS:
-          case IEEE80211_FC1_DIR_TODS:
-            addr = wh->i_addr3;
-            break;
+        case IEEE80211_FC1_DIR_DSTODS:
+        case IEEE80211_FC1_DIR_TODS:
+          addr = wh->i_addr3;
+          break;
 
-          default:
-            goto bad;
-          }
-
-        ni = ieee80211_find_txnode(ic, addr);
-        if (ni == NULL)
-            ni = ieee80211_ref_node(ic->ic_bss);
-        if (ni == NULL) {
-            nvdbg("%s: no node for dst %s, discard raw tx frame\n",
-                  ic->ic_ifname, ieee80211_addr2str(addr));
-            goto bad;
+        default:
+          goto bad;
         }
-        ni->ni_inact = 0;
 
-        *pni = ni;
-        return (iob);
+      ni = ieee80211_find_txnode(ic, addr);
+      if (ni == NULL)
+        {
+          ni = ieee80211_ref_node(ic->ic_bss);
+        }
+
+      if (ni == NULL)
+        {
+          nvdbg("%s: no node for dst %s, discard raw tx frame\n",
+                ic->ic_ifname, ieee80211_addr2str(addr));
+          goto bad;
+        }
+
+      ni->ni_inact = 0;
+      *pni = ni;
+      return (iob);
     }
 
- fallback:
-    if (iob->io_len < sizeof(struct uip_eth_hdr))
-      {
-        iob = iob_pack(iob);
-        if (iob == NULL)
-          {
-            goto bad;
-          }
-      }
-
-    memcpy(&ethhdr, iob->io_data, sizeof(struct uip_eth_hdr));
-
-    ni = ieee80211_find_txnode(ic, ethhdr.dest);
-    if (ni == NULL) {
-        ndbg("ERROR: no node for dst %s, discard frame\n", ieee80211_addr2str(ethhdr.dest));
-        goto bad;
+fallback:
+  if (iob->io_len < sizeof(struct uip_eth_hdr))
+    {
+      iob = iob_pack(iob);
+      if (iob == NULL)
+        {
+          goto bad;
+        }
     }
 
-    if ((ic->ic_flags & IEEE80211_F_RSNON) &&
-        !ni->ni_port_valid &&
-        ethhdr.type != htons(UIP_ETHTYPE_PAE)) {
-        ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(ethhdr.dest));
-        goto bad;
+  memcpy(&ethhdr, iob->io_data, sizeof(struct uip_eth_hdr));
+
+  ni = ieee80211_find_txnode(ic, ethhdr.dest);
+  if (ni == NULL)
+    {
+      ndbg("ERROR: no node for dst %s, discard frame\n", ieee80211_addr2str(ethhdr.dest));
+      goto bad;
     }
 
-    if ((ic->ic_flags & IEEE80211_F_COUNTERM) &&
-        ni->ni_rsncipher == IEEE80211_CIPHER_TKIP)
-        /* XXX TKIP countermeasures! */;
+  if ((ic->ic_flags & IEEE80211_F_RSNON) && !ni->ni_port_valid && ethhdr.type != htons(UIP_ETHTYPE_PAE))
+    {
+      ndbg("ERROR: port not valid: %s\n", ieee80211_addr2str(ethhdr.dest));
+      goto bad;
+    }
 
-    ni->ni_inact = 0;
+  if ((ic->ic_flags & IEEE80211_F_COUNTERM) && ni->ni_rsncipher == IEEE80211_CIPHER_TKIP) /* XXX TKIP countermeasures! */;
+    {
+      ni->ni_inact = 0;
+    }
 
-    if ((ic->ic_flags & IEEE80211_F_QOS) &&
-        (ni->ni_flags & IEEE80211_NODE_QOS) &&
+  if ((ic->ic_flags & IEEE80211_F_QOS) && (ni->ni_flags & IEEE80211_NODE_QOS) &&
         /* do not QoS-encapsulate EAPOL frames */
-        ethhdr.type != htons(UIP_ETHTYPE_PAE))
-      {
-        tid = ieee80211_classify(ic, iob);
-        hdrlen = sizeof(struct ieee80211_qosframe);
-        addqos = 1;
-      }
-    else
-      {
-        hdrlen = sizeof(struct ieee80211_frame);
-        addqos = 0;
-      }
-
-    iob = iob_trimhead(iob, sizeof(struct uip_eth_hdr) - LLC_SNAPFRAMELEN);
-    llc = (FAR struct llc *)iob->io_data;
-    llc->llc_dsap = llc->llc_ssap = LLC_SNAP_LSAP;
-    llc->llc_control = LLC_UI;
-    llc->llc_snap.org_code[0] = 0;
-    llc->llc_snap.org_code[1] = 0;
-    llc->llc_snap.org_code[2] = 0;
-    llc->llc_snap.type = ethhdr.type;
-    M_PREPEND(iob, hdrlen, M_DONTWAIT);
-    if (iob == NULL)
-      {
-        goto bad;
-      }
-
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
-    wh->i_fc[0] = IEEE80211_FC0_VERSION_0 | IEEE80211_FC0_TYPE_DATA;
-    *(uint16_t *)&wh->i_dur[0] = 0;
-    if (addqos)
-      {
-        struct ieee80211_qosframe *qwh =
-            (struct ieee80211_qosframe *)wh;
-        uint16_t qos = tid;
-
-        if (ic->ic_tid_noack & (1 << tid))
-            qos |= IEEE80211_QOS_ACK_POLICY_NOACK;
-#ifdef CONFIG_IEEE80211_HT
-        else if (ni->ni_tx_ba[tid].ba_state == IEEE80211_BA_AGREED)
-            qos |= IEEE80211_QOS_ACK_POLICY_BA;
-#endif
-        qwh->i_fc[0] |= IEEE80211_FC0_SUBTYPE_QOS;
-        *(uint16_t *)qwh->i_qos = htole16(qos);
-        *(uint16_t *)qwh->i_seq =
-            htole16(ni->ni_qos_txseqs[tid] << IEEE80211_SEQ_SEQ_SHIFT);
-        ni->ni_qos_txseqs[tid]++;
-    } else {
-        *(uint16_t *)&wh->i_seq[0] =
-            htole16(ni->ni_txseq << IEEE80211_SEQ_SEQ_SHIFT);
-        ni->ni_txseq++;
+      ethhdr.type != htons(UIP_ETHTYPE_PAE))
+    {
+      tid = ieee80211_classify(ic, iob);
+      hdrlen = sizeof(struct ieee80211_qosframe);
+      addqos = 1;
     }
-    switch (ic->ic_opmode) {
+  else
+    {
+      hdrlen = sizeof(struct ieee80211_frame);
+      addqos = 0;
+    }
+
+  iob = iob_trimhead(iob, sizeof(struct uip_eth_hdr) - LLC_SNAPFRAMELEN);
+  llc = (FAR struct llc *)iob->io_data;
+  llc->llc_dsap = llc->llc_ssap = LLC_SNAP_LSAP;
+  llc->llc_control = LLC_UI;
+  llc->llc_snap.org_code[0] = 0;
+  llc->llc_snap.org_code[1] = 0;
+  llc->llc_snap.org_code[2] = 0;
+  llc->llc_snap.type = ethhdr.type;
+
+  error = iob_contig(iob, hdrlen, M_DONTWAIT);
+  if (error < 0)
+    {
+      ndbg("ERROR: Failed to make contiguous: %d\n", error);
+      goto bad;
+    }
+
+  wh = (FAR struct ieee80211_frame *)iob->io_data;
+  wh->i_fc[0] = IEEE80211_FC0_VERSION_0 | IEEE80211_FC0_TYPE_DATA;
+  *(uint16_t *)&wh->i_dur[0] = 0;
+  if (addqos)
+    {
+      FAR struct ieee80211_qosframe *qwh = (struct ieee80211_qosframe *)wh;
+      uint16_t qos = tid;
+
+      if (ic->ic_tid_noack & (1 << tid))
+        {
+          qos |= IEEE80211_QOS_ACK_POLICY_NOACK;
+        }
+#ifdef CONFIG_IEEE80211_HT
+      else if (ni->ni_tx_ba[tid].ba_state == IEEE80211_BA_AGREED)
+        {
+          qos |= IEEE80211_QOS_ACK_POLICY_BA;
+        }
+#endif
+
+      qwh->i_fc[0] |= IEEE80211_FC0_SUBTYPE_QOS;
+      *(uint16_t *)qwh->i_qos = htole16(qos);
+      *(uint16_t *)qwh->i_seq = htole16(ni->ni_qos_txseqs[tid] << IEEE80211_SEQ_SEQ_SHIFT);
+      ni->ni_qos_txseqs[tid]++;
+    }
+  else
+    {
+      *(uint16_t *)&wh->i_seq[0] = htole16(ni->ni_txseq << IEEE80211_SEQ_SEQ_SHIFT);
+      ni->ni_txseq++;
+    }
+
+  switch (ic->ic_opmode)
+    {
     case IEEE80211_M_STA:
         wh->i_fc[1] = IEEE80211_FC1_DIR_TODS;
         IEEE80211_ADDR_COPY(wh->i_addr1, ni->ni_bssid);
         IEEE80211_ADDR_COPY(wh->i_addr2, ethhdr.src);
         IEEE80211_ADDR_COPY(wh->i_addr3, ethhdr.dest);
         break;
+
 #ifdef CONFIG_IEEE80211_AP
     case IEEE80211_M_IBSS:
     case IEEE80211_M_AHDEMO:
@@ -664,6 +688,7 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
         IEEE80211_ADDR_COPY(wh->i_addr2, ethhdr.src);
         IEEE80211_ADDR_COPY(wh->i_addr3, ic->ic_bss->ni_bssid);
         break;
+
     case IEEE80211_M_HOSTAP:
         wh->i_fc[1] = IEEE80211_FC1_DIR_FROMDS;
         IEEE80211_ADDR_COPY(wh->i_addr1, ethhdr.dest);
@@ -671,21 +696,25 @@ struct iob_s *ieee80211_encap(struct ieee80211_s *ic, struct iob_s *iob, struct 
         IEEE80211_ADDR_COPY(wh->i_addr3, ethhdr.src);
         break;
 #endif
+
     default:
-        /* should not get there */
+        /* Should not get there */
+
         goto bad;
     }
 
-    if ((ic->ic_flags & IEEE80211_F_WEPON) ||
-        ((ic->ic_flags & IEEE80211_F_RSNON) &&
-         (ni->ni_flags & IEEE80211_NODE_TXPROT)))
-        wh->i_fc[1] |= IEEE80211_FC1_PROTECTED;
+  if ((ic->ic_flags & IEEE80211_F_WEPON) || ((ic->ic_flags & IEEE80211_F_RSNON) &&
+      (ni->ni_flags & IEEE80211_NODE_TXPROT)))
+    {
+      wh->i_fc[1] |= IEEE80211_FC1_PROTECTED;
+    }
+
 
 #ifdef CONFIG_IEEE80211_AP
-    if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
-        ieee80211_pwrsave(ic, iob, ni) != 0) {
-        *pni = NULL;
-        return NULL;
+  if (ic->ic_opmode == IEEE80211_M_HOSTAP && ieee80211_pwrsave(ic, iob, ni) != 0)
+    {
+      *pni = NULL;
+      return NULL;
     }
 #endif
 
@@ -1897,12 +1926,13 @@ struct iob_s *ieee80211_get_cts_to_self(struct ieee80211_s *ic, uint16_t dur)
  * [tlv] HT Operation (802.11n)
  */
 
-struct iob_s *ieee80211_beacon_alloc(struct ieee80211_s *ic, struct ieee80211_node *ni)
+FAR struct iob_s *ieee80211_beacon_alloc(FAR struct ieee80211_s *ic, FAR struct ieee80211_node *ni)
 {
-  const struct ieee80211_rateset *rs = &ni->ni_rates;
-  struct ieee80211_frame *wh;
-  struct iob_s *iob;
-  uint8_t *frm;
+  FAR const struct ieee80211_rateset *rs = &ni->ni_rates;
+  FAR struct ieee80211_frame *wh;
+  FAR struct iob_s *iob;
+  FAR uint8_t *frm;
+  int error;
 
   iob = ieee80211_getmgmt(MT_DATA,
       8 + 2 + 2 +
@@ -1927,9 +1957,10 @@ struct iob_s *ieee80211_beacon_alloc(struct ieee80211_s *ic, struct ieee80211_no
       return NULL;
     }
 
-  M_PREPEND(iob, sizeof(struct ieee80211_frame), M_DONTWAIT);
-  if (iob == NULL)
+  error = iob_contig(iob, sizeof(struct ieee80211_frame), M_DONTWAIT);
+  if (error < 0)
     {
+      ndbg("ERROR: Failed to make contiguous: %d\n", error);
       return NULL;
     }
 
