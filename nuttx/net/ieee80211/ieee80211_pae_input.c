@@ -86,7 +86,7 @@ void ieee80211_eapol_key_input(FAR struct ieee80211_s *ic, FAR struct iob_s *iob
   uint16_t info, desc;
   int totlen;
 
-  ethhdr = (FAR struct uip_eth_hdr *)iob->io_data;
+  ethhdr = (FAR struct uip_eth_hdr *)IOB_DATA(iob);
   if (IEEE80211_IS_MULTICAST(ethhdr->dest))
     {
       goto done;
@@ -104,7 +104,7 @@ void ieee80211_eapol_key_input(FAR struct ieee80211_s *ic, FAR struct iob_s *iob
       goto done;
     }
 
-  key = (FAR struct ieee80211_eapol_key *)iob->io_data;
+  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
   if (key->type != EAPOL_KEY)
     {
       goto done;
@@ -164,7 +164,7 @@ void ieee80211_eapol_key_input(FAR struct ieee80211_s *ic, FAR struct iob_s *iob
       goto done;
     }
 
-  key = (FAR struct ieee80211_eapol_key *)iob->io_data;
+  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
 
   /* Determine message type (see 8.5.3.7) */
 

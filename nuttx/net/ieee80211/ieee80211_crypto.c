@@ -189,34 +189,34 @@ struct ieee80211_key *ieee80211_get_txkey(struct ieee80211_s *ic, const struct i
     return &ic->ic_nw_keys[kid];
 }
 
-struct iob_s *ieee80211_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
+struct iob_s *ieee80211_encrypt(struct ieee80211_s *ic, struct iob_s *iob0,
     struct ieee80211_key *k)
 {
     switch (k->k_cipher) {
     case IEEE80211_CIPHER_WEP40:
     case IEEE80211_CIPHER_WEP104:
-        m0 = ieee80211_wep_encrypt(ic, m0, k);
+        iob0 = ieee80211_wep_encrypt(ic, iob0, k);
         break;
     case IEEE80211_CIPHER_TKIP:
-        m0 = ieee80211_tkip_encrypt(ic, m0, k);
+        iob0 = ieee80211_tkip_encrypt(ic, iob0, k);
         break;
     case IEEE80211_CIPHER_CCMP:
-        m0 = ieee80211_ccmp_encrypt(ic, m0, k);
+        iob0 = ieee80211_ccmp_encrypt(ic, iob0, k);
         break;
     case IEEE80211_CIPHER_BIP:
-        m0 = ieee80211_bip_encap(ic, m0, k);
+        iob0 = ieee80211_bip_encap(ic, iob0, k);
         break;
     default:
         /* Should not get there */
 
-        iob_free_chain(m0);
-        m0 = NULL;
+        iob_free_chain(iob0);
+        iob0 = NULL;
     }
 
-  return m0;
+  return iob0;
 }
 
-struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0, struct ieee80211_node *ni)
+struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *iob0, struct ieee80211_node *ni)
 {
     FAR struct ieee80211_frame *wh;
     FAR struct ieee80211_key *k;
@@ -228,7 +228,7 @@ struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0
     /* Find key for decryption */
 
     
-    wh = (FAR struct ieee80211_frame *)m0->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob0);
     if ((ic->ic_flags & IEEE80211_F_RSNON) &&
         !IEEE80211_IS_MULTICAST(wh->i_addr1) &&
         ni->ni_rsncipher != IEEE80211_CIPHER_USEGROUP)
@@ -245,9 +245,9 @@ struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0
 
         /* Check that IV field is present */
 
-        if (m0->io_len < hdrlen + 4)
+        if (iob0->io_len < hdrlen + 4)
           {
-            iob_free_chain(m0);
+            iob_free_chain(iob0);
             return NULL;
           }
 
@@ -257,28 +257,28 @@ struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0
     } else {
         /* retrieve integrity group key id from MMIE */
 
-        if (m0->io_len < sizeof(*wh) + IEEE80211_MMIE_LEN)
+        if (iob0->io_len < sizeof(*wh) + IEEE80211_MMIE_LEN)
           {
-            iob_free_chain(m0);
+            iob_free_chain(iob0);
             return NULL;
           }
 
         /* It is assumed management frames are contiguous */
 
-        mmie = (uint8_t *)wh + m0->io_len - IEEE80211_MMIE_LEN;
+        mmie = (uint8_t *)wh + iob0->io_len - IEEE80211_MMIE_LEN;
 
         /* Check that MMIE is valid */
 
         if (mmie[0] != IEEE80211_ELEMID_MMIE || mmie[1] != 16)
           {
-            iob_free_chain(m0);
+            iob_free_chain(iob0);
             return NULL;
           }
 
         kid = LE_READ_2(&mmie[2]);
         if (kid != 4 && kid != 5)
           {
-            iob_free_chain(m0);
+            iob_free_chain(iob0);
             return NULL;
           }
 
@@ -287,24 +287,24 @@ struct iob_s *ieee80211_decrypt(FAR struct ieee80211_s *ic, FAR struct iob_s *m0
     switch (k->k_cipher) {
     case IEEE80211_CIPHER_WEP40:
     case IEEE80211_CIPHER_WEP104:
-        m0 = ieee80211_wep_decrypt(ic, m0, k);
+        iob0 = ieee80211_wep_decrypt(ic, iob0, k);
         break;
     case IEEE80211_CIPHER_TKIP:
-        m0 = ieee80211_tkip_decrypt(ic, m0, k);
+        iob0 = ieee80211_tkip_decrypt(ic, iob0, k);
         break;
     case IEEE80211_CIPHER_CCMP:
-        m0 = ieee80211_ccmp_decrypt(ic, m0, k);
+        iob0 = ieee80211_ccmp_decrypt(ic, iob0, k);
         break;
     case IEEE80211_CIPHER_BIP:
-        m0 = ieee80211_bip_decap(ic, m0, k);
+        iob0 = ieee80211_bip_decap(ic, iob0, k);
         break;
     default:
         /* Key not defined */
 
-        iob_free_chain(m0);
-        m0 = NULL;
+        iob_free_chain(iob0);
+        iob0 = NULL;
     }
-    return m0;
+    return iob0;
 }
 
 /*

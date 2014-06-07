@@ -87,7 +87,7 @@ unsigned int ieee80211_get_hdrlen(const struct ieee80211_frame *);
 void ieee80211_input(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
 int ieee80211_output(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
-                     FAR struct sockaddr *dst, struct rtentry *rt)
+                     FAR struct sockaddr *dst, struct rtentry *rt);
 void ieee80211_recv_mgmt(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 int ieee80211_send_mgmt(struct ieee80211_s *, struct ieee80211_node *,
@@ -102,7 +102,7 @@ struct iob_s *ieee80211_get_cts_to_self(struct ieee80211_s *,
         uint16_t);
 struct iob_s *ieee80211_beacon_alloc(struct ieee80211_s *,
         struct ieee80211_node *);
-extern int ieee80211_save_ie(const uint8_t *, uint8_t **);
+int ieee80211_save_ie(const uint8_t *, uint8_t **);
 void ieee80211_eapol_timeout(void *);
 
 int ieee80211_send_4way_msg1(struct ieee80211_s *,

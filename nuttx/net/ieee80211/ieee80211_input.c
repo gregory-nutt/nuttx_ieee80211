@@ -193,7 +193,7 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob,
         goto out;
     }
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     if ((wh->i_fc[0] & IEEE80211_FC0_VERSION_MASK) != IEEE80211_FC0_VERSION_0)
       {
         ndbg("ERROR: frame with wrong version: %x\n", wh->i_fc[0]);
@@ -425,7 +425,7 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob,
                     goto err;
                   }
 
-                wh = (FAR struct ieee80211_frame *)iob->io_data;
+                wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
             }
         }
       else if ((wh->i_fc[1] & IEEE80211_FC1_PROTECTED) ||
@@ -485,7 +485,7 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob,
                     goto out;
                   }
 
-                wh = (FAR struct ieee80211_frame *)iob->io_data;
+                wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
             }
         }
       else if ((ic->ic_flags & IEEE80211_F_RSNON) &&
@@ -550,7 +550,7 @@ struct iob_s *ieee80211_defrag(struct ieee80211_s *ic, struct iob_s *iob, int hd
     uint8_t frag;
     int i;
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     rxseq = letoh16(*(const uint16_t *)wh->i_seq);
     seq = rxseq >> IEEE80211_SEQ_SEQ_SHIFT;
     frag = rxseq & IEEE80211_SEQ_FRAG_MASK;
@@ -593,7 +593,7 @@ struct iob_s *ieee80211_defrag(struct ieee80211_s *ic, struct iob_s *iob, int hd
             continue;
           }
 
-        owh = (FAR struct ieee80211_frame *)df->df_m->io_data;
+        owh = (FAR struct ieee80211_frame *)IOB_DATA(df->df_m);
 
         /* Frame type, source and destination must match */
 
@@ -663,7 +663,7 @@ void ieee80211_input_ba(struct ieee80211_s *ic, struct iob_s *iob,
     int idx, count;
     uint16_t sn;
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     sn = letoh16(*(uint16_t *)wh->i_seq) >> IEEE80211_SEQ_SEQ_SHIFT;
 
     /* reset Block Ack inactivity timer */
@@ -799,7 +799,7 @@ void ieee80211_deliver_data(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
   FAR struct iob_s *iob1;
 #endif
 
-  ethhdr = (FAR struct uip_eth_hdr *)iob->io_data;
+  ethhdr = (FAR struct uip_eth_hdr *)IOB_DATA(iob);
 
   if ((ic->ic_flags & IEEE80211_F_RSNON) && !ni->ni_port_valid &&
         ethhdr->type != htons(UIP_ETHTYPE_PAE))
@@ -920,9 +920,12 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
 
       if (next0 == NULL)
         {
-          newdata = (void *)ALIGN(next->io_data + UIP_ETHH_LEN) - UIP_ETHH_LEN;
-          next->io_len -= newdata - next->io_data;
-          next->io_data = newdata;
+          unsigned int offset;
+
+          newdata = (FAR void *)ALIGN(IOB_DATA(next) + UIP_ETHH_LEN) - UIP_ETHH_LEN;
+          offset = newdata - IOB_DATA(next);
+          next->io_offset += offset;
+          next->io_len -= offset;
         }
 
       if (next->io_len > pktlen - off)
@@ -930,7 +933,7 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
           next->io_len = pktlen - off;
         }
 
-      iob_copyout(next->io_data, iob, off, next->io_len);
+      iob_copyout(IOB_DATA(next), iob, off, next->io_len);
       off += next->io_len;
       *np = next;
       np = next->io_flink;
@@ -953,7 +956,7 @@ void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK)
       {
       case IEEE80211_FC1_DIR_NODS:
@@ -995,10 +998,10 @@ void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211
         iob = iob_trimhead(iob, hdrlen - UIP_ETHH_LEN);
       }
 
-    memcpy(iob->io_data, &ethhdr, UIP_ETHH_LEN);
+    memcpy(IOB_DATA(iob), &ethhdr, UIP_ETHH_LEN);
 
 #ifdef __STRICT_ALIGNMENT
-    if (!ALIGNED_POINTER(iob->io_data + UIP_ETHH_LEN, uint32_t))
+    if (!ALIGNED_POINTER(IOB_DATA(iob) + UIP_ETHH_LEN, uint32_t))
       {
         if ((iob = ieee80211_align_iobuf(iob)) == NULL)
           {
@@ -1038,7 +1041,7 @@ void ieee80211_amsdu_decap(struct ieee80211_s *ic, struct iob_s *iob,
               }
           }
 
-        ethhdr = (FAR struct uip_eth_hdr *)iob->io_data;
+        ethhdr = (FAR struct uip_eth_hdr *)IOB_DATA(iob);
 
         /* Examine 802.3 header */
 
@@ -1433,9 +1436,9 @@ void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
       return;
     }
 
-  wh   = (FAR struct ieee80211_frame *)iob->io_data;
+  wh   = (FAR struct ieee80211_frame *)IOB_DATA(iob);
   frm  = (const uint8_t *)&wh[1];
-  efrm = iob->io_data + iob->io_len;
+  efrm = IOB_DATA(iob) + iob->io_len;
 
   tstamp  = frm; frm += 8;
   bintval = LE_READ_2(frm); frm += 2;
@@ -1816,9 +1819,9 @@ void ieee80211_recv_probe_req(struct ieee80211_s *ic, struct iob_s *iob,
         ic->ic_state != IEEE80211_S_RUN)
         return;
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
-    efrm = iob->io_data + iob->io_len;
+    efrm = IOB_DATA(iob) + iob->io_len;
 
     ssid = NULL;
     rates = NULL;
@@ -1924,7 +1927,7 @@ void ieee80211_recv_auth(struct ieee80211_s *ic, struct iob_s *iob,
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
 
     algo   = LE_READ_2(frm); frm += 2;
@@ -1998,9 +2001,9 @@ void ieee80211_recv_assoc_req(struct ieee80211_s *ic, struct iob_s *iob,
         return;
       }
 
-    wh   = (FAR struct ieee80211_frame *)iob->io_data;
+    wh   = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm  = (const uint8_t *)&wh[1];
-    efrm = iob->io_data + iob->io_len;
+    efrm = IOB_DATA(iob) + iob->io_len;
 
     if (!IEEE80211_ADDR_EQ(wh->i_addr3, ic->ic_bss->ni_bssid))
       {
@@ -2333,9 +2336,9 @@ void ieee80211_recv_assoc_resp(struct ieee80211_s *ic, struct iob_s *iob,
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
-    efrm = iob->io_data + iob->io_len;
+    efrm = IOB_DATA(iob) + iob->io_len;
 
     capinfo = LE_READ_2(frm); frm += 2;
     status =  LE_READ_2(frm); frm += 2;
@@ -2506,7 +2509,7 @@ void ieee80211_recv_deauth(struct ieee80211_s *ic, struct iob_s *iob,
         return;
       }
 
-    wh  = (FAR struct ieee80211_frame *)iob->io_data;
+    wh  = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
 
     reason = LE_READ_2(frm);
@@ -2552,7 +2555,7 @@ void ieee80211_recv_disassoc(struct ieee80211_s *ic, struct iob_s *iob,
         return;
       }
 
-    wh  = (FAR struct ieee80211_frame *)iob->io_data;
+    wh  = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
 
     reason = LE_READ_2(frm);
@@ -2612,7 +2615,7 @@ void ieee80211_recv_addba_req(struct ieee80211_s *ic, struct iob_s *iob,
 
     /* MLME-ADDBA.indication */
 
-    wh  = (FAR struct ieee80211_frame *)iob->io_data;
+    wh  = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
 
     token = frm[2];
@@ -2747,7 +2750,7 @@ void ieee80211_recv_addba_resp(struct ieee80211_s *ic, struct iob_s *iob,
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
 
     token = frm[2];
@@ -2823,7 +2826,7 @@ void ieee80211_recv_delba(struct ieee80211_s *ic, struct iob_s *iob,
         return;
       }
 
-    wh  = (FAR struct ieee80211_frame *)iob->io_data;
+    wh  = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
 
     params = LE_READ_2(&frm[2]);
@@ -2918,7 +2921,7 @@ void ieee80211_recv_sa_query_req(struct ieee80211_s *ic, struct iob_s *iob,
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
 
     /* MLME-SAQuery.indication */
@@ -2961,7 +2964,7 @@ void ieee80211_recv_sa_query_resp(struct ieee80211_s *ic, struct iob_s *iob,
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
 
     /* Check that Transaction Identifier matches */
@@ -2996,7 +2999,7 @@ void ieee80211_recv_action(struct ieee80211_s *ic, struct iob_s *iob,
         return;
       }
 
-    wh = (FAR struct ieee80211_frame *)iob->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
 
     switch (frm[0]) {
@@ -3105,7 +3108,7 @@ void ieee80211_recv_pspoll(struct ieee80211_s *ic, struct iob_s *iob,
       return;
     }
 
-  psp = (FAR struct ieee80211_frame_pspoll *)iob->io_data;
+  psp = (FAR struct ieee80211_frame_pspoll *)IOB_DATA(iob);
   if (!IEEE80211_ADDR_EQ(psp->i_bssid, ic->ic_bss->ni_bssid))
     {
       ndbg("ERROR: discard pspoll frame to BSS %s\n",
@@ -3139,7 +3142,7 @@ void ieee80211_recv_pspoll(struct ieee80211_s *ic, struct iob_s *iob,
     {
       /* more queued frames, set the more data bit */
 
-      wh = (FAR struct ieee80211_frame *)iob->io_data;
+      wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
       wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
     }
 
@@ -3171,7 +3174,7 @@ void ieee80211_recv_bar(struct ieee80211_s *ic, struct iob_s *iob,
         return;
       }
 
-    wh = (FAR struct ieee80211_frame_min *)iob->io_data;
+    wh = (FAR struct ieee80211_frame_min *)IOB_DATA(iob);
     frm = (const uint8_t *)&wh[1];
 
     /* read BlockAckReq Control field */

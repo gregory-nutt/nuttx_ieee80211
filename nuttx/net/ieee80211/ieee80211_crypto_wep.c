@@ -127,9 +127,9 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* Copy 802.11 header */
 
-    wh = (FAR struct ieee80211_frame *)m0->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(m0);
     hdrlen = ieee80211_get_hdrlen(wh);
-    memcpy(next0->io_data, wh, hdrlen);
+    memcpy(IOB_DATA(next0), wh, hdrlen);
 
     /* Select a new IV for every MPDU */
 
@@ -143,7 +143,7 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
       }
 
     ctx->iv = iv + 1;
-    ivp = (FAR uint8_t *)next0->io_data + hdrlen;
+    ivp = (FAR uint8_t *)IOB_DATA(next0) + hdrlen;
     ivp[0] = iv;
     ivp[1] = iv >> 8;
     ivp[2] = iv >> 16;
@@ -197,8 +197,8 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
         len = MIN(iob->io_len - moff, next->io_len - noff);
 
-        crc = ether_crc32_le_update(crc, iob->io_data + moff, len);
-        rc4_crypt(&ctx->rc4, iob->io_data + moff, next->io_data + noff, len);
+        crc = ether_crc32_le_update(crc, IOB_DATA(iob) + moff, len);
+        rc4_crypt(&ctx->rc4, IOB_DATA(iob) + moff, IOB_DATA(next) + noff, len);
 
         moff += len;
         noff += len;
@@ -224,7 +224,7 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* Finalize WEP ICV */
 
-    icvp    = (FAR void *)next->io_data + next->io_len;
+    icvp    = (FAR void *)IOB_DATA(next) + next->io_len;
     crc     = ~crc;
     icvp[0] = crc;
     icvp[1] = crc >> 8;
@@ -258,7 +258,7 @@ struct iob_s *ieee80211_wep_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     struct iob_s *next0, *iob, *next;
     int hdrlen, left, moff, noff, len;
 
-    wh = (FAR struct ieee80211_frame *)m0->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(m0);
     hdrlen = ieee80211_get_hdrlen(wh);
 
     if (m0->io_pktlen < hdrlen + IEEE80211_WEP_TOTLEN)
@@ -295,8 +295,8 @@ struct iob_s *ieee80211_wep_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* Copy 802.11 header and clear protected bit */
 
-    memcpy(next0->io_data, wh, hdrlen);
-    wh = (FAR struct ieee80211_frame *)next0->io_data;
+    memcpy(IOB_DATA(next0), wh, hdrlen);
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(next0);
     wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 
     /* Decrypt frame body and compute WEP ICV */
@@ -343,8 +343,8 @@ struct iob_s *ieee80211_wep_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
         len = MIN(iob->io_len - moff, next->io_len - noff);
 
-        rc4_crypt(&ctx->rc4, iob->io_data + moff, next->io_data + noff, len);
-        crc = ether_crc32_le_update(crc, next->io_data + noff, len);
+        rc4_crypt(&ctx->rc4, IOB_DATA(iob) + moff, IOB_DATA(next) + noff, len);
+        crc = ether_crc32_le_update(crc, IOB_DATA(next) + noff, len);
 
         moff += len;
         noff += len;

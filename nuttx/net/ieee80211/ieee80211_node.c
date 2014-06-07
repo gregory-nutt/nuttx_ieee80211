@@ -1848,7 +1848,7 @@ void ieee80211_notify_dtim(struct ieee80211_s *ic)
         {
           /* more queued frames, set the more data bit */
 
-          wh = (FAR struct ieee80211_frame *)iob->io_data;
+          wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
           wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
         }
 

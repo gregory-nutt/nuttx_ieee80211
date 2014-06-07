@@ -162,7 +162,7 @@ static void ieee80211_ccmp_phase1(rijndael_ctx *ctx, const struct ieee80211_fram
     rijndael_encrypt(ctx, a, s0);
 }
 
-struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
+struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *iob0,
     struct ieee80211_key *k)
 {
     struct ieee80211_ccmp_ctx *ctx = k->k_priv;
@@ -181,7 +181,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
         goto nospace;
       }
 
-    if (iob_clone(next0, m0) < 0)
+    if (iob_clone(next0, iob0) < 0)
       {
         goto nospace;
       }
@@ -196,15 +196,15 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* Copy 802.11 header */
 
-    wh = (FAR struct ieee80211_frame *)m0->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob0);
     hdrlen = ieee80211_get_hdrlen(wh);
-    memcpy(next0->io_data, wh, hdrlen);
+    memcpy(IOB_DATA(next0), wh, hdrlen);
 
     k->k_tsc++;    /* increment the 48-bit PN */
 
     /* construct CCMP header */
 
-    ivp = (FAR uint8_t *)next0->io_data + hdrlen;
+    ivp = (FAR uint8_t *)IOB_DATA(next0) + hdrlen;
     ivp[0] = k->k_tsc;        /* PN0 */
     ivp[1] = k->k_tsc >> 8;        /* PN1 */
     ivp[2] = 0;            /* Rsvd */
@@ -216,7 +216,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* construct initial B, A and S_0 blocks */
     ieee80211_ccmp_phase1(&ctx->rijndael, wh, k->k_tsc,
-        m0->io_pktlen - hdrlen, b, a, s0);
+        iob0->io_pktlen - hdrlen, b, a, s0);
 
     /* construct S_1 */
     ctr = 1;
@@ -226,11 +226,11 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* encrypt frame body and compute MIC */
     j = 0;
-    iob = m0;
+    iob = iob0;
     next = next0;
     moff = hdrlen;
     noff = hdrlen + IEEE80211_CCMP_HDRLEN;
-    left = m0->io_pktlen - moff;
+    left = iob0->io_pktlen - moff;
     while (left > 0) {
         if (moff == iob->io_len)
           {
@@ -267,8 +267,8 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
         len = MIN(iob->io_len - moff, next->io_len - noff);
 
-        src = (FAR uint8_t *)iob->io_data + moff;
-        dst = (FAR uint8_t *)next->io_data + noff;
+        src = (FAR uint8_t *)IOB_DATA(iob) + moff;
+        dst = (FAR uint8_t *)IOB_DATA(next) + noff;
 
         for (i = 0; i < len; i++)
           {
@@ -317,7 +317,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* Finalize MIC, U := T XOR first-M-bytes( S_0 ) */
 
-    mic = (FAR uint8_t *)next->io_data + next->io_len;
+    mic = (FAR uint8_t *)IOB_DATA(next) + next->io_len;
     for (i = 0; i < IEEE80211_CCMP_MICLEN; i++)
       {
         mic[i] = b[i] ^ s0[i];
@@ -326,11 +326,11 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     next->io_len += IEEE80211_CCMP_MICLEN;
     next0->io_pktlen += IEEE80211_CCMP_MICLEN;
 
-    iob_free_chain(m0);
+    iob_free_chain(iob0);
     return next0;
 
  nospace:
-    iob_free_chain(m0);
+    iob_free_chain(iob0);
     if (next0 != NULL)
       {
         iob_free_chain(next0);
@@ -339,7 +339,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     return NULL;
 }
 
-struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
+struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *iob0,
     struct ieee80211_key *k)
 {
     struct ieee80211_ccmp_ctx *ctx = k->k_priv;
@@ -365,13 +365,13 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     int i;
     int j;
 
-    wh = (FAR struct ieee80211_frame *)m0->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob0);
     hdrlen = ieee80211_get_hdrlen(wh);
     ivp = (uint8_t *)wh + hdrlen;
 
-    if (m0->io_pktlen < hdrlen + IEEE80211_CCMP_HDRLEN + IEEE80211_CCMP_MICLEN)
+    if (iob0->io_pktlen < hdrlen + IEEE80211_CCMP_HDRLEN + IEEE80211_CCMP_MICLEN)
       {
-        iob_free_chain(m0);
+        iob_free_chain(iob0);
         return NULL;
       }
 
@@ -379,7 +379,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     if (!(ivp[3] & IEEE80211_WEP_EXTIV))
       {
-        iob_free_chain(m0);
+        iob_free_chain(iob0);
         return NULL;
       }
 
@@ -410,7 +410,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
       {
         /* Replayed frame, discard */
 
-        iob_free_chain(m0);
+        iob_free_chain(iob0);
         return NULL;
       }
 
@@ -420,7 +420,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
         goto nospace;
       }
 
-    if (iob_clone(next0, m0) < 0)
+    if (iob_clone(next0, iob0) < 0)
       {
         goto nospace;
       }
@@ -439,8 +439,8 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* Copy 802.11 header and clear protected bit */
 
-    memcpy(next0->io_data, wh, hdrlen);
-    wh = (FAR struct ieee80211_frame *)next0->io_data;
+    memcpy(IOB_DATA(next0), wh, hdrlen);
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(next0);
     wh->i_fc[1] &= ~IEEE80211_FC1_PROTECTED;
 
     /* construct S_1 */
@@ -451,7 +451,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* decrypt frame body and compute MIC */
     j = 0;
-    iob = m0;
+    iob = iob0;
     next = next0;
     moff = hdrlen + IEEE80211_CCMP_HDRLEN;
     noff = hdrlen;
@@ -492,8 +492,8 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
         len = MIN(iob->io_len - moff, next->io_len - noff);
 
-        src = (FAR uint8_t *)iob->io_data + moff;
-        dst = (FAR uint8_t *)next->io_data + noff;
+        src = (FAR uint8_t *)IOB_DATA(iob) + moff;
+        dst = (FAR uint8_t *)IOB_DATA(next) + noff;
 
         for (i = 0; i < len; i++)
           {
@@ -541,7 +541,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     iob_copyout(mic0, iob, moff, IEEE80211_CCMP_MICLEN);
     if (timingsafe_bcmp(mic0, b, IEEE80211_CCMP_MICLEN) != 0)
       {
-        iob_free_chain(m0);
+        iob_free_chain(iob0);
         iob_free_chain(next0);
         return NULL;
       }
@@ -549,11 +549,11 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     /* update last seen packet number (MIC is validated) */
     *prsc = pn;
 
-    iob_free_chain(m0);
+    iob_free_chain(iob0);
     return next0;
 
  nospace:
-    iob_free_chain(m0);
+    iob_free_chain(iob0);
     if (next0 != NULL)
       {
         iob_free_chain(next0);

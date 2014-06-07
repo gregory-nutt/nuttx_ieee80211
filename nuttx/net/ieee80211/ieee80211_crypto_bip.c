@@ -98,7 +98,7 @@ struct iob_s *ieee80211_bip_encap(struct ieee80211_s *ic, struct iob_s *iob0,
     uint8_t *mmie, mic[AES_CMAC_DIGEST_LENGTH];
     struct iob_s *iob;
 
-    wh = (FAR struct ieee80211_frame *)iob0->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob0);
     DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_MGT);
 
     /* Clear Protected bit from group management frames */
@@ -143,7 +143,7 @@ struct iob_s *ieee80211_bip_encap(struct ieee80211_s *ic, struct iob_s *iob0,
 
     /* construct Management MIC IE */
 
-    mmie    = (FAR uint8_t *)iob->io_data + iob->io_len;
+    mmie    = (FAR uint8_t *)IOB_DATA(iob) + iob->io_len;
     mmie[0] = IEEE80211_ELEMID_MMIE;
     mmie[1] = 16;
     LE_WRITE_2(&mmie[2], k->k_id);
@@ -178,7 +178,7 @@ struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
     uint8_t *mmie, mic0[8], mic[AES_CMAC_DIGEST_LENGTH];
     uint64_t ipn;
 
-    wh = (FAR struct ieee80211_frame *)iob0->io_data;
+    wh = (FAR struct ieee80211_frame *)IOB_DATA(iob0);
     DEBUGASSERT((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_MGT);
 
     /* It is assumed that management frames are contiguous and that
@@ -187,7 +187,7 @@ struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
      */
 
     DEBUGASSERT(iob0->io_len >= sizeof(*wh) + IEEE80211_MMIE_LEN);
-    mmie = (FAR uint8_t *)iob0->io_data + iob0->io_len - IEEE80211_MMIE_LEN;
+    mmie = (FAR uint8_t *)IOB_DATA(iob0) + iob0->io_len - IEEE80211_MMIE_LEN;
 
     ipn = LE_READ_6(&mmie[4]);
     if (ipn <= k->k_mgmt_rsc)

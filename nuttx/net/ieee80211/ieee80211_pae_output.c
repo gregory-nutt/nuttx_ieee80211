@@ -73,7 +73,7 @@ int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
   uint16_t info;
   int s, len, error;
 
-  iob_contig(iob, sizeof(struct uip_eth_hdr), M_DONTWAIT);
+  iob_contig(iob, sizeof(struct uip_eth_hdr));
   if (iob == NULL)
     {
       return -ENOMEM;
@@ -81,7 +81,7 @@ int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
 
   /* No need to iob_pack here (ok by construction) */
 
-  ethhdr = (FAR struct uip_eth_hdr * *)iob->io_data;
+  ethhdr = (FAR struct uip_eth_hdr * *)IOB_DATA(iob);
   ethhdr->type = htons(UIP_ETHTYPE_PAE);
   IEEE80211_ADDR_COPY(ethhdr->src, ic->ic_myaddr);
   IEEE80211_ADDR_COPY(ethhdr->dest, ni->ni_macaddr);
@@ -256,9 +256,9 @@ ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
 }
 #endif /* CONFIG_IEEE80211_AP */
 
-struct iob_s *ieee80211_get_eapol_key(int type, unsigned int pktlen)
+FAR struct iob_s *ieee80211_get_eapol_key(int type, unsigned int pktlen)
 {
-  struct iob_s *iob;
+  FAR struct iob_s *iob;
 
   /* Reserve space for 802.11 encapsulation and EAPOL-Key header */
 
@@ -277,7 +277,7 @@ struct iob_s *ieee80211_get_eapol_key(int type, unsigned int pktlen)
       return iob_free(iob);
     }
 
-  iob->io_data += sizeof(struct ieee80211_frame) + LLC_SNAPFRAMELEN;
+  io->len = sizeof(struct ieee80211_frame) + LLC_SNAPFRAMELEN;
   return iob;
 }
 
@@ -307,7 +307,7 @@ int ieee80211_send_4way_msg1(struct ieee80211_s *ic, struct ieee80211_node *ni)
       return -ENOMEM;
     }
 
-  key = (FAR struct ieee80211_eapol_key *)iob->io_data;
+  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
   memset(key, 0, sizeof(*key));
 
   info = EAPOL_KEY_PAIRWISE | EAPOL_KEY_KEYACK;
@@ -362,7 +362,7 @@ int ieee80211_send_4way_msg2(struct ieee80211_s *ic, struct ieee80211_node *ni,
       return -ENOMEM;
     }
 
-  key = (FAR struct ieee80211_eapol_key *)iob->io_data;
+  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
   memset(key, 0, sizeof(*key));
 
   info = EAPOL_KEY_PAIRWISE | EAPOL_KEY_KEYMIC;
@@ -437,7 +437,7 @@ int ieee80211_send_4way_msg3(struct ieee80211_s *ic, struct ieee80211_node *ni)
       return -ENOMEM;
     }
 
-  key = (FAR struct ieee80211_eapol_key *)iob->io_data;
+  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
   memset(key, 0, sizeof(*key));
 
   info = EAPOL_KEY_PAIRWISE | EAPOL_KEY_KEYACK | EAPOL_KEY_KEYMIC;
@@ -514,7 +514,7 @@ int ieee80211_send_4way_msg4(struct ieee80211_s *ic, struct ieee80211_node *ni)
       return -ENOMEM;
     }
 
-  key = (FAR struct ieee80211_eapol_key *)iob->io_data;
+  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
   memset(key, 0, sizeof(*key));
 
   info = EAPOL_KEY_PAIRWISE | EAPOL_KEY_KEYMIC;
@@ -594,7 +594,7 @@ int ieee80211_send_group_msg1(struct ieee80211_s *ic, struct ieee80211_node *ni)
       return -ENOMEM;
     }
 
-  key = (FAR struct ieee80211_eapol_key *)iob->io_data;
+  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
   memset(key, 0, sizeof(*key));
 
   info = EAPOL_KEY_KEYACK | EAPOL_KEY_KEYMIC | EAPOL_KEY_SECURE | EAPOL_KEY_ENCRYPTED;
@@ -667,7 +667,7 @@ int ieee80211_send_group_msg2(struct ieee80211_s *ic, struct ieee80211_node *ni,
       return -ENOMEM;
     }
 
-  key = (FAR struct ieee80211_eapol_key *)iob->io_data;
+  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
   memset(key, 0, sizeof(*key));
 
   info = EAPOL_KEY_KEYMIC | EAPOL_KEY_SECURE;
@@ -703,11 +703,12 @@ int ieee80211_send_group_msg2(struct ieee80211_s *ic, struct ieee80211_node *ni,
  * or to report a MIC failure in a TKIP MSDU.
  */
  
-int ieee80211_send_eapol_key_req(struct ieee80211_s *ic,
-    struct ieee80211_node *ni, uint16_t info, uint64_t tsc)
+int ieee80211_send_eapol_key_req(FAR struct ieee80211_s *ic,
+                                 FAR struct ieee80211_node *ni,
+                                 uint16_t info, uint64_t tsc)
 {
-  struct ieee80211_eapol_key *key;
-  struct iob_s *iob;
+  FAR struct ieee80211_eapol_key *key;
+  FAR struct iob_s *iob;
 
   iob = ieee80211_get_eapol_key(MT_DATA, 0);
   if (iob == NULL)
@@ -715,7 +716,7 @@ int ieee80211_send_eapol_key_req(struct ieee80211_s *ic,
       return -ENOMEM;
     }
 
-  key = (FAR struct ieee80211_eapol_key *)iob->io_data;
+  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
   memset(key, 0, sizeof(*key));
 
   info |= EAPOL_KEY_REQUEST;
