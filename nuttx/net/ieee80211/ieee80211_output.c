@@ -67,7 +67,7 @@
 #include "net_internal.h"
 
 int ieee80211_classify(struct ieee80211_s *, struct iob_s *);
-int ieee80211_mgmt_output(struct ieee80211_s *, struct ieee80211_node *,
+static int ieee80211_mgmt_output(struct ieee80211_s *, struct ieee80211_node *,
         struct iob_s *, int);
 uint8_t *ieee80211_add_rsn_body(uint8_t *, struct ieee80211_s *,
         const struct ieee80211_node *, int);
@@ -208,7 +208,7 @@ fallback:
  * reference (and potentially free'ing up any associated storage).
  */
 
-int ieee80211_mgmt_output(struct ieee80211_s *ic, struct ieee80211_node *ni,
+static int ieee80211_mgmt_output(struct ieee80211_s *ic, struct ieee80211_node *ni,
     struct iob_s *iob, int type)
 {
   struct ieee80211_frame *wh;

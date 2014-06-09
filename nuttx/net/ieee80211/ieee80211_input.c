@@ -70,13 +70,13 @@ void ieee80211_ba_move_window(struct ieee80211_s *,
         struct ieee80211_node *, uint8_t, uint16_t);
 #endif
 struct iob_s *ieee80211_align_iobuf(struct iob_s *);
-void ieee80211_decap(struct ieee80211_s *, struct iob_s *,
+static void ieee80211_decap(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, int);
 #ifdef CONFIG_IEEE80211_HT
 void ieee80211_amsdu_decap(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, int);
 #endif
-void ieee80211_deliver_data(struct ieee80211_s *, struct iob_s *,
+static void ieee80211_deliver_data(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *);
 int ieee80211_parse_edca_params_body(struct ieee80211_s *,
         const uint8_t *);
@@ -791,8 +791,8 @@ void ieee80211_ba_move_window(struct ieee80211_s *ic,
 }
 #endif /* !CONFIG_IEEE80211_HT */
 
-void ieee80211_deliver_data(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
-                            FAR struct ieee80211_node *ni)
+static void ieee80211_deliver_data(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                                   FAR struct ieee80211_node *ni)
 {
   FAR struct uip_eth_hdr *ethhdr;
 #ifdef CONFIG_IEEE80211_AP
@@ -945,7 +945,7 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
 }
 #endif /* __STRICT_ALIGNMENT */
 
-void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211_node *ni, int hdrlen)
+static void ieee80211_decap(struct ieee80211_s *ic, struct iob_s *iob, struct ieee80211_node *ni, int hdrlen)
 {
     struct uip_eth_hdr ethhdr;
     struct ieee80211_frame *wh;
