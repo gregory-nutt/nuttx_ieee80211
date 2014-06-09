@@ -44,7 +44,7 @@ SUBDIRS += nsh null nx nxconsole nxffs nxflat nxhello nximage nxlines
 SUBDIRS += nxtext ostest pashello pipe poll posix_spawn pwm qencoder random
 SUBDIRS += relays rgmp romfs sendmail serialblaster serloop serialrx slcd
 SUBDIRS += smart smart_test tcpecho telnetd thttpd tiff touchscreen udp uip
-SUBDIRS += usbserial usbterm watchdog wget wgetjson xmlrpc
+SUBDIRS += usbserial usbterm watchdog wget wgetjson wlan xmlrpc
 
 
 # Sub-directories that might need context setup.  Directories may need
