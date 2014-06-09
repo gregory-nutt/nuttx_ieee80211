@@ -10,4 +10,21 @@ config EXAMPLES_WLAN
 		Enable the WLAN example
 
 if EXAMPLES_WLAN
+
+config EXAMPLES_WLAN_NOMAC
+	bool "Use Canned MAC Address"
+	default n
+
+config EXAMPLES_WLAN_IPADDR
+	hex "Target IP address"
+	default 0x0a000002
+
+config EXAMPLES_WLAN_DRIPADDR
+	hex "Default Router IP address (Gateway)"
+	default 0x0a000001
+
+config EXAMPLES_WLAN_NETMASK
+	hex "Network Mask"
+	default 0xffffff00
+
 endif
