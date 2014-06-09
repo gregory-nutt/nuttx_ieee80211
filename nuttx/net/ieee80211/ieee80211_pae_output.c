@@ -157,7 +157,7 @@ int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
     }
 #endif
 
-  error = ieee80211_ifsend(ic, iob);
+  error = ieee80211_ifsend(ic, iob, 0);
   splx(s);
   return error;
 }

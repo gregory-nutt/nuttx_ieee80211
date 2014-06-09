@@ -104,7 +104,7 @@ void ieee80211_ifinit(FAR struct ieee80211_s *ic)
  *
  ****************************************************************************/
 
-int ieee80211_ifsend(FAR ieee80211_s *ic, FAR struct iob_s *iob)
+int ieee80211_ifsend(FAR ieee80211_s *ic, FAR struct iob_s *iob, uint8_t flags)
 {
   /* Add the I/O buffer chain to the driver output queue */
 #warning Missing logic

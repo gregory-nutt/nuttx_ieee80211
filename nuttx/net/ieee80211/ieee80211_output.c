@@ -175,7 +175,7 @@ int ieee80211_output(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
        */
 
       s = splnet();
-      error = ieee80211_ifsend(ic, iob);
+      error = ieee80211_ifsend(ic, iob, 0);
       if (error)
         {
           /* buffer is already freed */

@@ -47,6 +47,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define IFSEND_MCAST   (1 << 0) /* Send as multi-cast */
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -80,6 +82,7 @@ void ieee80211_ifinit(FAR struct ieee80211_s *ic);
  *
  ****************************************************************************/
 
-int ieee80211_ifsend(FAR struct ieee80211_s *ic, FAR struct iob_s *iob);
+int ieee80211_ifsend(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                     uint8_t flags);
 
 #endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_IFNET_H */

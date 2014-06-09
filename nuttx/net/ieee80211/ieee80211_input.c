@@ -823,13 +823,14 @@ void ieee80211_deliver_data(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
       struct ieee80211_node *ni1;
       int len;
       int error;
+      uint8_t flags = 0;
 
       if (ETHER_IS_MULTICAST(ethhdr->dest))
         {
           iob1 = m_copym2(iob, 0, M_COPYALL, M_DONTWAIT);
           if (iob1 != NULL)
             {
-              iob1->io_flags |= IOBFLAGS_MCAST;
+              flags = IFSEND_MCAST;
             }
         }
       else
@@ -845,7 +846,7 @@ void ieee80211_deliver_data(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
       if (iob1 != NULL)
         {
           len = iob1->io_pktlen;
-          error = ieee80211_ifsend(ic, iob1);
+          error = ieee80211_ifsend(ic, iob1, flags);
         }
     }
 #endif
