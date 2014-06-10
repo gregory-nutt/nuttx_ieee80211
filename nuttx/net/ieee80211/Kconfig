@@ -33,19 +33,24 @@ config IEEE80211_BUFSIZE
 	int "Size of one buffer"
 	default 576
 
+config IEEE80211_CRYPTO
+    bool "Enable Encryption support"
+    default n
+    depends on EXPERIMENTAL
+
 config IEEE80211_WEP
     bool "Enable WEP"
     default n
-    depends on EXPERIMENTAL
+    depends on IEEE80211_CRYPTO
 
 config IEEE80211_WAP
     bool "Enable WAP"
     default n
-    depends on EXPERIMENTAL
+    depends on IEEE80211_CRYPTO
 
 config IEEE80211_WAP2
     bool "Enable WAP2"
     default n
-    depends on EXPERIMENTAL
+    depends on IEEE80211_CRYPTO
 
 endif
