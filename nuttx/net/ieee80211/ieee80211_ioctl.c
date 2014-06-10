@@ -351,7 +351,7 @@ static int ieee80211_ioctl_setphymode(struct ieee80211_s *ic, enum ieee80211_phy
 
 static int ieee80211_ioctl_getphymode(struct ieee80211_s *ic)
 {
-
+    return 0;
 }
 
 static int ieee80211_ioctl_setopmode(struct ieee80211_s *ic, enum ieee80211_opmode opmode)
@@ -385,7 +385,7 @@ static int ieee80211_ioctl_setopmode(struct ieee80211_s *ic, enum ieee80211_opmo
 
 static int ieee80211_ioctl_getopmode(struct ieee80211_s *ic)
 {
-
+    return 0;
 }
 
 static int ieee80211_ioctl_setfixedrate(struct ieee80211_s *ic, int rate)
@@ -420,7 +420,7 @@ static int ieee80211_ioctl_setfixedrate(struct ieee80211_s *ic, int rate)
 
 static int ieee80211_ioctl_getfixedrate(struct ieee80211_s *ic)
 {
-
+    return 0;
 }
 
 bool isvalidrate(enum ieee80211_phymode mode, int rate)
