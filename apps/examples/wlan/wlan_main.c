@@ -232,7 +232,7 @@ static int wlan_waiter(int argc, char *argv[])
     {
       /* Wait for the device to change state */
 
-      ret = DRVR_WAIT(g_drvr, connected);
+      ret = CONN_WAIT(g_drvr, &connected);
       DEBUGASSERT(ret == OK);
 
       connected = !connected;
@@ -244,7 +244,7 @@ static int wlan_waiter(int argc, char *argv[])
         {
           /* Yes.. enumerate the newly connected device */
 
-          ret = DRVR_ENUMERATE(g_drvr);
+          ret = CONN_ENUMERATE(g_drvr, 0);
 
           /* If the enumeration was successful, then bring up the interface */
 
