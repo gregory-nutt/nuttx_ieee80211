@@ -111,7 +111,7 @@
  * Private Data
  ****************************************************************************/
 
-static struct usbhost_driver_s *g_drvr;
+static struct usbhost_connection_s *g_usbconn;
 
 /****************************************************************************
  * Private Functions
@@ -232,7 +232,7 @@ static int wlan_waiter(int argc, char *argv[])
     {
       /* Wait for the device to change state */
 
-      ret = CONN_WAIT(g_drvr, &connected);
+      ret = CONN_WAIT(g_usbconn, &connected);
       DEBUGASSERT(ret == OK);
 
       connected = !connected;
@@ -244,7 +244,7 @@ static int wlan_waiter(int argc, char *argv[])
         {
           /* Yes.. enumerate the newly connected device */
 
-          ret = CONN_ENUMERATE(g_drvr, 0);
+          ret = CONN_ENUMERATE(g_usbconn, 0);
 
           /* If the enumeration was successful, then bring up the interface */
 
@@ -278,8 +278,8 @@ int wlan_main(int argc, char *argv[])
   /* Then get an instance of the USB host interface */
 
   printf("wlan_main: Initialize USB host WLAN driver\n");
-  g_drvr = usbhost_initialize(0);
-  if (g_drvr)
+  g_usbconn = usbhost_initialize(0);
+  if (g_usbconn)
     {
       /* Start a thread to handle device connection. */
 
@@ -288,10 +288,10 @@ int wlan_main(int argc, char *argv[])
 #ifndef CONFIG_CUSTOM_STACK
       pid = task_create("usbhost", CONFIG_EXAMPLES_WLAN_DEFPRIO,
                         CONFIG_EXAMPLES_WLAN_STACKSIZE,
-                        (main_t)wlan_waiter, (const char **)NULL);
+                        (main_t)wlan_waiter, (FAR char * const *)NULL);
 #else
       pid = task_create("usbhost", CONFIG_EXAMPLES_WLAN_DEFPRIO,
-                        (main_t)wlan_waiter, (const char **)NULL);
+                        (main_t)wlan_waiter, (FAR char * const *)NULL);
 #endif
 
       /* Now just sleep.  Eventually logic here will perform the device test. */
