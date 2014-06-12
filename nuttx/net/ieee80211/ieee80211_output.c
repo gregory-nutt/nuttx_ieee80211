@@ -114,7 +114,7 @@ struct iob_s *ieee80211_get_action(struct ieee80211_s *,
 #warning REVISIT: Perhaps it should be included in ieee80211_ifsend()?
 
 int ieee80211_output(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
-                     FAR struct sockaddr *dst, struct rtentry *rt)
+                     FAR struct sockaddr *dst, uint8_t flags)
 {
   FAR struct uip_driver_s *dev;
   FAR struct ieee80211_frame *wh;
@@ -175,7 +175,7 @@ int ieee80211_output(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
        */
 
       s = splnet();
-      error = ieee80211_ifsend(ic, iob, 0);
+      error = ieee80211_ifsend(ic, iob, flags);
       if (error)
         {
           /* buffer is already freed */
@@ -190,7 +190,7 @@ int ieee80211_output(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
     }
 
 fallback:
-  return ether_output(ic, iob, dst, rt);
+  return ether_output(ic, iob, dst);
 
  bad:
   if (iob)

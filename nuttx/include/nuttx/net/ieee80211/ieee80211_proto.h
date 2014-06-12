@@ -76,7 +76,6 @@ void ieee80211_proto_attach(struct ieee80211_s *);
 void ieee80211_proto_detach(struct ieee80211_s *);
 
 struct iob_s;
-struct rtentry;
 struct sockaddr;
 struct ieee80211_node;
 struct ieee80211_rxinfo;
@@ -87,7 +86,7 @@ unsigned int ieee80211_get_hdrlen(const struct ieee80211_frame *);
 void ieee80211_input(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *);
 int ieee80211_output(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
-                     FAR struct sockaddr *dst, struct rtentry *rt);
+                     FAR struct sockaddr *dst, uint8_t flags);
 void ieee80211_recv_mgmt(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_node *, struct ieee80211_rxinfo *, int);
 int ieee80211_send_mgmt(struct ieee80211_s *, struct ieee80211_node *,
