@@ -640,14 +640,14 @@ struct iob_s *ieee80211_defrag(struct ieee80211_s *ic, struct iob_s *iob, int hd
 void ieee80211_defrag_timeout(void *arg)
 {
   struct ieee80211_defrag *df = arg;
-  int s = splnet();
+  uip_lock_t flags = uip_lock();
 
   /* Discard all received fragments */
 
   iob_free_chain(df->df_m);
   df->df_m = NULL;
 
-  splx(s);
+  uip_unlock(flags);
 }
 
 #ifdef CONFIG_IEEE80211_HT

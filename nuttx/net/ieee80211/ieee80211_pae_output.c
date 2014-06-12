@@ -71,7 +71,9 @@ int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
   FAR struct uip_eth_hdr *ethhdr;
   struct ieee80211_eapol_key *key;
   uint16_t info;
-  int s, len, error;
+  uip_lock_t flags;
+  int len;
+  int error;
 
   iob_contig(iob, sizeof(struct uip_eth_hdr));
   if (iob == NULL)
@@ -146,7 +148,7 @@ int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
     }
 
   len = iob->io_pktlen;
-  s = splnet();
+  flags = uip_lock();
 
 #ifdef CONFIG_IEEE80211_AP
   /* Start a 100ms timeout if an answer is expected from supplicant */
@@ -158,7 +160,7 @@ int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
 #endif
 
   error = ieee80211_ifsend(ic, iob, 0);
-  splx(s);
+  uip_unlock(flags);
   return error;
 }
 
@@ -171,12 +173,12 @@ ieee80211_eapol_timeout(void *arg)
 {
     struct ieee80211_node *ni = arg;
     struct ieee80211_s *ic = ni->ni_ic;
-    int s;
+    uip_lock_t flags;
 
     ndbg("ERROR: no answer from station %s in state %d\n",
         ieee80211_addr2str(ni->ni_macaddr), ni->ni_rsn_state);
 
-    s = splnet();
+    flags = uip_lock();
 
     switch (ni->ni_rsn_state) {
     case RSNA_PTKSTART:
@@ -194,7 +196,7 @@ ieee80211_eapol_timeout(void *arg)
         break;
     }
 
-    splx(s);
+    uip_unlock(flags);
 }
 
 /*

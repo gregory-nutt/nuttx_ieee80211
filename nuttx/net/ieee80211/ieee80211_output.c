@@ -113,13 +113,23 @@ struct iob_s *ieee80211_get_action(struct ieee80211_s *,
 #warning REVISIT: It is not currently integrated with the rest of the logic
 #warning REVISIT: Perhaps it should be included in ieee80211_ifsend()?
 
+/* The BSD networking layer calls back (via the now non-nonexistent if_output
+ * function pointer) when the interface is ready to send data.  The original
+ * logic set the if_output pointer to ieee80211_output().
+ *
+ * Output occurred when the if_output function was called.  The parameter
+ * iob is the I/O buffer chain to be sent and dst is the destination address.
+ * The output routine encapsulates the supplied datagram if necessary (or may
+ * send the the data as raw Ethernet data) then transmits it on its medium.
+ */
+
 int ieee80211_output(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
                      FAR struct sockaddr *dst, uint8_t flags)
 {
   FAR struct uip_driver_s *dev;
   FAR struct ieee80211_frame *wh;
   FAR struct m_tag *mtag;
-  int s;
+  uip_lock_t flags;
   int error = 0;
 
   /* Get the driver structure */
@@ -145,7 +155,7 @@ int ieee80211_output(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
     {
       unsigned int dlt = *(unsigned int *)(mtag + 1);
 
-      /* Fallback to ethernet for non-802.11 linktypes */
+      /* Fallback to Ethernet for non-802.11 linktypes */
 
       if (!(dlt == DLT_IEEE802_11 || dlt == DLT_IEEE802_11_RADIO))
         {
@@ -174,18 +184,18 @@ int ieee80211_output(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
        * yet active.
        */
 
-      s = splnet();
+      flags = uip_lock();
       error = ieee80211_ifsend(ic, iob, flags);
       if (error)
         {
           /* buffer is already freed */
 
-          splx(s);
+          uip_unlock(flags);
           ndbg("ERROR: %s: failed to queue raw tx frame\n", ic->ic_ifname);
           return error;
         }
 
-      splx(s);
+      uip_unlock(flags);
       return error;
     }
 
