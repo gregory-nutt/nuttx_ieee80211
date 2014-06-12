@@ -231,7 +231,8 @@ static int ieee80211_mgmt_output(struct ieee80211_s *ic, struct ieee80211_node *
       return error;
     }
 
-  iob->io_priv = ni;
+#warning REVISIT:  We do not want to burden everty IOB with this information
+//iob->io_priv = ni;
 
   wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
   wh->i_fc[0] = IEEE80211_FC0_VERSION_0 | IEEE80211_FC0_TYPE_MGT | type;
@@ -2035,7 +2036,8 @@ FAR struct iob_s *ieee80211_beacon_alloc(FAR struct ieee80211_s *ic, FAR struct 
 #endif
 
   iob->io_pktlen = iob->io_len = frm - IOB_DATA(iob);
-  iob->io_priv = ni;
+#warning REVISIT:  We do not want to burden everty IOB with this information
+//iob->io_priv = ni;
   return iob;
 }
 
@@ -2092,7 +2094,8 @@ int ieee80211_pwrsave(struct ieee80211_s *ic, struct iob_s *iob, struct ieee8021
    * special pkthdr field.
    */
 
-  iob->io_priv = ni;
+#warning REVISIT:  We do not want to burden everty IOB with this information
+//iob->io_priv = ni;
   return 1;
 }
 #endif /* CONFIG_IEEE80211_AP */
