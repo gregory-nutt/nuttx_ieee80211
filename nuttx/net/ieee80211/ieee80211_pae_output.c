@@ -50,23 +50,23 @@
 #include <nuttx/net/ieee80211/ieee80211_var.h>
 #include <nuttx/net/ieee80211/ieee80211_priv.h>
 
-int ieee80211_send_eapol_key(struct ieee80211_s *, struct iob_s *,
+static int ieee80211_send_eapol_key(struct ieee80211_s *, struct iob_s *,
             struct ieee80211_node *, const struct ieee80211_ptk *);
 #ifdef CONFIG_IEEE80211_AP
-uint8_t *ieee80211_add_gtk_kde(uint8_t *, struct ieee80211_node *,
+static uint8_t *ieee80211_add_gtk_kde(uint8_t *, struct ieee80211_node *,
             const struct ieee80211_key *);
-uint8_t *ieee80211_add_pmkid_kde(uint8_t *, const uint8_t *);
-uint8_t *ieee80211_add_igtk_kde(uint8_t *, const struct ieee80211_key *);
+static uint8_t *ieee80211_add_pmkid_kde(uint8_t *, const uint8_t *);
+static uint8_t *ieee80211_add_igtk_kde(uint8_t *, const struct ieee80211_key *);
 #endif
-struct iob_s *ieee80211_get_eapol_key(int, unsigned int);
+static struct iob_s *ieee80211_get_eapol_key(int, unsigned int);
 
 /* Send an EAPOL-Key frame to node `ni'.  If MIC or encryption is required,
  * the PTK must be passed (otherwise it can be set to NULL.)
  */
 
-int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
-                             FAR struct ieee80211_node *ni,
-                             FAR const struct ieee80211_ptk *ptk)
+static int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                                    FAR struct ieee80211_node *ni,
+                                    FAR const struct ieee80211_ptk *ptk)
 {
   FAR struct uip_eth_hdr *ethhdr;
   struct ieee80211_eapol_key *key;
@@ -199,12 +199,10 @@ ieee80211_eapol_timeout(void *arg)
     uip_unlock(flags);
 }
 
-/*
- * Add a GTK KDE to an EAPOL-Key frame (see Figure 144).
- */
-uint8_t *
-ieee80211_add_gtk_kde(uint8_t *frm, struct ieee80211_node *ni,
-    const struct ieee80211_key *k)
+/* Add a GTK KDE to an EAPOL-Key frame (see Figure 144) */
+
+static uint8_t *ieee80211_add_gtk_kde(FAR uint8_t *frm, FAR struct ieee80211_node *ni,
+                                      FAR const struct ieee80211_key *k)
 {
     DEBUGASSERT(k->k_flags & IEEE80211_KEY_GROUP);
 
@@ -225,11 +223,9 @@ ieee80211_add_gtk_kde(uint8_t *frm, struct ieee80211_node *ni,
     return frm + k->k_len;
 }
 
-/*
- * Add a PMKID KDE to an EAPOL-Key frame (see Figure 146).
- */
-uint8_t *
-ieee80211_add_pmkid_kde(uint8_t *frm, const uint8_t *pmkid)
+/* Add a PMKID KDE to an EAPOL-Key frame (see Figure 146) */
+
+static uint8_t *ieee80211_add_pmkid_kde(FAR uint8_t *frm, FAR const uint8_t *pmkid)
 {
     *frm++ = IEEE80211_ELEMID_VENDOR;
     *frm++ = 20;
@@ -239,11 +235,9 @@ ieee80211_add_pmkid_kde(uint8_t *frm, const uint8_t *pmkid)
     return frm + IEEE80211_PMKID_LEN;
 }
 
-/*
- * Add an IGTK KDE to an EAPOL-Key frame (see Figure 8-32a).
- */
-uint8_t *
-ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
+/* Add an IGTK KDE to an EAPOL-Key frame (see Figure 8-32a) */
+
+static uint8_t *ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
 {
     DEBUGASSERT(k->k_flags & IEEE80211_KEY_IGTK);
 
@@ -258,7 +252,7 @@ ieee80211_add_igtk_kde(uint8_t *frm, const struct ieee80211_key *k)
 }
 #endif /* CONFIG_IEEE80211_AP */
 
-FAR struct iob_s *ieee80211_get_eapol_key(int type, unsigned int pktlen)
+static FAR struct iob_s *ieee80211_get_eapol_key(int type, unsigned int pktlen)
 {
   FAR struct iob_s *iob;
 

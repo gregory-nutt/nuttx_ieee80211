@@ -86,7 +86,7 @@ const char * const ieee80211_phymode_name[] =
   "turbo",      /* IEEE80211_MODE_TURBO */
 };
 
-int ieee80211_newstate(struct ieee80211_s *, enum ieee80211_state, int);
+static int ieee80211_newstate(struct ieee80211_s *, enum ieee80211_state, int);
 
 void ieee80211_proto_attach( struct ieee80211_s *ic)
 {
@@ -788,7 +788,7 @@ void ieee80211_auth_open(struct ieee80211_s *ic, const struct ieee80211_frame *w
     }
 }
 
-int ieee80211_newstate(struct ieee80211_s *ic, enum ieee80211_state nstate, int mgt)
+static int ieee80211_newstate(struct ieee80211_s *ic, enum ieee80211_state nstate, int mgt)
 {
     struct ieee80211_node *ni;
     enum ieee80211_state ostate;
