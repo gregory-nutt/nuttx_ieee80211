@@ -29,6 +29,7 @@
 
 #include <sys/socket.h>
 
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 
@@ -130,7 +131,7 @@ struct iob_s *ieee80211_bip_encap(struct ieee80211_s *ic, struct iob_s *iob0,
       {
         struct iob_s *newbuf;
 
-        newbuf = iob_alloc();
+        newbuf = iob_alloc(false);
         if (iob->io_flink == NULL)
           {
             goto nospace;
@@ -222,7 +223,7 @@ struct iob_s *ieee80211_bip_decap(struct ieee80211_s *ic, struct iob_s *iob0,
 
   /* Check that MIC matches the one in MMIE */
 
-  if (timingsafe_bcmp(mic, mic0, 8) != 0)
+  if (memcmp(mic, mic0, 8) != 0)
     {
       iob_free_chain(iob0);
       return NULL;

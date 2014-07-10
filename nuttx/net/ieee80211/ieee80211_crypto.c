@@ -495,7 +495,7 @@ int ieee80211_eapol_key_check_mic(struct ieee80211_eapol_key *key,
     memset(key->mic, 0, EAPOL_KEY_MIC_LEN);
     ieee80211_eapol_key_mic(key, kck);
 
-    return timingsafe_bcmp(key->mic, mic, EAPOL_KEY_MIC_LEN) != 0;
+    return memcmp(key->mic, mic, EAPOL_KEY_MIC_LEN) != 0;
 }
 
 #ifdef CONFIG_IEEE80211_AP

@@ -38,6 +38,7 @@
 
 #include <sys/socket.h>
 
+#include <stdbool.h>
 #include <string.h>
 #include <wdog.h>
 #include <assert.h>
@@ -890,7 +891,7 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
     {
       if (next0 == NULL)
         {
-          next = iob_alloc();
+          next = iob_alloc(false);
           if (next == NULL)
             {
               iob_free_chain(iob);
@@ -908,7 +909,7 @@ struct iob_s *ieee80211_align_iobuf(struct iob_s *iob)
         }
       else
         {
-          next = iob_alloc();
+          next = iob_alloc(false);
           if (next == NULL)
             {
               iob_free_chain(iob);

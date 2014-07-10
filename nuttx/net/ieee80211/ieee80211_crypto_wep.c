@@ -28,6 +28,7 @@
 
 #include <sys/socket.h>
 
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 
@@ -106,7 +107,7 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     uint32_t iv, crc;
     int left, moff, noff, len, hdrlen;
 
-    next0 = iob_alloc();
+    next0 = iob_alloc(false);
     if (next0 == NULL)
       {
         goto nospace;
@@ -177,7 +178,7 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
             /* next is full and there's more data to copy */
 
-            newbuf = iob_alloc();
+            newbuf = iob_alloc(false);
             if (newbuf == NULL)
               {
                 goto nospace;
@@ -211,7 +212,7 @@ struct iob_s *ieee80211_wep_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
       {
         struct iob_s *newbuf;
 
-        newbuf = iob_alloc();
+        newbuf = iob_alloc(false);
         if (newbuf == NULL)
           {
             goto nospace;
@@ -274,7 +275,7 @@ struct iob_s *ieee80211_wep_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
     memcpy(wepseed + IEEE80211_WEP_IVLEN, k->k_key, k->k_len);
     rc4_keysetup(&ctx->rc4, wepseed, IEEE80211_WEP_IVLEN + k->k_len);
 
-    next0 = iob_alloc();
+    next0 = iob_alloc(false);
     if (next0 == NULL)
       {
         goto nospace;
@@ -323,7 +324,7 @@ struct iob_s *ieee80211_wep_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
             /* next is full and there's more data to copy */
 
-            newbuf = iob_alloc();
+            newbuf = iob_alloc(false);
             if (newbuf == NULL)
               {
                 goto nospace;

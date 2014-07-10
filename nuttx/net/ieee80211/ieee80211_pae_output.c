@@ -29,6 +29,7 @@
 
 #include <sys/socket.h>
 
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 #include <wdog.h>
@@ -262,7 +263,7 @@ static FAR struct iob_s *ieee80211_get_eapol_key(int type, unsigned int pktlen)
             sizeof(struct ieee80211_eapol_key);
   DEBUGASSERT(pktlen <= MCLBYTES);
 
-  iob = iob_alloc();
+  iob = iob_alloc(false);
   if (iob == NULL)
     {
       return NULL;

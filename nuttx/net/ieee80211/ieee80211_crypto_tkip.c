@@ -29,6 +29,7 @@
 
 #include <sys/socket.h>
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -221,7 +222,7 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
     uint32_t crc;
     int left, moff, noff, len, hdrlen;
 
-    next0 = iob_alloc();
+    next0 = iob_alloc(false);
     if (next0 == NULL)
       {
         goto nospace;
@@ -293,7 +294,7 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
             /* next is full and there's more data to copy */
 
-            newbuf = iob_alloc();
+            newbuf = iob_alloc(false);
             if (newbuf == NULL)
               {
                 goto nospace;
@@ -327,7 +328,7 @@ struct iob_s *ieee80211_tkip_encrypt(struct ieee80211_s *ic, struct iob_s *m0,
       {
         struct iob_s *newbuf;
 
-        newbuf = iob_alloc();
+        newbuf = iob_alloc(false);
         if (newbuf == NULL)
           {
             goto nospace;
@@ -427,7 +428,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
         return NULL;
       }
 
-    next0 = iob_alloc();
+    next0 = iob_alloc(false);
     if (next0 == NULL)
       {
         goto nospace;
@@ -482,7 +483,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
             /* next is full and there's more data to copy */
 
-            newbuf = iob_alloc();
+            newbuf = iob_alloc(false);
             if (newbuf == NULL)
               {
                 goto nospace;
@@ -537,7 +538,7 @@ struct iob_s *ieee80211_tkip_decrypt(struct ieee80211_s *ic, struct iob_s *m0,
 
     /* Check that it matches the MIC in received frame */
 
-    if (timingsafe_bcmp(mic0, mic, IEEE80211_TKIP_MICLEN) != 0)
+    if (memcmp(mic0, mic, IEEE80211_TKIP_MICLEN) != 0)
       {
         iob_free_chain(m0);
         iob_free_chain(next0);

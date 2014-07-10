@@ -27,6 +27,7 @@
 
 #include <sys/socket.h>
 
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 
@@ -175,7 +176,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *iob0,
     uint16_t ctr;
     int i, j;
 
-    next0 = iob_alloc();
+    next0 = iob_alloc(false);
     if (next0 == NULL)
       {
         goto nospace;
@@ -246,7 +247,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *iob0,
 
             /* next is full and there's more data to copy */
 
-            newbuf = iob_alloc();
+            newbuf = iob_alloc(false);
             if (newbuf == NULL)
               {
                 goto nospace;
@@ -304,7 +305,7 @@ struct iob_s *ieee80211_ccmp_encrypt(struct ieee80211_s *ic, struct iob_s *iob0,
       {
         struct iob_s *newbuf;
 
-        newbuf = iob_alloc();
+        newbuf = iob_alloc(false);
         if (newbuf == NULL)
           {
             goto nospace;
@@ -414,7 +415,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *iob0,
         return NULL;
       }
 
-    next0 = iob_alloc();
+    next0 = iob_alloc(false);
     if (next0 == NULL)
       {
         goto nospace;
@@ -472,7 +473,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *iob0,
 
             /* next is full and there's more data to copy */
 
-            newbuf = iob_alloc();
+            newbuf = iob_alloc(false);
             if (newbuf == NULL)
               {
                 goto nospace;
@@ -539,7 +540,7 @@ struct iob_s *ieee80211_ccmp_decrypt(struct ieee80211_s *ic, struct iob_s *iob0,
     /* Check that it matches the MIC in received frame */
 
     iob_copyout(mic0, iob, moff, IEEE80211_CCMP_MICLEN);
-    if (timingsafe_bcmp(mic0, b, IEEE80211_CCMP_MICLEN) != 0)
+    if (memcmp(mic0, b, IEEE80211_CCMP_MICLEN) != 0)
       {
         iob_free_chain(iob0);
         iob_free_chain(next0);

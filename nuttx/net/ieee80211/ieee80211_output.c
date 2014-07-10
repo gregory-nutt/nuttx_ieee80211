@@ -38,6 +38,7 @@
 
 #include <sys/socket.h>
 
+#include <stdbool.h>
 #include <string.h>
 #include <wdog.h>
 #include <errno.h>
@@ -1175,7 +1176,7 @@ struct iob_s *ieee80211_getmgmt(int type, unsigned int pktlen)
   pktlen += sizeof(struct ieee80211_frame);
   DEBUGASSERT(pktlen <= MCLBYTES);
 
-  iob = iob_alloc();
+  iob = iob_alloc(false);
   if (iob == NULL)
     {
       return NULL;
@@ -1346,7 +1347,7 @@ struct iob_s *ieee80211_get_auth(struct ieee80211_s *ic, struct ieee80211_node *
   struct iob_s *iob;
   uint8_t *frm;
 
-  iob = iob_alloc();
+  iob = iob_alloc(false);
   if (iob == NULL)
     {
       return NULL;
@@ -1371,7 +1372,7 @@ struct iob_s *ieee80211_get_deauth(struct ieee80211_s *ic, struct ieee80211_node
 {
   struct iob_s *iob;
 
-  iob = iob_alloc();
+  iob = iob_alloc(false);
   if (iob == NULL)
     {
       return NULL;
@@ -1546,7 +1547,7 @@ struct iob_s *ieee80211_get_disassoc(struct ieee80211_s *ic, struct ieee80211_no
 {
   struct iob_s *iob;
 
-  iob = iob_alloc();
+  iob = iob_alloc(false);
   if (iob == NULL)
     {
       return NULL;
@@ -1879,7 +1880,7 @@ struct iob_s *ieee80211_get_rts(struct ieee80211_s *ic, const struct ieee80211_f
   struct ieee80211_frame_rts *rts;
   struct iob_s *iob;
 
-  iob = iob_alloc();
+  iob = iob_alloc(false);
   if (iob == NULL)
     {
       return NULL;
@@ -1904,7 +1905,7 @@ struct iob_s *ieee80211_get_cts_to_self(struct ieee80211_s *ic, uint16_t dur)
   struct ieee80211_frame_cts *cts;
   struct iob_s *iob;
 
-  iob = iob_alloc();
+  iob = iob_alloc(false);
   if (iob == NULL)
     {
       return NULL;

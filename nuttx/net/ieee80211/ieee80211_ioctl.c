@@ -91,7 +91,7 @@ void ieee80211_node2req(struct ieee80211_s *ic, const struct ieee80211_node *ni,
 
     /* Node flags */
     nr->nr_flags = 0;
-    if (bcmp(nr->nr_macaddr, nr->nr_bssid, IEEE80211_ADDR_LEN) == 0)
+    if (memcmp(nr->nr_macaddr, nr->nr_bssid, IEEE80211_ADDR_LEN) == 0)
         nr->nr_flags |= IEEE80211_NODEREQ_AP;
     if (ni == ic->ic_bss)
         nr->nr_flags |= IEEE80211_NODEREQ_AP_BSS;
