@@ -39,11 +39,20 @@
 
 #include <nuttx/config.h>
 
+#if defined(CONFIG_DEBUG) && defined(CONFIG_IOB_DEBUG)
+/* Force debug output (from this file only) */
+
+#  undef  CONFIG_DEBUG_NET
+#  define CONFIG_DEBUG_NET 1
+#endif
+
 #include <debug.h>
 
 #include <nuttx/net/iob.h>
 
 #include "iob.h"
+
+#if CONFIG_IOB_NCHAINS > 0
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -58,10 +67,13 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: iob_add_queue
+ * Name: iob_remove_queue
  *
  * Description:
- *   Remove one I/O buffer chain from the heaqd of a queue.
+ *   Remove and return one I/O buffer chain from the head of a queue.
+ *
+ * Returned Value:
+ *   Returns a reference to the I/O buffer chain at the head of the queue.
  *
  ****************************************************************************/
 
@@ -92,3 +104,4 @@ FAR struct iob_s *iob_remove_queue(FAR struct iob_queue_s *iobq)
   return iob;
 }
 
+#endif /* CONFIG_IOB_NCHAINS > 0 */

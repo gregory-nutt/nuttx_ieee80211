@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/iob1/iob_copy.c
+ * net/iob/iob_trimhead_queue.c
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -46,21 +46,21 @@
 #  define CONFIG_DEBUG_NET 1
 #endif
 
-#include <string.h>
 #include <assert.h>
-#include <errno.h>
 #include <debug.h>
 
 #include <nuttx/net/iob.h>
 
 #include "iob.h"
 
+#if CONFIG_IOB_NCHAINS > 0
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifndef MIN
-#  define MIN(a,b) ((a) < (b) ? (a) : (b))
+#ifndef NULL
+#  define NULL ((FAR void *)0)
 #endif
 
 /****************************************************************************
@@ -80,115 +80,48 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: iob_clone
+ * Name: iob_trimhead_queue
  *
  * Description:
- *   Duplicate (and pack) the data in iob1 in iob2.  iob2 must be empty.
+ *   Remove bytes from the beginning of an I/O chain at the head of the
+ *   queue.  Emptied I/O buffers are freed and, hence, the head of the
+ *   queue may change.
+ *
+ *   This function is just a wrapper around iob_trimhead() that assures that
+ *   the I/O buffer chain at the head of queue is modified with the trimming
+ *   operation.
+ *
+ * Returned Value:
+ *   The new I/O buffer chain at the head of the queue is returned.
  *
  ****************************************************************************/
 
-int iob_clone(FAR struct iob_s *iob1, FAR struct iob_s *iob2, bool throttled)
+FAR struct iob_s *iob_trimhead_queue(FAR struct iob_queue_s *qhead,
+                                     unsigned int trimlen)
 {
-  FAR uint8_t *src;
-  FAR uint8_t *dest;
-  unsigned int ncopy;
-  unsigned int avail1;
-  unsigned int avail2;
-  unsigned int offset1;
-  unsigned int offset2;
+  FAR struct iob_qentry_s *qentry;
+  FAR struct iob_s *iob = NULL;
 
-  DEBUGASSERT(iob2->io_len == 0 && iob2->io_offset == 0 &&
-              iob2->io_pktlen == 0 && iob2->io_flink == NULL);
+  /* Peek at the I/O buffer chain container at the head of the queue */
 
-  /* Copy the total packet size from the I/O buffer at the head of the chain */
-
-  iob2->io_pktlen = iob1->io_pktlen;
-
-  /* Handle special case where there are empty buffers at the head
-   * the the list.
-   */
-
-  while (iob1->io_len <= 0)
+  qentry = qhead->qh_head;
+  if (qentry)
     {
-      iob1 = iob1->io_flink;
-    }
+      /* Verify that the queue entry contains an I/O buffer chain */
 
-  /* Pack each entry from iob1 to iob2 */
-
-  offset1 = 0;
-  offset2 = 0;
-
-  while (iob1)
-    {
-      /* Get the source I/O buffer pointer and the number of bytes to copy
-       * from this address.
-       */
-
-      src    = &iob1->io_data[iob1->io_offset + offset1];
-      avail1 = iob1->io_len - offset1;
-
-      /* Get the destination I/O buffer pointer and the number of bytes to
-       * copy to that address.
-       */
-
-      dest   = &iob2->io_data[offset2];
-      avail2 = CONFIG_IOB_BUFSIZE - offset2;
-
-      /* Copy the smaller of the two and update the srce and destination
-       * offsets.
-       */
-
-      ncopy = MIN(avail1, avail2);
-      memcpy(dest, src, ncopy);
-
-      offset1 += ncopy;
-      offset2 += ncopy;
-
-      /* Have we taken all of the data from the source I/O buffer? */
-
-      if (offset1 >= iob1->io_len)
+      iob = qentry->qe_head;
+      if (iob)
         {
-          /* Skip over empty entries in the chain (there should not be any
-           * but just to be safe).
-           */
+          /* Trim the I/Buffer chain and update the queue head */
 
-          do
-            {
-              /* Yes.. move to the next source I/O buffer */
-
-              iob1 = iob1->io_flink;
-            }
-          while (iob1->io_len <= 0);
-
-          /* Reset the offset to the beginning of the I/O buffer */
-
-          offset1 = 0;
-        }
-
-      /* Have we filled the destination I/O buffer? Is there more data to be
-       * transferred?
-       */
-
-       if (offset2 >= CONFIG_IOB_BUFSIZE && iob1 != NULL)
-        {
-          FAR struct iob_s *next;
-
-          /* Allocate new destination I/O buffer and hook it into the
-           * destination I/O buffer chain.
-           */
-
-          next = iob_alloc(throttled);
-          if (!next)
-            {
-              ndbg("Failed to allocate an I/O buffer/n");
-              return -ENOMEM;
-            }
-
-          iob2->io_flink = next;
-          iob2 = next;
-          offset2 = 0;
+          iob = iob_trimhead(iob, trimlen);
+          qentry->qe_head = iob;
         }
     }
 
-  return 0;
+  /* Return the new I/O buffer chain at the head of the queue */
+
+  return iob;
 }
+
+#endif /* CONFIG_IOB_NCHAINS > 0 */

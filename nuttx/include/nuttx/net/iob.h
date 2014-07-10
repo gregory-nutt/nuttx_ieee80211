@@ -43,22 +43,62 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <nuttx/net/iob.h>
+
+#ifdef CONFIG_NET_IOB
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* Configuration ************************************************************/
+
+/* I/O buffer allocation logic supports a throttle value for the TCP
+ * read-ahead buffering to prevent the read-ahead from consuming all
+ * available I/O buffers.  This throttle only applies if both TCP write
+ * buffering and TCP read-ahead buffering are enabled.
+ */
+
+#if !defined(CONFIG_NET_TCP_WRITE_BUFFERS) || !defined(CONFIG_NET_TCP_READAHEAD)
+#  undef CONFIG_IOB_THROTTLE
+#  define CONFIG_IOB_THROTTLE 0
+#endif
+
+/* The correct way to disable throttling is to the the throttle value to
+ * zero.
+ */
+
+#if !defined(CONFIG_IOB_THROTTLE)
+#  define CONFIG_IOB_THROTTLE 0
+#endif
+
+/* Some I/O buffers should be allocated */
+
+#if !defined(CONFIG_IOB_NBUFFERS)
+#  warning CONFIG_IOB_NBUFFERS not defined
+#  define CONFIG_IOB_NBUFFERS 0
+#endif
+
+#if CONFIG_IOB_NBUFFERS < 1
+#  error CONFIG_IOB_NBUFFERS is zero
+#endif
+
+#if CONFIG_IOB_NBUFFERS <= CONFIG_IOB_THROTTLE
+#  error CONFIG_IOB_NBUFFERS <= CONFIG_IOB_THROTTLE
+#endif
 
 /* IOB helpers */
 
 #define IOB_DATA(p)      (&(p)->io_data[(p)->io_offset])
 #define IOB_FREESPACE(p) (CONFIG_IOB_BUFSIZE - (p)->io_len - (p)->io_offset)
 
+#if CONFIG_IOB_NCHAINS > 0
 /* Queue helpers */
 
-#define IOB_QINIT(q)     do { (q)->qh_head = 0; (q)->qh_tail = 0; } while (0)
-#define IOB_QEMPTY(q)    ((q)->head == NULL)
+#  define IOB_QINIT(q)   do { (q)->qh_head = 0; (q)->qh_tail = 0; } while (0)
+#  define IOB_QEMPTY(q)  ((q)->qh_head == NULL)
+#endif
 
 /****************************************************************************
  * Public Types
@@ -89,6 +129,7 @@ struct iob_s
   uint8_t  io_data[CONFIG_IOB_BUFSIZE];
 };
 
+#if CONFIG_IOB_NCHAINS > 0
 /* This container structure supports queuing of I/O buffer chains.  This
  * structure is intended only for internal use by the IOB module.
  */
@@ -113,6 +154,7 @@ struct iob_queue_s
   FAR struct iob_qentry_s *qh_head;
   FAR struct iob_qentry_s *qh_tail;
 };
+#endif /* CONFIG_IOB_NCHAINS > 0 */
 
 /****************************************************************************
  * Global Data
@@ -140,7 +182,7 @@ void iob_initialize(void);
  *
  ****************************************************************************/
 
-FAR struct iob_s *iob_alloc(void);
+FAR struct iob_s *iob_alloc(bool throttled);
 
 /****************************************************************************
  * Name: iob_free
@@ -173,17 +215,43 @@ void iob_free_chain(FAR struct iob_s *iob);
  *
  ****************************************************************************/
 
+#if CONFIG_IOB_NCHAINS > 0
 int iob_add_queue(FAR struct iob_s *iob, FAR struct iob_queue_s *iobq);
+#endif /* CONFIG_IOB_NCHAINS > 0 */
 
 /****************************************************************************
- * Name: iob_add_queue
+ * Name: iob_remove_queue
  *
  * Description:
- *   Remove one I/O buffer chain from the heaqd of a queue.
+ *   Remove and return one I/O buffer chain from the head of a queue.
+ *
+ * Returned Value:
+ *   Returns a reference to the I/O buffer chain at the head of the queue.
  *
  ****************************************************************************/
 
+#if CONFIG_IOB_NCHAINS > 0
 FAR struct iob_s *iob_remove_queue(FAR struct iob_queue_s *iobq);
+#endif /* CONFIG_IOB_NCHAINS > 0 */
+
+/****************************************************************************
+ * Name: iob_peek_queue
+ *
+ * Description:
+ *   Return a reference to the I/O buffer chain at the head of a queue. This
+ *   is similar to iob_remove_queue except that the I/O buffer chain is in
+ *   place at the head of the queue.  The I/O buffer chain may safely be
+ *   modified by the caller but must be removed from the queue before it can
+ *   be freed.
+ *
+ * Returned Value:
+ *   Returns a reference to the I/O buffer chain at the head of the queue.
+ *
+ ****************************************************************************/
+
+#if CONFIG_IOB_NCHAINS > 0
+FAR struct iob_s *iob_peek_queue(FAR struct iob_queue_s *iobq);
+#endif
 
 /****************************************************************************
  * Name: iob_free_queue
@@ -193,7 +261,9 @@ FAR struct iob_s *iob_remove_queue(FAR struct iob_queue_s *iobq);
  *
  ****************************************************************************/
 
+#if CONFIG_IOB_NCHAINS > 0
 void iob_free_queue(FAR struct iob_queue_s *qhead);
+#endif /* CONFIG_IOB_NCHAINS > 0 */
 
 /****************************************************************************
  * Name: iob_copyin
@@ -205,7 +275,7 @@ void iob_free_queue(FAR struct iob_queue_s *qhead);
  ****************************************************************************/
 
 int iob_copyin(FAR struct iob_s *iob, FAR const uint8_t *src,
-               unsigned int len, unsigned int offset);
+               unsigned int len, unsigned int offset, bool throttled);
 
 /****************************************************************************
  * Name: iob_copyout
@@ -227,7 +297,7 @@ int iob_copyout(FAR uint8_t *dest, FAR const struct iob_s *iob,
  *
  ****************************************************************************/
 
-int iob_clone(FAR struct iob_s *iob1, FAR struct iob_s *iob2);
+int iob_clone(FAR struct iob_s *iob1, FAR struct iob_s *iob2, bool throttled);
 
 /****************************************************************************
  * Name: iob_concat
@@ -249,6 +319,27 @@ void iob_concat(FAR struct iob_s *iob1, FAR struct iob_s *iob2);
  ****************************************************************************/
 
 FAR struct iob_s *iob_trimhead(FAR struct iob_s *iob, unsigned int trimlen);
+
+/****************************************************************************
+ * Name: iob_trimhead_queue
+ *
+ * Description:
+ *   Remove bytes from the beginning of an I/O chain at the head of the
+ *   queue.  Emptied I/O buffers are freed and, hence, the head of the
+ *   queue may change.
+ *
+ *   This function is just a wrapper around iob_trimhead() that assures that
+ *   the iob at the head of queue is modified with the trimming operations.
+ *
+ * Returned Value:
+ *   The new iob at the head of the queue is returned.
+ *
+ ****************************************************************************/
+
+#if CONFIG_IOB_NCHAINS > 0
+FAR struct iob_s *iob_trimhead_queue(FAR struct iob_queue_s *qhead,
+                                     unsigned int trimlen);
+#endif
 
 /****************************************************************************
  * Name: iob_trimtail
@@ -278,11 +369,28 @@ FAR struct iob_s *iob_pack(FAR struct iob_s *iob);
  * Name: iob_contig
  *
  * Description:
- *   Ensure that there is'len' bytes of contiguous space at the beginning
+ *   Ensure that there is 'len' bytes of contiguous space at the beginning
  *   of the I/O buffer chain starting at 'iob'.
  *
  ****************************************************************************/
 
 int iob_contig(FAR struct iob_s *iob, unsigned int len);
 
+/****************************************************************************
+ * Function: iob_dump
+ *
+ * Description:
+ *   Dump the contents of a I/O buffer chain
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_DEBUG
+void iob_dump(FAR const char *msg, FAR struct iob_s *iob, unsigned int len,
+              unsigned int offset);
+#else
+#  define iob_dump(wrb)
+#endif
+
+#endif /* CONFIG_NET_IOB */
 #endif /* _INCLUDE_NUTTX_NET_IOB_H */
+

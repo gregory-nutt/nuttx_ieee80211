@@ -39,6 +39,13 @@
 
 #include <nuttx/config.h>
 
+#if defined(CONFIG_DEBUG) && defined(CONFIG_IOB_DEBUG)
+/* Force debug output (from this file only) */
+
+#  undef  CONFIG_DEBUG_NET
+#  define CONFIG_DEBUG_NET 1
+#endif
+
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
@@ -46,6 +53,8 @@
 #include <nuttx/net/iob.h>
 
 #include "iob.h"
+
+#if CONFIG_IOB_NCHAINS > 0
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -102,3 +111,5 @@ int iob_add_queue(FAR struct iob_s *iob, FAR struct iob_queue_s *iobq)
 
   return 0;
 }
+
+#endif /* CONFIG_IOB_NCHAINS > 0 */

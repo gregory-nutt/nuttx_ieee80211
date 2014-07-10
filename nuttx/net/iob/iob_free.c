@@ -39,7 +39,16 @@
 
 #include <nuttx/config.h>
 
+#if defined(CONFIG_DEBUG) && defined(CONFIG_IOB_DEBUG)
+/* Force debug output (from this file only) */
+
+#  undef  CONFIG_DEBUG_NET
+#  define CONFIG_DEBUG_NET 1
+#endif
+
+#include <semaphore.h>
 #include <assert.h>
+#include <debug.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/net/iob.h>
@@ -80,13 +89,15 @@ FAR struct iob_s *iob_free(FAR struct iob_s *iob)
   FAR struct iob_s *next = iob->io_flink;
   irqstate_t flags;
 
+  nllvdbg("iob=%p io_pktlen=%u io_len=%u next=%p\n",
+          iob, iob->io_pktlen, iob->io_len, next);
+
   /* Copy the data that only exists in the head of a I/O buffer chain into
    * the next entry.
    */
 
   if (next)
     {
-
       /* Copy and decrement the total packet length, being careful to
        * do nothing too crazy.
        */
@@ -107,6 +118,9 @@ FAR struct iob_s *iob_free(FAR struct iob_s *iob)
           next->io_pktlen = 0;
           DEBUGASSERT(next->io_len == 0 && next->io_flink == NULL);
         }
+
+      nllvdbg("next=%p io_pktlen=%u io_len=%u\n",
+               next, next->io_pktlen, next->io_len);
     }
 
   /* Free the I/O buffer by adding it to the head of the free list. We don't
@@ -115,8 +129,15 @@ FAR struct iob_s *iob_free(FAR struct iob_s *iob)
    */
 
   flags = irqsave();
-  iob->io_flink  = g_iob_freelist;
+  iob->io_flink = g_iob_freelist;
   g_iob_freelist = iob;
+
+  /* Signal that an IOB is available */
+
+  sem_post(&g_iob_sem);
+#if CONFIG_IOB_THROTTLE > 0
+  sem_post(&g_throttle_sem);
+#endif
   irqrestore(flags);
 
   /* And return the I/O buffer after the one that was freed */
