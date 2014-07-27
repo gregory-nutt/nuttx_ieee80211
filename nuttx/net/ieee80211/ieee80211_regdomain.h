@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/net/ieee80211/ieee80211_regdomain.h
+ * net/ieee80211/ieee80211_regdomain.h
  *
  * Copyright (c) 2004, 2005 Reyk Floeter <reyk@openbsd.org>
  *
@@ -17,8 +17,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_REGDOMAIN_H
-#define __INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_REGDOMAIN_H
+#ifndef __NET_IEEE80211_IEEE80211_REGDOMAIN_H
+#define __NET_IEEE80211_IEEE80211_REGDOMAIN_H
 
 /****************************************************************************
  * Included Files
@@ -794,4 +794,4 @@ const char *ieee80211_regdomain2name(uint32_t);
 uint32_t ieee80211_regdomain2flag(uint16_t, uint16_t);
 uint32_t ieee80211_countrycode2regdomain(uint16_t);
 
-#endif /* __INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_REGDOMAIN_H */
+#endif /* __NET_IEEE80211_IEEE80211_REGDOMAIN_H */

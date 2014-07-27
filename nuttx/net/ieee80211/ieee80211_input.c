@@ -57,10 +57,15 @@
 
 #include <nuttx/net/arp.h>
 #include <nuttx/net/iob.h>
-#include <nuttx/net/ieee80211/ieee80211_debug.h>
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_priv.h>
+
+#include "ieee80211/ieee80211_debug.h"
+#include "ieee80211/ieee80211_ifnet.h"
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_priv.h"
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
 
 struct iob_s *ieee80211_defrag(struct ieee80211_s *, struct iob_s *, int);
 void ieee80211_defrag_timeout(void *);
@@ -132,6 +137,10 @@ void ieee80211_recv_bar(struct ieee80211_s *, struct iob_s *,
 void ieee80211_bar_tid(struct ieee80211_s *, struct ieee80211_node *,
         uint8_t, uint16_t);
 #endif
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 /* Retrieve the length in bytes of an 802.11 header */
 

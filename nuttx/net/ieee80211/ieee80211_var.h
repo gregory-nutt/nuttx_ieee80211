@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/net/ieee80211_var.h
+ * net/ieee80211/ieee80211_var.h
  * Definitions for IEEE 802.11 drivers.
  *
  * Copyright (c) 2001 Atsushi Onoe
@@ -30,8 +30,8 @@
  *
  ****************************************************************************/
 
-#ifndef _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_VAR_H
-#define _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_VAR_H
+#ifndef __NET_IEEE80211_IEEE80211_VAR_H
+#define __NET_IEEE80211_IEEE80211_VAR_H
 
 /****************************************************************************
  * Included Files
@@ -45,10 +45,10 @@
 #include <net/if.h>
 
 #include <nuttx/net/iob.h>
-#include <nuttx/net/ieee80211/ieee80211.h>
-#include <nuttx/net/ieee80211/ieee80211_crypto.h>
-#include <nuttx/net/ieee80211/ieee80211_node.h>
-#include <nuttx/net/ieee80211/ieee80211_proto.h>
+#include "ieee80211/ieee80211.h"
+#include "ieee80211/ieee80211_crypto.h"
+#include "ieee80211/ieee80211_node.h"
+#include "ieee80211/ieee80211_proto.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -444,4 +444,4 @@ enum ieee80211_phymode ieee80211_chan2mode(struct ieee80211_s *,
 
 extern int ieee80211_cache_size;
 
-#endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_VAR_H */
+#endif /* __NET_IEEE80211_IEEE80211_VAR_H */

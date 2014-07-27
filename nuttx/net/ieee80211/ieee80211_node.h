@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/net/ieee80211/ieee80211_node.h
+ * net/ieee80211/ieee80211_node.h
  *
  * Copyright (c) 2001 Atsushi Onoe
  * Copyright (c) 2002, 2003 Sam Leffler, Errno Consulting
@@ -29,8 +29,8 @@
  *
  ****************************************************************************/
 
-#ifndef _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_NODE_H
-#define _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_NODE_H
+#ifndef __NET_IEEE80211_IEEE80211_NODE_H
+#define __NET_IEEE80211_IEEE80211_NODE_H
 
 /****************************************************************************
  * Included Files
@@ -377,4 +377,4 @@ int ieee80211_node_cmp(const struct ieee80211_node *,
         const struct ieee80211_node *);
 RB_PROTOTYPE(ieee80211_tree, ieee80211_node, ni_node, ieee80211_node_cmp);
 
-#endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_NODE_H */
+#endif /* __NET_IEEE80211_IEEE80211_NODE_H */

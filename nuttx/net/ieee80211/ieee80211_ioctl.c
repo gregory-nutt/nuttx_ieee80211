@@ -48,14 +48,23 @@
 
 #include <nuttx/tree.h>
 #include <nuttx/net/uip/uip-arch.h>
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_crypto.h>
-#include <nuttx/net/ieee80211/ieee80211_ioctl.h>
+
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_crypto.h"
+#include "ieee80211/ieee80211_ioctl.h"
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
 
 void     ieee80211_node2req(struct ieee80211_s *,
         const struct ieee80211_node *, struct ieee80211_nodereq *);
 void     ieee80211_req2node(struct ieee80211_s *,
         const struct ieee80211_nodereq *, struct ieee80211_node *);
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 void ieee80211_node2req(struct ieee80211_s *ic, const struct ieee80211_node *ni,
     struct ieee80211_nodereq *nr)

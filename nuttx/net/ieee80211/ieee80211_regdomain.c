@@ -37,11 +37,19 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_regdomain.h>
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_regdomin.h"
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
 
 int ieee80211_regdomain_compare_cn(const void *, const void *);
 int ieee80211_regdomain_compare_rn(const void *, const void *);
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
 static const struct ieee80211_regdomainname
 ieee80211_r_names[] = IEEE80211_REGDOMAIN_NAMES;
@@ -51,6 +59,10 @@ ieee80211_r_map[] = IEEE80211_REGDOMAIN_MAP;
 
 static const struct ieee80211_countryname
 ieee80211_r_ctry[] = IEEE80211_REGDOMAIN_COUNTRY_NAMES;
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 #ifndef bsearch
 const void *bsearch(const void *, const void *, size_t, size_t,

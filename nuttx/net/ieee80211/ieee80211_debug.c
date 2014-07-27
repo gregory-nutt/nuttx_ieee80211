@@ -39,8 +39,8 @@
 
 #include <nuttx/config.h>
 
-#icnlude <nuttx/net/ieee80211/ieee80211.h>
-#include <nuttx/net/ieee80211/ieee80211_debug.h>
+#icnlude "ieee80211/ieee80211.h"
+#include "ieee80211/ieee80211_debug.h"
 
 /****************************************************************************
  * Pre-processor Definitions

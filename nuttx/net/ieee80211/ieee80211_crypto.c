@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/ieee80211_cypto.c
+ * net/ieee80211/ieee80211_cypto.c
  *
  * Copyright (c) 2008 Damien Bergamini <damien.bergamini@free.fr>
  *
@@ -40,8 +40,13 @@
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/net/iob.h>
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_priv.h>
+
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_priv.h"
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
 
 void ieee80211_prf(const uint8_t *, size_t, const uint8_t *, size_t,
         const uint8_t *, size_t, uint8_t *, size_t);
@@ -49,6 +54,10 @@ void ieee80211_kdf(const uint8_t *, size_t, const uint8_t *, size_t,
         const uint8_t *, size_t, uint8_t *, size_t);
 void ieee80211_derive_pmkid(enum ieee80211_akm, const uint8_t *,
         const uint8_t *, const uint8_t *, uint8_t *);
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 void ieee80211_crypto_attach(struct ieee80211_s *ic)
 {

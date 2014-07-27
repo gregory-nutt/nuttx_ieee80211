@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/ieee80211_output.c
+ * net/ieee980211/ieee80211_output.c
  *
  * Copyright (c) 2001 Atsushi Onoe
  * Copyright (c) 2002, 2003 Sam Leffler, Errno Consulting
@@ -60,12 +60,17 @@
 #include <nuttx/net/iob.h>
 #include <nuttx/net/uip/uip.h>
 #include <nuttx/net/uip/uip-arch.h>
-#include <nuttx/net/ieee80211/ieee80211_debug.h>
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_priv.h>
+
+#include "ieee80211/ieee80211_debug.h"
+#include "ieee80211/ieee80211_ifnet.h"
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_priv.h"
 
 #include "net_internal.h"
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
 
 int ieee80211_classify(struct ieee80211_s *, struct iob_s *);
 static int ieee80211_mgmt_output(struct ieee80211_s *, struct ieee80211_node *,
@@ -103,6 +108,10 @@ struct iob_s *ieee80211_get_sa_query(struct ieee80211_s *,
         struct ieee80211_node *, uint8_t);
 struct iob_s *ieee80211_get_action(struct ieee80211_s *,
         struct ieee80211_node *, uint8_t, uint8_t, int);
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 /* IEEE 802.11 output routine. Normally this will directly call the
  * Ethernet output routine because 802.11 encapsulation is called

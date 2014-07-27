@@ -36,9 +36,9 @@
 
 #include <debug.h>
 
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_priv.h>
-#include <nuttx/net/ieee80211/ieee80211_amrr.h>
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_priv.h"
+#include "ieee80211/ieee80211_amrr.h"
 
 /****************************************************************************
  * Pre-processor Definitions

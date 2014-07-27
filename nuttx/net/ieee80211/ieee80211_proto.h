@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/net/ieee80211/ieee80211_proto.h
+ * net/ieee80211/ieee80211_proto.h
  *
  * 802.11 protocol implementation definitions.
  *
@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#ifndef _NET80211_IEEE80211_PROTO_H_
-#define _NET80211_IEEE80211_PROTO_H_
+#ifndef __NET_IEEE80211_IEEE80211_PROTO_H
+#define __NET_IEEE80211_IEEE80211_PROTO_H
 
 /****************************************************************************
  * Included Files
@@ -182,4 +182,4 @@ void ieee80211_delba_request(struct ieee80211_s *,
         struct ieee80211_node *, uint16_t, uint8_t, uint8_t);
 #endif
 
-#endif /* _NET80211_IEEE80211_PROTO_H_ */
+#endif /* __NET_IEEE80211_IEEE80211_PROTO_H */

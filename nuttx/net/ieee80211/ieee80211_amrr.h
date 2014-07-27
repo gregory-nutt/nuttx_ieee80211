@@ -1,5 +1,3 @@
-/*	$OpenBSD: ieee80211_amrr.h,v 1.4 2007/06/16 13:17:05 damien Exp $	*/
-
 /*-
  * Copyright (c) 2006
  *	Damien Bergamini <damien.bergamini@free.fr>
@@ -16,8 +14,9 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#ifndef _NET80211_IEEE80211_AMRR_H_
-#define _NET80211_IEEE80211_AMRR_H_
+
+#ifndef _NET_IEEE80211_IEEE80211_AMRR_H_
+#define _NET_IEEE80211_IEEE80211_AMRR_H_
 
 /*-
  * Naive implementation of the Adaptive Multi Rate Retry algorithm:
@@ -31,7 +30,8 @@
 /*
  * Rate control settings.
  */
-struct ieee80211_amrr {
+struct ieee80211_amrr
+{
 	unsigned int	amrr_min_success_threshold;
 	unsigned int	amrr_max_success_threshold;
 };
@@ -55,4 +55,4 @@ void	ieee80211_amrr_node_init(const struct ieee80211_amrr *,
 void	ieee80211_amrr_choose(struct ieee80211_amrr *, struct ieee80211_node *,
 	    struct ieee80211_amrr_node *);
 
-#endif /* _NET80211_IEEE80211_AMRR_H_ */
+#endif /* _NET_IEEE80211_IEEE80211_AMRR_H_ */

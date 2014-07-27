@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/net/ieee80211_priv.h
+ * net/ieee80211/ieee80211_priv.h
  *
  * Copyright (c) 2008 Damien Bergamini <damien.bergamini@free.fr>
  *
@@ -17,8 +17,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_PRIV_H
-#define __INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_PRIV_H
+#ifndef __NET_IEEE80211_IEEE80211_PRIV_H
+#define __NET_IEEE80211_IEEE80211_PRIV_H
 
 /****************************************************************************
  * Included Files
@@ -129,4 +129,4 @@ struct ieee80211_rsnparams {
     (p)[1] = (v) >>  8; (p)[0] = (v);    \
 } while (0)
 
-#endif /* __INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_PRIV_H */
+#endif /* __NET_IEEE80211_IEEE80211_PRIV_H */

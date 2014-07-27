@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/net/ieee80211/ieee80211.h
+ * net/ieee80211/ieee80211.h
  * 802.11 protocol definitions.
  *
  * Copyright (c) 2002, 2003 Sam Leffler, Errno Consulting
@@ -27,8 +27,8 @@
  *
  ****************************************************************************/
 
-#ifndef _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_H
-#define _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_H
+#ifndef __NET_IEEE80211_IEEE80211_H
+#define __NET_IEEE80211_IEEE80211_H
 
 /****************************************************************************
  * Included Files
@@ -843,4 +843,4 @@ iee80211_handle ieee80211_initialize(FAR const char *ifname);
 
 void ieee80211_uninitialize(iee80211_handle handle);
 
-#endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_H */
+#endif /* __NET_IEEE80211_IEEE80211_H */

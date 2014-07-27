@@ -41,8 +41,9 @@
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/net/iob.h>
-#include <nuttx/net/ieee80211/ieee80211_crypto.h>
-#include <nuttx/net/ieee80211/ieee80211_crypto.h>
+
+#include "ieee80211/ieee80211_crypto.h"
+#include "ieee80211/ieee80211_crypto.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -63,6 +64,10 @@ struct ieee80211_wep_ctx
   struct rc4_ctx    rc4;
   uint32_t    iv;
 };
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 /* Initialize software crypto context.  This function can be overridden
  * by drivers doing hardware crypto.

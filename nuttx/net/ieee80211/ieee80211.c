@@ -54,9 +54,10 @@
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/net/iob.h>
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_priv.h>
+
+#include "ieee80211/ieee80211_ifnet.h"
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_priv.h"
 
 int ieee80211_cache_size = IEEE80211_CACHE_SIZE;
 

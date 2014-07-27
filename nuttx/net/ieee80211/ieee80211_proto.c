@@ -56,9 +56,9 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/net/iob.h>
 
-#include <nuttx/net/ieee80211/ieee80211_debug.h>
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_priv.h>
+#include "ieee80211/ieee80211_debug.h"
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_priv.h"
 
 const char * const ieee80211_mgt_subtype_name[] =
 {

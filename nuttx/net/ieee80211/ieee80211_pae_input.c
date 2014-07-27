@@ -43,10 +43,11 @@
 
 #include <nuttx/net/arp.h>
 #include <nuttx/net/iob.h>
-#include <nuttx/net/ieee80211/ieee80211_debug.h>
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_priv.h>
+
+#include "ieee80211/ieee80211_debug.h"
+#include "ieee80211/ieee80211_ifnet.h"
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_priv.h"
 
 static void ieee80211_recv_4way_msg1(struct ieee80211_s *,
         struct ieee80211_eapol_key *, struct ieee80211_node *);

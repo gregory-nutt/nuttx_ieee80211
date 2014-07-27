@@ -1,7 +1,3 @@
-/* $OpenBSD: ieee80211_radiotap.h,v 1.11 2010/07/17 16:25:09 damien Exp $ */
-/* $FreeBSD: src/sys/net80211/ieee80211_radiotap.h,v 1.3 2004/04/05 22:13:21 sam Exp $ */
-/* $NetBSD: ieee80211_radiotap.h,v 1.9 2004/06/06 04:13:28 dyoung Exp $ */
-
 /*-
  * Copyright (c) 2003, 2004 David Young.  All rights reserved.
  *
@@ -28,8 +24,8 @@
  * OF SUCH DAMAGE.
  */
 
-#ifndef _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_RADIOTAP_H
-#define _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_RADIOTAP_H
+#ifndef __NET_IEEE80211_IEEE80211_RADIOTAP_H
+#define __NET_IEEE80211_IEEE80211_RADIOTAP_H
 
 /* A generic radio capture format is desirable. There is one for
  * Linux, but it is neither rigidly defined (there were not even
@@ -222,4 +218,4 @@ enum ieee80211_radiotap_type {
                          */
 #define IEEE80211_RADIOTAP_F_FCS         0x10    /* frame includes FCS */
 
-#endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_RADIOTAP_H */
+#endif /* __NET_IEEE80211_IEEE80211_RADIOTAP_H */

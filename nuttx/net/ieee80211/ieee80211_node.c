@@ -58,10 +58,10 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/tree.h>
 
-#include <nuttx/net/ieee80211/ieee80211_debug.h>
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_priv.h>
+#include "ieee80211/ieee80211_debug.h"
+#include "ieee80211/ieee80211_ifnet.h"
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_priv.h"
 
 struct ieee80211_node *ieee80211_node_alloc(struct ieee80211_s *);
 void ieee80211_node_free(struct ieee80211_s *, struct ieee80211_node *);

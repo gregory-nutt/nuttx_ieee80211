@@ -46,10 +46,15 @@
 
 #include <nuttx/net/arp.h>
 #include <nuttx/net/iob.h>
-#include <nuttx/net/ieee80211/ieee80211_debug.h>
-#include <nuttx/net/ieee80211/ieee80211_ifnet.h>
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_priv.h>
+
+#include "ieee80211/ieee80211_debug.h"
+#include "ieee80211/ieee80211_ifnet.h"
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_priv.h"
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
 
 static int ieee80211_send_eapol_key(struct ieee80211_s *, struct iob_s *,
             struct ieee80211_node *, const struct ieee80211_ptk *);
@@ -60,6 +65,10 @@ static uint8_t *ieee80211_add_pmkid_kde(uint8_t *, const uint8_t *);
 static uint8_t *ieee80211_add_igtk_kde(uint8_t *, const struct ieee80211_key *);
 #endif
 static struct iob_s *ieee80211_get_eapol_key(int, unsigned int);
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 /* Send an EAPOL-Key frame to node `ni'.  If MIC or encryption is required,
  * the PTK must be passed (otherwise it can be set to NULL.)

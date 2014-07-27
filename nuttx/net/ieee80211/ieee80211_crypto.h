@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/net/ieee80211/ieee80211_crypto.h
+ * net/ieee80211/ieee80211_crypto.h
  * 802.11 protocol crypto-related definitions.
  *
  * Copyright (c) 2007,2008 Damien Bergamini <damien.bergamini@free.fr>
@@ -17,8 +17,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_CRYPTO_H
-#define _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_CRYPTO_H
+#ifndef __NET_IEEE80211_IEEE80211_CRYPTO_H
+#define __NET_IEEE80211_IEEE80211_CRYPTO_H
 
 /****************************************************************************
  * Included Files
@@ -186,4 +186,4 @@ struct iob_s *ieee80211_bip_encap(struct ieee80211_s *, struct iob_s *,
 struct iob_s *ieee80211_bip_decap(struct ieee80211_s *, struct iob_s *,
         struct ieee80211_key *);
 
-#endif /* _INCLUDE_NUTTX_NET_IEEE80211_IEEE80211_CRYPTO_H */
+#endif /* __NET_IEEE80211_IEEE80211_CRYPTO_H */

@@ -41,9 +41,9 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
-#include <nuttx/net/ieee80211/ieee80211_debug.h>
-#include <nuttx/net/ieee80211/ieee80211_var.h>
-#include <nuttx/net/ieee80211/ieee80211_rssadapt.h>
+#include "ieee80211/ieee80211_debug.h"
+#include "ieee80211/ieee80211_var.h"
+#include "ieee80211/ieee80211_rssadapt.h"
 
 #ifdef interpolate
 #undef interpolate
