@@ -1,3 +1,4 @@
+
 /****************************************************************************
  * net/ieee80211/ieee80211_debug.c
  *
@@ -68,18 +69,18 @@ static const char digits[] = "0123456789abcdef";
  *
  ****************************************************************************/
 
-FAR char *ieee80211_addr2str(uint8_t *addr)
+FAR char *ieee80211_addr2str(uint8_t * addr)
 {
   static char buffer[IEEE80211_ADDR_LEN * 3];
   FAR char *str;
   int i;
 
-   for (i = 0, str = buffer; i < IEEE80211_ADDR_LEN; i++)
-     {
-       *str++ = digits[*addr >> 4];
-       *str++ = digits[*addr++ & 0xf];
-       *str++ = ':';
-     }
+  for (i = 0, str = buffer; i < IEEE80211_ADDR_LEN; i++)
+    {
+      *str++ = digits[*addr >> 4];
+      *str++ = digits[*addr++ & 0xf];
+      *str++ = ':';
+    }
 
   *--str = '\0';
   return buffer;

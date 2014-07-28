@@ -36,7 +36,8 @@
 /* Buckets for frames 0-128 bytes long, 129-1024, 1025-maximum. */
 #define	IEEE80211_RSSADAPT_BKTS		3
 #define IEEE80211_RSSADAPT_BKT0		128
-#define	IEEE80211_RSSADAPT_BKTPOWER	3	/* 2**_BKTPOWER */
+#define	IEEE80211_RSSADAPT_BKTPOWER	3
+                                                /* 2**_BKTPOWER */
 
 #define	ieee80211_rssadapt_thresh_new \
     (ieee80211_rssadapt_thresh_denom - ieee80211_rssadapt_thresh_old)
@@ -45,57 +46,76 @@
 #define	ieee80211_rssadapt_avgrssi_new \
     (ieee80211_rssadapt_avgrssi_denom - ieee80211_rssadapt_avgrssi_old)
 
-struct ieee80211_rssadapt_expavgctl {
-	/* RSS threshold decay. */
-	unsigned int rc_decay_denom;
-	unsigned int rc_decay_old;
-	/* RSS threshold update. */
-	unsigned int rc_thresh_denom;
-	unsigned int rc_thresh_old;
-	/* RSS average update. */
-	unsigned int rc_avgrssi_denom;
-	unsigned int rc_avgrssi_old;
-};
+struct ieee80211_rssadapt_expavgctl
+  {
+    /* RSS threshold decay. */
 
-struct ieee80211_rssadapt {
-	/* exponential average RSSI << 8 */
-	uint16_t		ra_avg_rssi;
-	/* Tx failures in this update interval */
-	uint32_t		ra_nfail;
-	/* Tx successes in this update interval */
-	uint32_t		ra_nok;
-	/* exponential average packets/second */
-	uint32_t		ra_pktrate;
-	/* RSSI threshold for each Tx rate */
-	uint16_t		ra_rate_thresh[IEEE80211_RSSADAPT_BKTS]
-				    [IEEE80211_RATE_SIZE];
-	struct timeval		ra_last_raise;
-	struct timeval		ra_raise_interval;
-};
+    unsigned int rc_decay_denom;
+    unsigned int rc_decay_old;
+
+    /* RSS threshold update. */
+
+    unsigned int rc_thresh_denom;
+    unsigned int rc_thresh_old;
+
+    /* RSS average update. */
+
+    unsigned int rc_avgrssi_denom;
+    unsigned int rc_avgrssi_old;
+  };
+
+struct ieee80211_rssadapt
+  {
+    /* exponential average RSSI << 8 */
+
+    uint16_t ra_avg_rssi;
+
+    /* Tx failures in this update interval */
+
+    uint32_t ra_nfail;
+
+    /* Tx successes in this update interval */
+
+    uint32_t ra_nok;
+
+    /* exponential average packets/second */
+
+    uint32_t ra_pktrate;
+
+    /* RSSI threshold for each Tx rate */
+
+    uint16_t ra_rate_thresh[IEEE80211_RSSADAPT_BKTS][IEEE80211_RATE_SIZE];
+    struct timeval ra_last_raise;
+    struct timeval ra_raise_interval;
+  };
 
 /* Properties of a Tx packet, for link adaptation. */
-struct ieee80211_rssdesc {
-	unsigned int		id_len; 	/* Tx packet length */
-	unsigned int		id_rateidx;	/* index into ni->ni_rates */
-	struct ieee80211_node	*id_node;	/* destination STA MAC */
-	uint8_t		        id_rssi;	/* destination STA avg RSS @
-						 * Tx time
-						 */
-};
 
-void	ieee80211_rssadapt_updatestats(struct ieee80211_rssadapt *);
-void	ieee80211_rssadapt_input(struct ieee80211_s *,
-	    const struct ieee80211_node *, struct ieee80211_rssadapt *, int);
-void	ieee80211_rssadapt_lower_rate(struct ieee80211_s *,
-	    const struct ieee80211_node *, struct ieee80211_rssadapt *,
-	    const struct ieee80211_rssdesc *);
-void	ieee80211_rssadapt_raise_rate(struct ieee80211_s *,
-	    struct ieee80211_rssadapt *, const struct ieee80211_rssdesc *);
-int	ieee80211_rssadapt_choose(struct ieee80211_rssadapt *,
-	    const struct ieee80211_rateset *, const struct ieee80211_frame *,
-	    unsigned int, int, const char *, int);
+struct ieee80211_rssdesc
+  {
+    unsigned int id_len;        /* Tx packet length */
+    unsigned int id_rateidx;    /* index into ni->ni_rates */
+    struct ieee80211_node *id_node;     /* destination STA MAC */
+    uint8_t id_rssi;            /* destination STA avg RSS @ Tx time */
+  };
+
+void ieee80211_rssadapt_updatestats(struct ieee80211_rssadapt *);
+void ieee80211_rssadapt_input(struct ieee80211_s *,
+                              const struct ieee80211_node *,
+                              struct ieee80211_rssadapt *, int);
+void ieee80211_rssadapt_lower_rate(struct ieee80211_s *,
+                                   const struct ieee80211_node *,
+                                   struct ieee80211_rssadapt *,
+                                   const struct ieee80211_rssdesc *);
+void ieee80211_rssadapt_raise_rate(struct ieee80211_s *,
+                                   struct ieee80211_rssadapt *,
+                                   const struct ieee80211_rssdesc *);
+int ieee80211_rssadapt_choose(struct ieee80211_rssadapt *,
+                              const struct ieee80211_rateset *,
+                              const struct ieee80211_frame *, unsigned int, int,
+                              const char *, int);
 #ifdef CONFIG_DEBUG_NET
 extern int ieee80211_rssadapt_debug;
-#endif /* CONFIG_DEBUG_NET */
+#endif                               /* CONFIG_DEBUG_NET */
 
 #endif /* __NET_IEEE80211_IEEE80211_RSSADAPT_H */

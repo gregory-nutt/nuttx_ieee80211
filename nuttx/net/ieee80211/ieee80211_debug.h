@@ -60,6 +60,6 @@
  *
  ****************************************************************************/
 
-char *ieee80211_addr2str(uint8_t *addr);
+char *ieee80211_addr2str(uint8_t * addr);
 
 #endif /* __NET_IEEE80211_IEEE80211_DEBUG_H */

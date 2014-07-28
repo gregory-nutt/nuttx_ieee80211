@@ -106,9 +106,9 @@ void ieee80211_amrr_choose(struct ieee80211_amrr *amrr,
           amn->amn_success = 0;
           increase_rate(ni);
 
-            nvdbg("increase rate=%d,#tx=%d,#retries=%d\n",
-                  RV(ni->ni_rates.rs_rates[ni->ni_txrate]),
-                  amn->amn_txcnt, amn->amn_retrycnt);
+          nvdbg("increase rate=%d,#tx=%d,#retries=%d\n",
+                RV(ni->ni_rates.rs_rates[ni->ni_txrate]),
+                amn->amn_txcnt, amn->amn_retrycnt);
 
           need_change = 1;
         }

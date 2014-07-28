@@ -1,6 +1,6 @@
 /*-
  * Copyright (c) 2006
- *	Damien Bergamini <damien.bergamini@free.fr>
+ *   Damien Bergamini <damien.bergamini@free.fr>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,10 +31,10 @@
  * Rate control settings.
  */
 struct ieee80211_amrr
-{
-	unsigned int	amrr_min_success_threshold;
-	unsigned int	amrr_max_success_threshold;
-};
+  {
+    unsigned int amrr_min_success_threshold;
+    unsigned int amrr_max_success_threshold;
+  };
 
 #define IEEE80211_AMRR_MIN_SUCCESS_THRESHOLD	 1
 #define IEEE80211_AMRR_MAX_SUCCESS_THRESHOLD	15
@@ -42,17 +42,18 @@ struct ieee80211_amrr
 /*
  * Rate control state for a given node.
  */
-struct ieee80211_amrr_node {
-	unsigned int	amn_success;
-	unsigned int	amn_recovery;
-	unsigned int	amn_success_threshold;
-	unsigned int	amn_txcnt;
-	unsigned int	amn_retrycnt;
-};
+struct ieee80211_amrr_node
+  {
+    unsigned int amn_success;
+    unsigned int amn_recovery;
+    unsigned int amn_success_threshold;
+    unsigned int amn_txcnt;
+    unsigned int amn_retrycnt;
+  };
 
-void	ieee80211_amrr_node_init(const struct ieee80211_amrr *,
-	    struct ieee80211_amrr_node *);
-void	ieee80211_amrr_choose(struct ieee80211_amrr *, struct ieee80211_node *,
-	    struct ieee80211_amrr_node *);
+void ieee80211_amrr_node_init(const struct ieee80211_amrr *,
+                              struct ieee80211_amrr_node *);
+void ieee80211_amrr_choose(struct ieee80211_amrr *, struct ieee80211_node *,
+                           struct ieee80211_amrr_node *);
 
 #endif /* _NET_IEEE80211_IEEE80211_AMRR_H_ */

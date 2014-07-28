@@ -105,7 +105,8 @@ void ieee80211_ifinit(FAR struct ieee80211_s *ic)
  *
  ****************************************************************************/
 
-int ieee80211_ifsend(FAR struct ieee80211_s *ic, FAR struct iob_s *iob, uint8_t flags)
+int ieee80211_ifsend(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                     uint8_t flags)
 {
   /* Add the I/O buffer chain to the driver output queue */
 #warning Missing logic
@@ -113,13 +114,12 @@ int ieee80211_ifsend(FAR struct ieee80211_s *ic, FAR struct iob_s *iob, uint8_t 
   /* Are we currently accepting driver polls? */
 #warning Missing logic
 
-    /* No.. Allocate a callback structure */
+  /* No.. Allocate a callback structure */
 #warning Missing logic
 
-    /* Initialize the callback structure */
+  /* Initialize the callback structure */
 #warning Missing logic
 
-    /* Indicate that we are accepting driver polls */
+  /* Indicate that we are accepting driver polls */
 #warning Missing logic
 }
-

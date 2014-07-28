@@ -47,7 +47,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define IFSEND_MCAST   (1 << 0) /* Send as multi-cast */
+#define IFSEND_MCAST   (1 << 0)  /* Send as multi-cast */
 
 /****************************************************************************
  * Public Types
