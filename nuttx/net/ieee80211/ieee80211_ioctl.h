@@ -317,10 +317,11 @@ struct ieee80211_flags
   unsigned int            f_flag;
 };
 
-#define IEEE80211_FLAGS    {                        \
+#define IEEE80211_FLAGS
+  { \
     { "hidenwid", IEEE80211_F_HIDENWID >> IEEE80211_F_USERSHIFT },    \
     { "nobridge", IEEE80211_F_NOBRIDGE >> IEEE80211_F_USERSHIFT }    \
-}
+  }
 
 #define SIOCG80211FLAGS        _IOWR('i', 216, struct ifreq)
 #define SIOCS80211FLAGS        _IOW('i', 217, struct ifreq)

@@ -1535,12 +1535,16 @@ struct iob_s *ieee80211_get_assoc_resp(struct ieee80211_s *ic, struct ieee80211_
         status == IEEE80211_STATUS_TRY_AGAIN_LATER)
       {
         /* Association Comeback Time */
+
         frm = ieee80211_add_tie(frm, 3, 1000 /* XXX */);
+      }
+
 #ifdef CONFIG_IEEE80211_HT
-    if (ni->ni_flags & IEEE80211_NODE_HT) {
+    if (ni->ni_flags & IEEE80211_NODE_HT)
+      {
         frm = ieee80211_add_htcaps(frm, ic);
         frm = ieee80211_add_htop(frm, ic);
-    }
+      }
 #endif
 
   iob->io_pktlen = iob->io_len = frm - IOB_DATA(iob);
