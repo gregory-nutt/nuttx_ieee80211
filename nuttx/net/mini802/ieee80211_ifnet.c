@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/ieee80211/ieee80211_debug.c
+ * net/mini802/ieee80211_ifnet.c
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,12 +39,22 @@
 
 #include <nuttx/config.h>
 
-#include "ieee80211/ieee80211.h"
-#include "ieee80211/ieee80211_debug.h"
+#include <stdbool.h>
+#include <string.h>
+#include <queue.h>
+
+#include <nuttx/net/iob.h>
+
+#include "mini802/ieee80211_ifnet.h"
+#include "mini802/ieee80211_var.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#ifndef MIN
+#  define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
 
 /****************************************************************************
  * Private Types
@@ -54,33 +64,62 @@
  * Private Data
  ****************************************************************************/
 
-static const char digits[] = "0123456789abcdef";
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ieee80211_addr2str
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: ieee80211_ifinit
  *
  * Description:
- *   Convert an IEEE 802.11 address to printable representation
+ *   Set up the devices interface I/O buffers for normal operations.
  *
  ****************************************************************************/
 
-FAR char *ieee80211_addr2str(uint8_t * addr)
+void ieee80211_ifinit(FAR struct ieee80211_s *ic)
 {
-  static char buffer[IEEE80211_ADDR_LEN * 3];
-  FAR char *str;
-  int i;
+  /* Perform one-time initialization */
+  /* Initialize the I/O buffering (okay to call multiple times */
 
-  for (i = 0, str = buffer; i < IEEE80211_ADDR_LEN; i++)
-    {
-      *str++ = digits[*addr >> 4];
-      *str++ = digits[*addr++ & 0xf];
-      *str++ = ':';
-    }
+  iob_initialize();
 
-  *--str = '\0';
-  return buffer;
+  /* Perform pre-instance initialization */
+  /* NONE */
+}
+
+/****************************************************************************
+ * Name: ieee80211_ifsend
+ *
+ * Description:
+ *   Enqueue the packet to be sent by the Ethernet driver and begin
+ *   accepting TX polls from the Ethernet driver (if we are not already doing
+ *   so.
+ *
+ ****************************************************************************/
+
+int ieee80211_ifsend(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                     uint8_t flags)
+{
+  /* Add the I/O buffer chain to the driver output queue */
+#warning Missing logic
+
+  /* Are we currently accepting driver polls? */
+#warning Missing logic
+
+  /* No.. Allocate a callback structure */
+#warning Missing logic
+
+  /* Initialize the callback structure */
+#warning Missing logic
+
+  /* Indicate that we are accepting driver polls */
+#warning Missing logic
 }

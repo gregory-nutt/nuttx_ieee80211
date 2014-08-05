@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/ieee80211/ieee80211_proto.c
+ * net/mini802/ieee80211_proto.c
  * IEEE 802.11 protocol support.
  *
  * Copyright (c) 2001 Atsushi Onoe
@@ -56,9 +56,9 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/net/iob.h>
 
-#include "ieee80211/ieee80211_debug.h"
-#include "ieee80211/ieee80211_var.h"
-#include "ieee80211/ieee80211_priv.h"
+#include "mini802/ieee80211_debug.h"
+#include "mini802/ieee80211_var.h"
+#include "mini802/ieee80211_priv.h"
 
 const char *const ieee80211_mgt_subtype_name[] = {
   "assoc_req", "assoc_resp", "reassoc_req", "reassoc_resp",

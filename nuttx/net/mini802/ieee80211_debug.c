@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/ieee80211/ieee80211_debug.c
+ * net/mini802/ieee80211_debug.c
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,8 +39,8 @@
 
 #include <nuttx/config.h>
 
-#include "ieee80211/ieee80211.h"
-#include "ieee80211/ieee80211_debug.h"
+#include "mini802/ieee80211.h"
+#include "mini802/ieee80211_debug.h"
 
 /****************************************************************************
  * Pre-processor Definitions

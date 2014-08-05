@@ -1,0 +1,56 @@
+############################################################################
+# net/ieee80211/Make.defs
+#
+#   Copyright (C) 2014 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+ifeq ($(CONFIG_NET_IEEE80211),y)
+
+# Include ieee80211 stack files
+
+NET_CSRCS += ieee80211.c ieee80211_amrr.c ieee80211_debug.c ieee80211_ifnet.c
+NET_CSRCS += ieee80211_input.c ieee80211_ioctl.c ieee80211_node.c ieee80211_output.c
+NET_CSRCS += ieee80211_pae_input.c ieee80211_pae_output.c ieee80211_proto.c
+NET_CSRCS += ieee80211_regdomain.c ieee80211_rssadapt.c
+
+ifeq ($(CONFIG_IEEE80211_CRYPTO),y)
+    NET_CSRCS += ieee80211_crypto_bip.c ieee80211_crypto.c ieee80211_crypto_ccmp.c
+    NET_CSRCS += ieee80211_crypto_tkip.c ieee80211_crypto_wep.c
+endif
+
+# Include wireless build support
+
+DEPPATH += --dep-path ieee80211
+VPATH += :ieee80211
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)net$(DELIM)ieee80211}
+
+endif

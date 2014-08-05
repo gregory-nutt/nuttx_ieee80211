@@ -104,7 +104,8 @@ include arp/Make.defs
 include icmp/Make.defs
 include igmp/Make.defs
 include uip/Make.defs
-include ieee80211/Make.defs
+#include ieee80211/Make.defs
+include mini802/Make.defs
 endif
 
 ASRCS		= $(SOCK_ASRCS) $(NETDEV_ASRCS) $(NET_ASRCS)

@@ -1,0 +1,56 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NET_IEEE80211
+	bool "IEEE 802.11 stack support"
+	default n
+	select NET_IOB
+	---help---
+		Enable support to WiFi (IEEE 802.11) stack for NuttX.
+		This IEEE80211 stack is derivated from OpenBSD kernel.
+
+if NET_IEEE80211
+
+config IEEE80211_AP
+	bool "Enable access point (AP) support"
+	default n
+
+config IEEE80211_HT
+	bool "Enable 802.11n High-Throughput (HT)"
+	default n
+
+config IEEE80211_BRIDGEPORT
+	bool "Parent interface is a bridge port"
+	default n
+
+config IEEE80211_NBUFFERS
+	int "Number of pre-allocated packet buffers"
+	default 16
+
+config IEEE80211_BUFSIZE
+	int "Size of one buffer"
+	default 576
+
+config IEEE80211_CRYPTO
+    bool "Enable Encryption support"
+    default n
+    depends on EXPERIMENTAL
+
+config IEEE80211_WEP
+    bool "Enable WEP"
+    default n
+    depends on IEEE80211_CRYPTO
+
+config IEEE80211_WAP
+    bool "Enable WAP"
+    default n
+    depends on IEEE80211_CRYPTO
+
+config IEEE80211_WAP2
+    bool "Enable WAP2"
+    default n
+    depends on IEEE80211_CRYPTO
+
+endif

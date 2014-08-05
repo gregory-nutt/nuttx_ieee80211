@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/ieee80211/ieee80211_debug.c
+ * net/mini802/ieee80211_ifnet.h
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,54 +33,56 @@
  *
  ****************************************************************************/
 
+#ifndef __NET_IEEE80211_IEEE80211_IFNET_H
+#define __NET_IEEE80211_IEEE80211_IFNET_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
-#include "ieee80211/ieee80211.h"
-#include "ieee80211/ieee80211_debug.h"
+#include <nuttx/net/iob.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define IFSEND_MCAST   (1 << 0)  /* Send as multi-cast */
+
 /****************************************************************************
- * Private Types
+ * Public Types
  ****************************************************************************/
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-
-static const char digits[] = "0123456789abcdef";
-
-/****************************************************************************
- * Public Functions
+ * Global Data
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ieee80211_addr2str
+ * Public Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: ieee80211_ifinit
  *
  * Description:
- *   Convert an IEEE 802.11 address to printable representation
+ *   Set up the devices interface I/O buffers for normal operations.
  *
  ****************************************************************************/
 
-FAR char *ieee80211_addr2str(uint8_t * addr)
-{
-  static char buffer[IEEE80211_ADDR_LEN * 3];
-  FAR char *str;
-  int i;
+struct ieee80211_s;
+void ieee80211_ifinit(FAR struct ieee80211_s *ic);
 
-  for (i = 0, str = buffer; i < IEEE80211_ADDR_LEN; i++)
-    {
-      *str++ = digits[*addr >> 4];
-      *str++ = digits[*addr++ & 0xf];
-      *str++ = ':';
-    }
+/****************************************************************************
+ * Name: ieee80211_ifsend
+ *
+ * Description:
+ *   Enqueue the packet to be sent by the Ethernet driver and begin
+ *   accepting TX polls from the Ethernet driver (if we are not already doing
+ *   so.
+ *
+ ****************************************************************************/
 
-  *--str = '\0';
-  return buffer;
-}
+int ieee80211_ifsend(FAR struct ieee80211_s *ic, FAR struct iob_s *iob,
+                     uint8_t flags);
+
+#endif /* __NET_IEEE80211_IEEE80211_IFNET_H */
