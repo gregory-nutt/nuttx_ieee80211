@@ -44,6 +44,8 @@
 #include <nuttx/tree.h>
 #include <nuttx/net/iob.h>
 
+#include <arch/irq.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -298,21 +300,21 @@ MALLOC_DECLARE(M_80211_NODE);
 
 static __inline void ieee80211_node_incref(struct ieee80211_node *ni)
 {
-  int s;
+  irqstate_t flags;
 
-  s = splnet();
+  flags = irqsave();
   ni->ni_refcnt++;
-  splx(s);
+  irqrestore(flags);
 }
 
 static __inline unsigned int ieee80211_node_decref(struct ieee80211_node *ni)
 {
   unsigned int refcnt;
-  int s;
+  irqstate_t flags;
 
-  s = splnet();
+  flags = irqsave();
   refcnt = --ni->ni_refcnt;
-  splx(s);
+  irqrestore(flags);
   return refcnt;
 }
 
