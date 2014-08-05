@@ -136,10 +136,6 @@ void ieee80211_delete_key(struct ieee80211_s *, struct ieee80211_node *,
 void ieee80211_eapol_key_mic(struct ieee80211_eapol_key *, const uint8_t *);
 int ieee80211_eapol_key_check_mic(struct ieee80211_eapol_key *,
                                   const uint8_t *);
-#ifdef CONFIG_IEEE80211_AP
-void ieee80211_eapol_key_encrypt(struct ieee80211_s *,
-                                 struct ieee80211_eapol_key *, const uint8_t *);
-#endif
 int ieee80211_eapol_key_decrypt(struct ieee80211_eapol_key *, const uint8_t *);
 
 struct ieee80211_pmk *ieee80211_pmksa_add(struct ieee80211_s *,

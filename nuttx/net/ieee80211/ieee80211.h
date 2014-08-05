@@ -37,6 +37,8 @@
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
 
+#include <stdint.h>
+
 #define IEEE80211_ADDR_LEN    6
                                 /* size of 802.11 address */
 

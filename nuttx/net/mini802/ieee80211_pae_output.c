@@ -59,12 +59,6 @@
 static int ieee80211_send_eapol_key(struct ieee80211_s *, struct iob_s *,
                                     struct ieee80211_node *,
                                     const struct ieee80211_ptk *);
-#ifdef CONFIG_IEEE80211_AP
-static uint8_t *ieee80211_add_gtk_kde(uint8_t *, struct ieee80211_node *,
-                                      const struct ieee80211_key *);
-static uint8_t *ieee80211_add_pmkid_kde(uint8_t *, const uint8_t *);
-static uint8_t *ieee80211_add_igtk_kde(uint8_t *, const struct ieee80211_key *);
-#endif
 static struct iob_s *ieee80211_get_eapol_key(int, unsigned int);
 
 /****************************************************************************
@@ -134,29 +128,6 @@ static int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic,
   BE_WRITE_2(key->paylen, len - sizeof(*key));
   BE_WRITE_2(key->len, len - 4);
 
-#ifdef CONFIG_IEEE80211_AP
-  if (info & EAPOL_KEY_ENCRYPTED)
-    {
-      if (ni->ni_rsnprotos == IEEE80211_PROTO_WPA)
-        {
-          /* clear "Encrypted" bit for WPA */
-
-          info &= ~EAPOL_KEY_ENCRYPTED;
-          BE_WRITE_2(key->info, info);
-        }
-
-      ieee80211_eapol_key_encrypt(ic, key, ptk->kek);
-
-      if ((info & EAPOL_KEY_VERSION_MASK) != EAPOL_KEY_DESC_V1)
-        {
-          /* AES Key Wrap adds 8 bytes + padding */
-
-          iob->io_pktlen = iob->io_len =
-            sizeof(*ethhdr) + 4 + BE_READ_2(key->len);
-        }
-    }
-#endif
-
   if (info & EAPOL_KEY_KEYMIC)
     {
       ieee80211_eapol_key_mic(key, ptk->kck);
@@ -165,119 +136,10 @@ static int ieee80211_send_eapol_key(FAR struct ieee80211_s *ic,
   len = iob->io_pktlen;
   flags = uip_lock();
 
-#ifdef CONFIG_IEEE80211_AP
-  /* Start a 100ms timeout if an answer is expected from supplicant */
-
-  if (info & EAPOL_KEY_KEYACK)
-    {
-      wd_start(ni->ni_eapol_to, MSEC2TICK(100), ieee80211_eapol_timeout, ni);
-    }
-#endif
-
   error = ieee80211_ifsend(ic, iob, 0);
   uip_unlock(flags);
   return error;
 }
-
-#ifdef CONFIG_IEEE80211_AP
-
-/*
- * Handle EAPOL-Key timeouts (no answer from supplicant).
- */
-void ieee80211_eapol_timeout(void *arg)
-{
-  struct ieee80211_node *ni = arg;
-  struct ieee80211_s *ic = ni->ni_ic;
-  uip_lock_t flags;
-
-  ndbg("ERROR: no answer from station %s in state %d\n",
-       ieee80211_addr2str(ni->ni_macaddr), ni->ni_rsn_state);
-
-  flags = uip_lock();
-
-  switch (ni->ni_rsn_state)
-    {
-    case RSNA_PTKSTART:
-    case RSNA_PTKCALCNEGOTIATING:
-      (void)ieee80211_send_4way_msg1(ic, ni);
-      break;
-    case RSNA_PTKINITNEGOTIATING:
-      (void)ieee80211_send_4way_msg3(ic, ni);
-      break;
-    }
-
-  switch (ni->ni_rsn_gstate)
-    {
-    case RSNA_REKEYNEGOTIATING:
-      (void)ieee80211_send_group_msg1(ic, ni);
-      break;
-    }
-
-  uip_unlock(flags);
-}
-
-/* Add a GTK KDE to an EAPOL-Key frame (see Figure 144) */
-
-static uint8_t *ieee80211_add_gtk_kde(FAR uint8_t * frm,
-                                      FAR struct ieee80211_node *ni,
-                                      FAR const struct ieee80211_key *k)
-{
-  DEBUGASSERT(k->k_flags & IEEE80211_KEY_GROUP);
-
-  *frm++ = IEEE80211_ELEMID_VENDOR;
-  *frm++ = 6 + k->k_len;
-  memcpy(frm, IEEE80211_OUI, 3);
-  frm += 3;
-  *frm++ = IEEE80211_KDE_GTK;
-  *frm = k->k_id & 3;
-
-  /*  The TxRx flag for sending a GTK is always the opposite of whether
-   * the pairwise key is used for data encryption/integrity or not.
-   */
-
-  if (ni->ni_rsncipher == IEEE80211_CIPHER_USEGROUP)
-    *frm |= 1 << 2;             /* set the Tx bit */
-
-  frm++;
-  *frm++ = 0;                   /* reserved */
-  memcpy(frm, k->k_key, k->k_len);
-  return frm + k->k_len;
-}
-
-/* Add a PMKID KDE to an EAPOL-Key frame (see Figure 146) */
-
-static uint8_t *ieee80211_add_pmkid_kde(FAR uint8_t * frm,
-                                        FAR const uint8_t * pmkid)
-{
-  *frm++ = IEEE80211_ELEMID_VENDOR;
-  *frm++ = 20;
-  memcpy(frm, IEEE80211_OUI, 3);
-  frm += 3;
-  *frm++ = IEEE80211_KDE_PMKID;
-  memcpy(frm, pmkid, IEEE80211_PMKID_LEN);
-  return frm + IEEE80211_PMKID_LEN;
-}
-
-/* Add an IGTK KDE to an EAPOL-Key frame (see Figure 8-32a) */
-
-static uint8_t *ieee80211_add_igtk_kde(uint8_t * frm,
-                                       const struct ieee80211_key *k)
-{
-  DEBUGASSERT(k->k_flags & IEEE80211_KEY_IGTK);
-
-  *frm++ = IEEE80211_ELEMID_VENDOR;
-  *frm++ = 4 + 24;
-  memcpy(frm, IEEE80211_OUI, 3);
-  frm += 3;
-  *frm++ = IEEE80211_KDE_IGTK;
-  LE_WRITE_2(frm, k->k_id);
-  frm += 2;
-  LE_WRITE_6(frm, k->k_tsc);
-  frm += 6;                     /* IPN */
-  memcpy(frm, k->k_key, 16);
-  return frm + 16;
-}
-#endif /* CONFIG_IEEE80211_AP */
 
 static FAR struct iob_s *ieee80211_get_eapol_key(int type, unsigned int pktlen)
 {
@@ -303,69 +165,6 @@ static FAR struct iob_s *ieee80211_get_eapol_key(int type, unsigned int pktlen)
   io->len = sizeof(struct ieee80211_frame) + LLC_SNAPFRAMELEN;
   return iob;
 }
-
-#ifdef CONFIG_IEEE80211_AP
-
-/* Send 4-Way Handshake Message 1 to the supplicant */
-
-int ieee80211_send_4way_msg1(struct ieee80211_s *ic, struct ieee80211_node *ni)
-{
-  struct ieee80211_eapol_key *key;
-  struct iob_s *iob;
-  uint16_t info, keylen;
-  uint8_t *frm;
-
-  ni->ni_rsn_state = RSNA_PTKSTART;
-  if (++ni->ni_rsn_retries > 3)
-    {
-      IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_DEAUTH,
-                          IEEE80211_REASON_4WAY_TIMEOUT);
-      ieee80211_node_leave(ic, ni);
-      return 0;
-    }
-
-  iob = ieee80211_get_eapol_key(MT_DATA,
-                                (ni->ni_rsnprotos ==
-                                 IEEE80211_PROTO_RSN) ? 2 + 20 : 0);
-  if (iob == NULL)
-    {
-      return -ENOMEM;
-    }
-
-  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
-  memset(key, 0, sizeof(*key));
-
-  info = EAPOL_KEY_PAIRWISE | EAPOL_KEY_KEYACK;
-  BE_WRITE_2(key->info, info);
-
-  /* Copy the authenticator's nonce (ANonce) */
-
-  memcpy(key->nonce, ni->ni_nonce, EAPOL_KEY_NONCE_LEN);
-
-  keylen = ieee80211_cipher_keylen(ni->ni_rsncipher);
-  BE_WRITE_2(key->keylen, keylen);
-
-  frm = (uint8_t *) & key[1];
-
-  /* NB: WPA does not have PMKID KDE */
-
-  if (ni->ni_rsnprotos == IEEE80211_PROTO_RSN &&
-      ieee80211_is_8021x_akm(ni->ni_rsnakms))
-    {
-      frm = ieee80211_add_pmkid_kde(frm, ni->ni_pmkid);
-    }
-
-  iob->io_pktlen = iob->io_len = frm - (uint8_t *) key;
-
-  nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
-        ic->ic_ifname, 1, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
-
-  ni->ni_replaycnt++;
-  BE_WRITE_8(key->replaycnt, ni->ni_replaycnt);
-
-  return ieee80211_send_eapol_key(ic, iob, ni, NULL);
-}
-#endif /* CONFIG_IEEE80211_AP */
 
 /* Send 4-Way Handshake Message 2 to the authenticator */
 
@@ -431,105 +230,6 @@ int ieee80211_send_4way_msg2(struct ieee80211_s *ic, struct ieee80211_node *ni,
   return ieee80211_send_eapol_key(ic, iob, ni, tptk);
 }
 
-#ifdef CONFIG_IEEE80211_AP
-
-/* Send 4-Way Handshake Message 3 to the supplicant */
-
-int ieee80211_send_4way_msg3(struct ieee80211_s *ic, struct ieee80211_node *ni)
-{
-  struct ieee80211_eapol_key *key;
-  struct ieee80211_key *k;
-  struct iob_s *iob;
-  uint16_t info, keylen;
-  uint8_t *frm;
-
-  ni->ni_rsn_state = RSNA_PTKINITNEGOTIATING;
-  if (++ni->ni_rsn_retries > 3)
-    {
-      IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_DEAUTH,
-                          IEEE80211_REASON_4WAY_TIMEOUT);
-      ieee80211_node_leave(ic, ni);
-      return 0;
-    }
-  if (ni->ni_rsnprotos == IEEE80211_PROTO_RSN)
-    k = &ic->ic_nw_keys[ic->ic_def_txkey];
-
-  iob = ieee80211_get_eapol_key(MT_DATA,
-                                ((ni->ni_rsnprotos == IEEE80211_PROTO_WPA) ?
-                                 2 + IEEE80211_WPAIE_MAXLEN :
-                                 2 + IEEE80211_RSNIE_MAXLEN + 2 + 6 + k->k_len +
-                                 15) +
-                                ((ni->ni_flags & IEEE80211_NODE_MFP) ? 2 +
-                                 28 : 0));
-
-  if (iob == NULL)
-    {
-      return -ENOMEM;
-    }
-
-  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
-  memset(key, 0, sizeof(*key));
-
-  info = EAPOL_KEY_PAIRWISE | EAPOL_KEY_KEYACK | EAPOL_KEY_KEYMIC;
-  if (ni->ni_rsncipher != IEEE80211_CIPHER_USEGROUP)
-    {
-      info |= EAPOL_KEY_INSTALL;
-    }
-
-  /* Use same nonce as in Message 1 */
-
-  memcpy(key->nonce, ni->ni_nonce, EAPOL_KEY_NONCE_LEN);
-
-  ni->ni_replaycnt++;
-  BE_WRITE_8(key->replaycnt, ni->ni_replaycnt);
-
-  keylen = ieee80211_cipher_keylen(ni->ni_rsncipher);
-  BE_WRITE_2(key->keylen, keylen);
-
-  frm = (uint8_t *) & key[1];
-
-  /* Add the WPA/RSN IE included in Beacon/Probe Response */
-
-  if (ni->ni_rsnprotos == IEEE80211_PROTO_RSN)
-    {
-      frm = ieee80211_add_rsn(frm, ic, ic->ic_bss);
-
-      /* Encapsulate the GTK */
-
-      frm = ieee80211_add_gtk_kde(frm, ni, k);
-      LE_WRITE_6(key->rsc, k->k_tsc);
-
-      /* Encapsulate the IGTK if MFP was negotiated */
-
-      if (ni->ni_flags & IEEE80211_NODE_MFP)
-        {
-          frm = ieee80211_add_igtk_kde(frm, &ic->ic_nw_keys[ic->ic_igtk_kid]);
-        }
-
-      /* Ask that the EAPOL-Key frame be encrypted */
-
-      info |= EAPOL_KEY_ENCRYPTED | EAPOL_KEY_SECURE;
-    }
-  else
-    {
-      /* WPA */
-
-      frm = ieee80211_add_wpa(frm, ic, ic->ic_bss);
-    }
-
-  /* Write the key info field */
-
-  BE_WRITE_2(key->info, info);
-
-  iob->io_pktlen = iob->io_len = frm - (uint8_t *) key;
-
-  nvbg("%s: sending msg %d/%d of the %s handshake to %s\n",
-       ic->ic_ifname, 3, 4, "4-way", ieee80211_addr2str(ni->ni_macaddr));
-
-  return ieee80211_send_eapol_key(ic, iob, ni, &ni->ni_ptk);
-}
-#endif /* CONFIG_IEEE80211_AP */
-
 /* Send 4-Way Handshake Message 4 to the authenticator */
 
 int ieee80211_send_4way_msg4(struct ieee80211_s *ic, struct ieee80211_node *ni)
@@ -580,111 +280,6 @@ int ieee80211_send_4way_msg4(struct ieee80211_s *ic, struct ieee80211_node *ni)
 
   return ieee80211_send_eapol_key(ic, iob, ni, &ni->ni_ptk);
 }
-
-#ifdef CONFIG_IEEE80211_AP
-
-/* Send Group Key Handshake Message 1 to the supplicant */
-
-int ieee80211_send_group_msg1(struct ieee80211_s *ic, struct ieee80211_node *ni)
-{
-  struct ieee80211_eapol_key *key;
-  const struct ieee80211_key *k;
-  struct iob_s *iob;
-  uint16_t info;
-  uint8_t *frm;
-  uint8_t kid;
-
-  ni->ni_rsn_gstate = RSNA_REKEYNEGOTIATING;
-  if (++ni->ni_rsn_retries > 3)
-    {
-      IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_DEAUTH,
-                          IEEE80211_REASON_GROUP_TIMEOUT);
-      ieee80211_node_leave(ic, ni);
-      return 0;
-    }
-
-  if (ni->ni_flags & IEEE80211_NODE_REKEY)
-    {
-      kid = (ic->ic_def_txkey == 1) ? 2 : 1;
-    }
-  else
-    {
-      kid = ic->ic_def_txkey;
-    }
-
-  k = &ic->ic_nw_keys[kid];
-
-  iob = ieee80211_get_eapol_key(MT_DATA,
-                                ((ni->ni_rsnprotos == IEEE80211_PROTO_WPA) ?
-                                 k->k_len : 2 + 6 + k->k_len) +
-                                ((ni->ni_flags & IEEE80211_NODE_MFP) ? 2 +
-                                 28 : 0) + 15);
-
-  if (iob == NULL)
-    {
-      return -ENOMEM;
-    }
-
-  key = (FAR struct ieee80211_eapol_key *)IOB_DATA(iob);
-  memset(key, 0, sizeof(*key));
-
-  info =
-    EAPOL_KEY_KEYACK | EAPOL_KEY_KEYMIC | EAPOL_KEY_SECURE |
-    EAPOL_KEY_ENCRYPTED;
-
-  ni->ni_replaycnt++;
-  BE_WRITE_8(key->replaycnt, ni->ni_replaycnt);
-
-  frm = (uint8_t *) & key[1];
-  if (ni->ni_rsnprotos == IEEE80211_PROTO_WPA)
-    {
-      /* WPA does not have GTK KDE */
-
-      BE_WRITE_2(key->keylen, k->k_len);
-      memcpy(frm, k->k_key, k->k_len);
-      frm += k->k_len;
-      info |= (k->k_id & 0x3) << EAPOL_KEY_WPA_KID_SHIFT;
-      if (ni->ni_rsncipher == IEEE80211_CIPHER_USEGROUP)
-        {
-          info |= EAPOL_KEY_WPA_TX;
-        }
-    }
-  else
-    {
-      /* RSN */
-
-      frm = ieee80211_add_gtk_kde(frm, ni, k);
-      if (ni->ni_flags & IEEE80211_NODE_MFP)
-        {
-          if (ni->ni_flags & IEEE80211_NODE_REKEY)
-            {
-              kid = (ic->ic_igtk_kid == 4) ? 5 : 4;
-            }
-          else
-            {
-              kid = ic->ic_igtk_kid;
-            }
-
-          frm = ieee80211_add_igtk_kde(frm, &ic->ic_nw_keys[kid]);
-        }
-    }
-
-  /* RSC = last transmit sequence number for the GTK */
-
-  LE_WRITE_6(key->rsc, k->k_tsc);
-
-  /* write the key info field */
-
-  BE_WRITE_2(key->info, info);
-
-  iob->io_pktlen = iob->io_len = frm - (uint8_t *) key;
-
-  nvdbg("%s: sending msg %d/%d of the %s handshake to %s\n",
-        ic->ic_ifname, 1, 2, "group key", ieee80211_addr2str(ni->ni_macaddr));
-
-  return ieee80211_send_eapol_key(ic, iob, ni, &ni->ni_ptk);
-}
-#endif /* CONFIG_IEEE80211_AP */
 
 /* Send Group Key Handshake Message 2 to the authenticator */
 

@@ -106,12 +106,10 @@ enum ieee80211_phymode
 
 enum ieee80211_opmode
   {
-    IEEE80211_M_STA = 1,        /* infrastructure station */
-#ifdef CONFIG_IEEE80211_AP
-    IEEE80211_M_IBSS = 0,       /* IBSS (adhoc) station */
-    IEEE80211_M_AHDEMO = 3,     /* Old lucent compatible adhoc demo */
-    IEEE80211_M_HOSTAP = 6,     /* Software Access Point */
-#endif
+    IEEE80211_M_STA     = 1,    /* infrastructure station */
+    IEEE80211_M_IBSS    = 0,    /* IBSS (adhoc) station (AP only) */
+    IEEE80211_M_AHDEMO  = 3,    /* Old lucent compatible adhoc demo (AP only) */
+    IEEE80211_M_HOSTAP  = 6,    /* Software Access Point (AP only) */
     IEEE80211_M_MONITOR = 8     /* Monitor mode */
   };
 

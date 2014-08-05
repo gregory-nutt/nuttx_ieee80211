@@ -97,18 +97,8 @@ int ieee80211_tkip_set_key(struct ieee80211_s *ic, struct ieee80211_key *k)
   /* Use bits 128-191 as the Michael key for AA->SPA and bits 192-255 as the
    * Michael key for SPA->AA. */
 
-#ifdef CONFIG_IEEE80211_AP
-  if (ic->ic_opmode == IEEE80211_M_HOSTAP)
-    {
-      ctx->txmic = &k->k_key[16];
-      ctx->rxmic = &k->k_key[24];
-    }
-  else
-#endif
-    {
-      ctx->rxmic = &k->k_key[16];
-      ctx->txmic = &k->k_key[24];
-    }
+  ctx->rxmic = &k->k_key[16];
+  ctx->txmic = &k->k_key[24];
   k->k_priv = ctx;
   return 0;
 }
@@ -575,29 +565,6 @@ nospace:
   return NULL;
 }
 
-#ifdef CONFIG_IEEE80211_AP
-
-/* This function is called in HostAP mode to deauthenticate all STAs using
- * TKIP as their pairwise or group cipher (as part of TKIP countermeasures).
- */
-
-static void ieee80211_tkip_deauth(void *arg, struct ieee80211_node *ni)
-{
-  struct ieee80211_s *ic = arg;
-
-  if (ni->ni_state == IEEE80211_STA_ASSOC &&
-      (ic->ic_bss->ni_rsngroupcipher == IEEE80211_CIPHER_TKIP ||
-       ni->ni_rsncipher == IEEE80211_CIPHER_TKIP))
-    {
-      /* deauthenticate STA */
-
-      IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_DEAUTH,
-                          IEEE80211_REASON_MIC_FAILURE);
-      ieee80211_node_leave(ic, ni);
-    }
-}
-#endif                                 /* CONFIG_IEEE80211_AP */
-
 /* This function can be called by the software TKIP crypto code or by the
  * drivers when their hardware crypto engines detect a Michael MIC failure.
  */
@@ -628,15 +595,6 @@ void ieee80211_michael_mic_failure(struct ieee80211_s *ic, uint64_t tsc)
 
   switch (ic->ic_opmode)
     {
-#ifdef CONFIG_IEEE80211_AP
-    case IEEE80211_M_HOSTAP:
-      /* refuse new TKIP associations for the next 60 seconds */
-      ic->ic_flags |= IEEE80211_F_COUNTERM;
-
-      /* deauthenticate all currently associated STAs using TKIP */
-      ieee80211_iterate_nodes(ic, ieee80211_tkip_deauth, ic);
-      break;
-#endif
     case IEEE80211_M_STA:
       /* 
        * Notify the AP of MIC failures: send two Michael
@@ -658,6 +616,8 @@ void ieee80211_michael_mic_failure(struct ieee80211_s *ic, uint64_t tsc)
       /* ..and find another one */
       (void)ieee80211_new_state(ic, IEEE80211_S_SCAN, -1);
       break;
+
+    case IEEE80211_M_HOSTAP:  /* AP only */
     default:
       break;
     }

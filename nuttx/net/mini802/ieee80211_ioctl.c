@@ -396,20 +396,6 @@ static int ieee80211_ioctl_setopmode(struct ieee80211_s *ic,
   if (ic->ic_opmode != opmode)
     {
       ic->ic_opmode = opmode;
-#ifdef CONFIG_IEEE80211_AP
-      switch (opmode)
-        {
-        case IEEE80211_M_AHDEMO:
-        case IEEE80211_M_HOSTAP:
-        case IEEE80211_M_STA:
-        case IEEE80211_M_MONITOR:
-          ic->ic_flags &= ~IEEE80211_F_IBSSON;
-          break;
-        case IEEE80211_M_IBSS:
-          ic->ic_flags |= IEEE80211_F_IBSSON;
-          break;
-        }
-#endif
 
       /* Reset chip to accept this new operating mode */
 
@@ -662,10 +648,7 @@ int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
           ic->ic_flags |= IEEE80211_F_DESBSSID;
           IEEE80211_ADDR_COPY(ic->ic_des_bssid, bssid->i_bssid);
         }
-#ifdef CONFIG_IEEE80211_AP
-      if (ic->ic_opmode == IEEE80211_M_HOSTAP)
-        break;
-#endif
+
       switch (ic->ic_state)
         {
         case IEEE80211_S_INIT:
@@ -685,11 +668,6 @@ int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
         {
         case IEEE80211_S_INIT:
         case IEEE80211_S_SCAN:
-#ifdef CONFIG_IEEE80211_AP
-          if (ic->ic_opmode == IEEE80211_M_HOSTAP)
-            IEEE80211_ADDR_COPY(bssid->i_bssid, ic->ic_myaddr);
-          else
-#endif
           if (ic->ic_flags & IEEE80211_F_DESBSSID)
             IEEE80211_ADDR_COPY(bssid->i_bssid, ic->ic_des_bssid);
           else
@@ -794,13 +772,6 @@ int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
       {
         FAR struct uip_driver_s *dev;
 
-#ifdef CONFIG_IEEE80211_AP
-        if (ic->ic_opmode == IEEE80211_M_HOSTAP)
-          {
-            break;
-          }
-#endif
-
         /* Get the driver structure and test the interface flags to make sure
          * that the interface is up.
          */
@@ -849,13 +820,6 @@ int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
       ieee80211_node2req(ic, ni, nr);
       break;
     case SIOCS80211NODE:
-#ifdef CONFIG_IEEE80211_AP
-      if (ic->ic_opmode == IEEE80211_M_HOSTAP)
-        {
-          error = -EINVAL;
-          break;
-        }
-#endif
       nr = (struct ieee80211_nodereq *)data;
 
       ni = ieee80211_find_node(ic, nr->nr_macaddr);
@@ -870,37 +834,7 @@ int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
       if (nr->nr_flags & IEEE80211_NODEREQ_COPY)
         ieee80211_req2node(ic, nr, ni);
       break;
-#ifdef CONFIG_IEEE80211_AP
-    case SIOCS80211DELNODE:
-      nr = (struct ieee80211_nodereq *)data;
-      ni = ieee80211_find_node(ic, nr->nr_macaddr);
-      if (ni == NULL)
-        error = -ENOENT;
-      else if (ni == ic->ic_bss)
-        error = -EPERM;
-      else
-        {
-          if (ni->ni_state == IEEE80211_STA_COLLECT)
-            break;
 
-          /* Disassociate station. */
-
-          if (ni->ni_state == IEEE80211_STA_ASSOC)
-            IEEE80211_SEND_MGMT(ic, ni,
-                                IEEE80211_FC0_SUBTYPE_DISASSOC,
-                                IEEE80211_REASON_ASSOC_LEAVE);
-
-          /* Deauth station. */
-
-          if (ni->ni_state >= IEEE80211_STA_AUTH)
-            IEEE80211_SEND_MGMT(ic, ni,
-                                IEEE80211_FC0_SUBTYPE_DEAUTH,
-                                IEEE80211_REASON_AUTH_LEAVE);
-
-          ieee80211_node_leave(ic, ni);
-        }
-      break;
-#endif
     case SIOCG80211ALLNODES:
       na = (struct ieee80211_nodereq_all *)data;
       na->na_nodes = i = 0;
@@ -919,19 +853,12 @@ int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
       break;
     case SIOCG80211FLAGS:
       flags = ic->ic_flags;
-#ifdef CONFIG_IEEE80211_AP
-      if (ic->ic_opmode != IEEE80211_M_HOSTAP)
-#endif
-        flags &= ~IEEE80211_F_HOSTAPMASK;
+      flags &= ~IEEE80211_F_HOSTAPMASK;
       ifr->ifr_flags = flags >> IEEE80211_F_USERSHIFT;
       break;
     case SIOCS80211FLAGS:
       flags = (uint32_t) ifr->ifr_flags << IEEE80211_F_USERSHIFT;
-      if (
-#ifdef CONFIG_IEEE80211_AP
-           ic->ic_opmode != IEEE80211_M_HOSTAP &&
-#endif
-           (flags & IEEE80211_F_HOSTAPMASK))
+      if ((flags & IEEE80211_F_HOSTAPMASK) != 0)
         {
           error = -EINVAL;
           break;
@@ -940,6 +867,7 @@ int ieee80211_ioctl(struct ieee80211_s *ic, unsigned long cmd, void *data)
       error = -ENETRESET;
       break;
 
+    case SIOCS80211DELNODE:    /* AP only */
     case SIOCG80211ZSTATS:     /* No statistics */
     case SIOCG80211STATS:      /* No statistics */
     case SIOCSIFMTU:           /* MTU is fixed by the NuttX configuration */

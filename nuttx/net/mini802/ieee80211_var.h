@@ -106,12 +106,10 @@ enum ieee80211_phymode
 
 enum ieee80211_opmode
   {
-    IEEE80211_M_STA = 1,        /* infrastructure station */
-#ifdef CONFIG_IEEE80211_AP
-    IEEE80211_M_IBSS = 0,       /* IBSS (adhoc) station */
-    IEEE80211_M_AHDEMO = 3,     /* Old lucent compatible adhoc demo */
-    IEEE80211_M_HOSTAP = 6,     /* Software Access Point */
-#endif
+    IEEE80211_M_STA     = 1,    /* infrastructure station */
+    IEEE80211_M_IBSS    = 0,    /* IBSS (adhoc) station (AP only) */
+    IEEE80211_M_AHDEMO  = 3,    /* Old lucent compatible adhoc demo (AP only) */
+    IEEE80211_M_HOSTAP  = 6,    /* Software Access Point (AP only) */
     IEEE80211_M_MONITOR = 8     /* Monitor mode */
   };
 
@@ -301,10 +299,6 @@ struct ieee80211_s
     uint16_t ic_rsnsta;         /* # RSN stations */
     uint16_t ic_pssta;          /* # ps mode stations */
     int ic_mgt_timer;           /* mgmt timeout */
-#ifdef CONFIG_IEEE80211_AP
-    WDOG_ID ic_inact_timeout;   /* node inactivity timeout */
-    WDOG_ID ic_node_cache_timeout;
-#endif
     int ic_des_esslen;
     uint8_t ic_des_essid[IEEE80211_NWID_LEN];
     struct ieee80211_channel *ic_des_chan;      /* desired channel */

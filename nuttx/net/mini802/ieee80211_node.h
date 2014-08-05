@@ -360,14 +360,8 @@ void ieee80211_clean_nodes(struct ieee80211_s *, int);
 int ieee80211_setup_rates(struct ieee80211_s *,
                           struct ieee80211_node *, const uint8_t *,
                           const uint8_t *, int);
-extern int ieee80211_iserp_sta(const struct ieee80211_node *);
 
-void ieee80211_node_join(struct ieee80211_s *, struct ieee80211_node *, int);
-void ieee80211_node_leave(struct ieee80211_s *, struct ieee80211_node *);
 int ieee80211_match_bss(struct ieee80211_s *, struct ieee80211_node *);
-void ieee80211_create_ibss(struct ieee80211_s *, struct ieee80211_channel *);
-void ieee80211_notify_dtim(struct ieee80211_s *);
-void ieee80211_set_tim(struct ieee80211_s *, int, int);
 
 int ieee80211_node_cmp(const struct ieee80211_node *,
                        const struct ieee80211_node *);

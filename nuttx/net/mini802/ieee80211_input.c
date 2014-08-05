@@ -96,18 +96,8 @@ int ieee80211_save_ie(const uint8_t *, uint8_t **);
 void ieee80211_recv_probe_resp(struct ieee80211_s *, struct iob_s *,
                                struct ieee80211_node *,
                                struct ieee80211_rxinfo *, int);
-#ifdef CONFIG_IEEE80211_AP
-void ieee80211_recv_probe_req(struct ieee80211_s *, struct iob_s *,
-                              struct ieee80211_node *,
-                              struct ieee80211_rxinfo *);
-#endif
 void ieee80211_recv_auth(struct ieee80211_s *, struct iob_s *,
                          struct ieee80211_node *, struct ieee80211_rxinfo *);
-#ifdef CONFIG_IEEE80211_AP
-void ieee80211_recv_assoc_req(struct ieee80211_s *, struct iob_s *,
-                              struct ieee80211_node *,
-                              struct ieee80211_rxinfo *, int);
-#endif
 void ieee80211_recv_assoc_resp(struct ieee80211_s *, struct iob_s *,
                                struct ieee80211_node *, int);
 void ieee80211_recv_deauth(struct ieee80211_s *, struct iob_s *,
@@ -124,16 +114,8 @@ void ieee80211_recv_delba(struct ieee80211_s *, struct iob_s *,
 #endif
 void ieee80211_recv_sa_query_req(struct ieee80211_s *, struct iob_s *,
                                  struct ieee80211_node *);
-#ifdef CONFIG_IEEE80211_AP
-void ieee80211_recv_sa_query_resp(struct ieee80211_s *, struct iob_s *,
-                                  struct ieee80211_node *);
-#endif
 void ieee80211_recv_action(struct ieee80211_s *, struct iob_s *,
                            struct ieee80211_node *);
-#ifdef CONFIG_IEEE80211_AP
-void ieee80211_recv_pspoll(struct ieee80211_s *, struct iob_s *,
-                           struct ieee80211_node *);
-#endif
 #ifdef CONFIG_IEEE80211_HT
 void ieee80211_recv_bar(struct ieee80211_s *, struct iob_s *,
                         struct ieee80211_node *);
@@ -265,45 +247,6 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob,
       ni->ni_inact = 0;
     }
 
-#ifdef CONFIG_IEEE80211_AP
-  if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
-      (ic->ic_caps & IEEE80211_C_APPMGT) && ni->ni_state == IEEE80211_STA_ASSOC)
-    {
-      if (wh->i_fc[1] & IEEE80211_FC1_PWR_MGT)
-        {
-          if (ni->ni_pwrsave == IEEE80211_PS_AWAKE)
-            {
-              /* turn on PS mode */
-
-              ni->ni_pwrsave = IEEE80211_PS_DOZE;
-              ic->ic_pssta++;
-              nvdbg("PS mode on for %s, count %d\n",
-                    ieee80211_addr2str(wh->i_addr2), ic->ic_pssta);
-            }
-        }
-      else if (ni->ni_pwrsave == IEEE80211_PS_DOZE)
-        {
-          /* turn off PS mode */
-
-          ni->ni_pwrsave = IEEE80211_PS_AWAKE;
-          ic->ic_pssta--;
-          nvdbg("PS mode off for %s, count %d\n",
-                ieee80211_addr2str(wh->i_addr2), ic->ic_pssta);
-
-          (*ic->ic_set_tim) (ic, ni->ni_associd, 0);
-
-          /* dequeue buffered unicast frames */
-
-          while (!IOB_QEMPTY(&ni->ni_savedq))
-            {
-              FAR struct iob_s *iob;
-
-              iob = iob_remove_queue(&ni->ni_savedq);
-              iob_add_queue(iob, &ic->ic_pwrsaveq);
-            }
-        }
-    }
-#endif
   switch (type)
     {
     case IEEE80211_FC0_TYPE_DATA:
@@ -338,79 +281,10 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob,
               goto out;
             }
           break;
-#ifdef CONFIG_IEEE80211_AP
-        case IEEE80211_M_IBSS:
-        case IEEE80211_M_AHDEMO:
-          if (dir != IEEE80211_FC1_DIR_NODS)
-            {
-              goto out;
-            }
-          if (ic->ic_state != IEEE80211_S_SCAN &&
-              !IEEE80211_ADDR_EQ(wh->i_addr3,
-                                 ic->ic_bss->ni_bssid) &&
-              !IEEE80211_ADDR_EQ(wh->i_addr3, etherbroadcastaddr))
-            {
-              /* Destination is not our BSS or broadcast. */
 
-              nvdbg("discard data frame to DA %s\n",
-                    ieee80211_addr2str(wh->i_addr3));
-              goto out;
-            }
-          break;
-        case IEEE80211_M_HOSTAP:
-          if (dir != IEEE80211_FC1_DIR_TODS)
-            {
-              goto out;
-            }
-
-          if (ic->ic_state != IEEE80211_S_SCAN &&
-              !IEEE80211_ADDR_EQ(wh->i_addr1,
-                                 ic->ic_bss->ni_bssid) &&
-              !IEEE80211_ADDR_EQ(wh->i_addr1, etherbroadcastaddr))
-            {
-              /* BSS is not us or broadcast. */
-
-              nvdbg("discard data frame to BSS %s\n",
-                    ieee80211_addr2str(wh->i_addr1));
-              goto out;
-            }
-
-          /* check if source STA is associated */
-
-          if (ni == ic->ic_bss)
-            {
-              ndbg("ERROR: data from unknown src %s\n",
-                   ieee80211_addr2str(wh->i_addr2));
-
-              /* NB: caller deals with reference */
-
-              ni = ieee80211_find_node(ic, wh->i_addr2);
-              if (ni == NULL)
-                {
-                  ni = ieee80211_dup_bss(ic, wh->i_addr2);
-                }
-
-              if (ni != NULL)
-                {
-                  IEEE80211_SEND_MGMT(ic, ni,
-                                      IEEE80211_FC0_SUBTYPE_DEAUTH,
-                                      IEEE80211_REASON_NOT_AUTHED);
-                }
-
-              goto err;
-            }
-
-          if (ni->ni_associd == 0)
-            {
-              ndbg("ERROR: data from unassoc src %s\n",
-                   ieee80211_addr2str(wh->i_addr2));
-              IEEE80211_SEND_MGMT(ic, ni,
-                                  IEEE80211_FC0_SUBTYPE_DISASSOC,
-                                  IEEE80211_REASON_NOT_ASSOCED);
-              goto err;
-            }
-          break;
-#endif /* CONFIG_IEEE80211_AP */
+        case IEEE80211_M_IBSS:   /* AP only */
+        case IEEE80211_M_AHDEMO: /* AP only */
+        case IEEE80211_M_HOSTAP: /* AP only */
         default:
           /* can't get there */
           goto out;
@@ -491,12 +365,7 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob,
         {
           goto err;
         }
-#ifdef CONFIG_IEEE80211_AP
-      if (ic->ic_opmode == IEEE80211_M_AHDEMO)
-        {
-          goto out;
-        }
-#endif
+
       subtype = wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK;
 
       /* drop frames without interest */
@@ -561,16 +430,12 @@ void ieee80211_input(struct ieee80211_s *ic, struct iob_s *iob,
       subtype = wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK;
       switch (subtype)
         {
-#ifdef CONFIG_IEEE80211_AP
-        case IEEE80211_FC0_SUBTYPE_PS_POLL:
-          ieee80211_recv_pspoll(ic, iob, ni);
-          break;
-#endif
 #ifdef CONFIG_IEEE80211_HT
         case IEEE80211_FC0_SUBTYPE_BAR:
           ieee80211_recv_bar(ic, iob, ni);
           break;
 #endif
+        case IEEE80211_FC0_SUBTYPE_PS_POLL: /* AP only */
         default:
           break;
         }
@@ -863,9 +728,6 @@ static void ieee80211_deliver_data(FAR struct ieee80211_s *ic,
                                    FAR struct ieee80211_node *ni)
 {
   FAR struct uip_eth_hdr *ethhdr;
-#ifdef CONFIG_IEEE80211_AP
-  FAR struct iob_s *iob1;
-#endif
 
   ethhdr = (FAR struct uip_eth_hdr *)IOB_DATA(iob);
 
@@ -877,46 +739,6 @@ static void ieee80211_deliver_data(FAR struct ieee80211_s *ic,
       return;
     }
 
-  /* Perform as a bridge within the AP.  Notice that we do not bridge EAPOL
-   * frames as suggested in C.1.1 of IEEE Std 802.1X. */
-
-#ifdef CONFIG_IEEE80211_AP
-  iob1 = NULL;
-
-  if (ic->ic_opmode == IEEE80211_M_HOSTAP &&
-      !(ic->ic_flags & IEEE80211_F_NOBRIDGE) &&
-      ethhdr->type != htons(UIP_ETHTYPE_PAE))
-    {
-      struct ieee80211_node *ni1;
-      int len;
-      int error;
-      uint8_t flags = 0;
-
-      if (ETHER_IS_MULTICAST(ethhdr->dest))
-        {
-          iob1 = m_copym2(iob, 0, M_COPYALL, M_DONTWAIT);
-          if (iob1 != NULL)
-            {
-              flags = IFSEND_MCAST;
-            }
-        }
-      else
-        {
-          ni1 = ieee80211_find_node(ic, ethhdr->dest);
-          if (ni1 != NULL && ni1->ni_state == IEEE80211_STA_ASSOC)
-            {
-              iob1 = iob;
-              iob = NULL;
-            }
-        }
-
-      if (iob1 != NULL)
-        {
-          len = iob1->io_pktlen;
-          error = ieee80211_ifsend(ic, iob1, flags);
-        }
-    }
-#endif
   if (iob != NULL)
     {
       if ((ic->ic_flags & IEEE80211_F_RSNON) &&
@@ -1532,10 +1354,6 @@ void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
    */
 
   DEBUGASSERT(ic->ic_opmode == IEEE80211_M_STA ||
-#ifdef CONFIG_IEEE80211_AP
-              ic->ic_opmode == IEEE80211_M_IBSS ||
-              ic->ic_opmode == IEEE80211_M_HOSTAP ||
-#endif
               ic->ic_state == IEEE80211_S_SCAN);
 
   /* Make sure all mandatory fixed fields are present */
@@ -1800,9 +1618,6 @@ void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
     }
 
   if (ic->ic_state == IEEE80211_S_SCAN &&
-#ifdef CONFIG_IEEE80211_AP
-      ic->ic_opmode != IEEE80211_M_HOSTAP &&
-#endif
       (ic->ic_flags & IEEE80211_F_RSNON))
     {
       struct ieee80211_rsnparams rsn;
@@ -1879,11 +1694,7 @@ void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
    * handled above so we don't do so much work).
    */
 
-  if (
-#ifdef CONFIG_IEEE80211_AP
-       ic->ic_opmode == IEEE80211_M_IBSS ||
-#endif
-       (is_new && isprobe))
+  if (is_new && isprobe)
     {
       /* Fake an association so the driver can setup it's private state.  The
        * rate set has been setup above; there is no handshake as in ap/station
@@ -1896,131 +1707,6 @@ void ieee80211_recv_probe_resp(struct ieee80211_s *ic, struct iob_s *iob,
         }
     }
 }
-
-#ifdef CONFIG_IEEE80211_AP
-
-/* Probe request frame format:
- * [tlv] SSID
- * [tlv] Supported rates
- * [tlv] Extended Supported Rates (802.11g)
- * [tlv] HT Capabilities (802.11n)
- */
-
-void ieee80211_recv_probe_req(struct ieee80211_s *ic, struct iob_s *iob,
-                              struct ieee80211_node *ni,
-                              struct ieee80211_rxinfo *rxi)
-{
-  const struct ieee80211_frame *wh;
-  const uint8_t *frm;
-  const uint8_t *efrm;
-  const uint8_t *ssid;
-  const uint8_t *rates;
-  const uint8_t *xrates;
-#  ifdef CONFIG_IEEE80211_HT
-  const uint8_t *htcaps;
-#  endif
-  uint8_t rate;
-
-  if (ic->ic_opmode == IEEE80211_M_STA || ic->ic_state != IEEE80211_S_RUN)
-    return;
-
-  wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
-  frm = (const uint8_t *)&wh[1];
-  efrm = IOB_DATA(iob) + iob->io_len;
-
-  ssid = NULL;
-  rates = NULL;
-  xrates = NULL;
-#  ifdef CONFIG_IEEE80211_HT
-  htcaps = NULL;
-#  endif
-
-  while (frm + 2 <= efrm)
-    {
-      if (frm + 2 + frm[1] > efrm)
-        {
-          break;
-        }
-
-      switch (frm[0])
-        {
-        case IEEE80211_ELEMID_SSID:
-          ssid = frm;
-          break;
-        case IEEE80211_ELEMID_RATES:
-          rates = frm;
-          break;
-        case IEEE80211_ELEMID_XRATES:
-          xrates = frm;
-          break;
-#  ifdef CONFIG_IEEE80211_HT
-        case IEEE80211_ELEMID_HTCAPS:
-          htcaps = frm;
-          break;
-#  endif
-        }
-      frm += 2 + frm[1];
-    }
-
-  /* supported rates element is mandatory */
-
-  if (rates == NULL || rates[1] > IEEE80211_RATE_MAXSIZE)
-    {
-      ndbg("ERROR: invalid supported rates element\n");
-      return;
-    }
-
-  /* SSID element is mandatory */
-
-  if (ssid == NULL || ssid[1] > IEEE80211_NWID_LEN)
-    {
-      ndbg("ERROR: invalid SSID element\n");
-      return;
-    }
-
-  /* check that the specified SSID (if not wildcard) matches ours */
-
-  if (ssid[1] != 0 && (ssid[1] != ic->ic_bss->ni_esslen ||
-                       memcmp(&ssid[2], ic->ic_bss->ni_essid,
-                              ic->ic_bss->ni_esslen)))
-    {
-      ndbg("ERROR: SSID mismatch\n");
-      return;
-    }
-
-  /* refuse wildcard SSID if we're hiding our SSID in beacons */
-
-  if (ssid[1] == 0 && (ic->ic_flags & IEEE80211_F_HIDENWID))
-    {
-      ndbg("ERROR: wildcard SSID rejected");
-      return;
-    }
-
-  if (ni == ic->ic_bss)
-    {
-      ni = ieee80211_find_node(ic, wh->i_addr2);
-      if (ni == NULL)
-        ni = ieee80211_dup_bss(ic, wh->i_addr2);
-      if (ni == NULL)
-        return;
-      ndbg("ERROR: new probe req from %s\n",
-           ieee80211_addr2str((uint8_t *) wh->i_addr2));
-    }
-
-  ni->ni_rssi = rxi->rxi_rssi;
-  ni->ni_rstamp = rxi->rxi_tstamp;
-  rate = ieee80211_setup_rates(ic, ni, rates, xrates,
-                               IEEE80211_F_DOSORT | IEEE80211_F_DOFRATE |
-                               IEEE80211_F_DONEGO | IEEE80211_F_DODEL);
-  if (rate & IEEE80211_RATE_BASIC)
-    {
-      ndbg("ERROR: rate mismatch for %s\n",
-           ieee80211_addr2str((uint8_t *) wh->i_addr2));
-      return;
-    }
-  IEEE80211_SEND_MGMT(ic, ni, IEEE80211_FC0_SUBTYPE_PROBE_RESP, 0);
-}
-#endif /* CONFIG_IEEE80211_AP */
 
 /* Authentication frame format:
  * [2] Authentication algorithm number
@@ -2062,393 +1748,12 @@ void ieee80211_recv_auth(struct ieee80211_s *ic, struct iob_s *iob,
     {
       ndbg("ERROR: unsupported auth algorithm %d from %s\n",
            algo, ieee80211_addr2str((uint8_t *) wh->i_addr2));
-#ifdef CONFIG_IEEE80211_AP
-      if (ic->ic_opmode == IEEE80211_M_HOSTAP)
-        {
-          /* XXX hack to workaround calling convention */
 
-          IEEE80211_SEND_MGMT(ic, ni,
-                              IEEE80211_FC0_SUBTYPE_AUTH,
-                              IEEE80211_STATUS_ALG << 16 | ((seq + 1) &
-                                                            0xffff));
-        }
-#endif
       return;
     }
+
   ieee80211_auth_open(ic, wh, ni, rxi, seq, status);
 }
-
-#ifdef CONFIG_IEEE80211_AP
-
-/* (Re)Association request frame format:
- * [2]   Capability information
- * [2]   Listen interval
- * [6*]  Current AP address (Reassociation only)
- * [tlv] SSID
- * [tlv] Supported rates
- * [tlv] Extended Supported Rates (802.11g)
- * [tlv] RSN (802.11i)
- * [tlv] QoS Capability (802.11e)
- * [tlv] HT Capabilities (802.11n)
- */
-
-void ieee80211_recv_assoc_req(struct ieee80211_s *ic, struct iob_s *iob,
-                              struct ieee80211_node *ni,
-                              struct ieee80211_rxinfo *rxi, int reassoc)
-{
-  const struct ieee80211_frame *wh;
-  const uint8_t *frm;
-  const uint8_t *efrm;
-  const uint8_t *ssid;
-  const uint8_t *rates;
-  const uint8_t *xrates;
-  const uint8_t *rsnie;
-  const uint8_t *wpaie;
-#  ifdef CONFIG_IEEE80211_HT
-  const uint8_t *htcaps;
-#  endif
-  uint16_t capinfo;
-  uint16_t bintval;
-  int resp;
-  int status = 0;
-  struct ieee80211_rsnparams rsn;
-  uint8_t rate;
-
-  if (ic->ic_opmode != IEEE80211_M_HOSTAP || ic->ic_state != IEEE80211_S_RUN)
-    return;
-
-  /* Make sure all mandatory fixed fields are present */
-
-  if (iob->io_len < sizeof(*wh) + (reassoc ? 10 : 4))
-    {
-      ndbg("ERROR: frame too short\n");
-      return;
-    }
-
-  wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
-  frm = (const uint8_t *)&wh[1];
-  efrm = IOB_DATA(iob) + iob->io_len;
-
-  if (!IEEE80211_ADDR_EQ(wh->i_addr3, ic->ic_bss->ni_bssid))
-    {
-      ndbg("ERROR: ignore other bss from %s\n",
-           ieee80211_addr2str((uint8_t *) wh->i_addr2));
-      return;
-    }
-
-  capinfo = LE_READ_2(frm);
-  frm += 2;
-  bintval = LE_READ_2(frm);
-  frm += 2;
-  if (reassoc)
-    {
-      frm += IEEE80211_ADDR_LEN;        /* skip current AP address */
-      resp = IEEE80211_FC0_SUBTYPE_REASSOC_RESP;
-    }
-  else
-    resp = IEEE80211_FC0_SUBTYPE_ASSOC_RESP;
-
-  ssid = NULL;
-  rates = NULL;
-  xrates = NULL;
-  rsnie = NULL;
-  wpaie = NULL;
-#  ifdef CONFIG_IEEE80211_HT
-  htcaps = NULL;
-#  endif
-
-  while (frm + 2 <= efrm)
-    {
-      if (frm + 2 + frm[1] > efrm)
-        {
-          break;
-        }
-
-      switch (frm[0])
-        {
-        case IEEE80211_ELEMID_SSID:
-          ssid = frm;
-          break;
-        case IEEE80211_ELEMID_RATES:
-          rates = frm;
-          break;
-        case IEEE80211_ELEMID_XRATES:
-          xrates = frm;
-          break;
-        case IEEE80211_ELEMID_RSN:
-          rsnie = frm;
-          break;
-        case IEEE80211_ELEMID_QOS_CAP:
-          break;
-#  ifdef CONFIG_IEEE80211_HT
-        case IEEE80211_ELEMID_HTCAPS:
-          htcaps = frm;
-          break;
-#  endif
-        case IEEE80211_ELEMID_VENDOR:
-          if (frm[1] < 4)
-            {
-              break;
-            }
-          if (memcmp(frm + 2, MICROSOFT_OUI, 3) == 0)
-            {
-              if (frm[5] == 1)
-                wpaie = frm;
-            }
-          break;
-        }
-      frm += 2 + frm[1];
-    }
-
-  /* supported rates element is mandatory */
-
-  if (rates == NULL || rates[1] > IEEE80211_RATE_MAXSIZE)
-    {
-      ndbg("ERROR: invalid supported rates element\n");
-      return;
-    }
-
-  /* SSID element is mandatory */
-
-  if (ssid == NULL || ssid[1] > IEEE80211_NWID_LEN)
-    {
-      ndbg("ERROR: invalid SSID element\n");
-      return;
-    }
-
-  /* check that the specified SSID matches ours */
-
-  if (ssid[1] != ic->ic_bss->ni_esslen ||
-      memcmp(&ssid[2], ic->ic_bss->ni_essid, ic->ic_bss->ni_esslen))
-    {
-      ndbg("ERROR: SSID mismatch\n");
-      return;
-    }
-
-  if (ni->ni_state != IEEE80211_STA_AUTH && ni->ni_state != IEEE80211_STA_ASSOC)
-    {
-      nvdbg("deny %sassoc from %s, not authenticated\n",
-            reassoc ? "re" : "", ieee80211_addr2str((uint8_t *) wh->i_addr2));
-      ni = ieee80211_find_node(ic, wh->i_addr2);
-      if (ni == NULL)
-        ni = ieee80211_dup_bss(ic, wh->i_addr2);
-      if (ni != NULL)
-        {
-          IEEE80211_SEND_MGMT(ic, ni,
-                              IEEE80211_FC0_SUBTYPE_DEAUTH,
-                              IEEE80211_REASON_ASSOC_NOT_AUTHED);
-        }
-      return;
-    }
-
-  if (ni->ni_state == IEEE80211_STA_ASSOC &&
-      (ni->ni_flags & IEEE80211_NODE_MFP))
-    {
-      if (ni->ni_flags & IEEE80211_NODE_SA_QUERY_FAILED)
-        {
-          /* send a protected Disassociate frame */
-
-          IEEE80211_SEND_MGMT(ic, ni,
-                              IEEE80211_FC0_SUBTYPE_DISASSOC,
-                              IEEE80211_REASON_AUTH_EXPIRE);
-
-          /* terminate the old SA */
-
-          ieee80211_node_leave(ic, ni);
-        }
-      else
-        {
-          /* reject the (Re)Association Request temporarily */
-
-          IEEE80211_SEND_MGMT(ic, ni, resp, IEEE80211_STATUS_TRY_AGAIN_LATER);
-
-          /* start SA Query procedure if not already engaged */
-
-          if (!(ni->ni_flags & IEEE80211_NODE_SA_QUERY))
-            ieee80211_sa_query_request(ic, ni);
-
-          /* do not modify association state */
-        }
-
-      return;
-    }
-
-  if (!(capinfo & IEEE80211_CAPINFO_ESS))
-    {
-      status = IEEE80211_STATUS_CAPINFO;
-      goto end;
-    }
-
-  rate = ieee80211_setup_rates(ic, ni, rates, xrates,
-                               IEEE80211_F_DOSORT | IEEE80211_F_DOFRATE |
-                               IEEE80211_F_DONEGO | IEEE80211_F_DODEL);
-  if (rate & IEEE80211_RATE_BASIC)
-    {
-      status = IEEE80211_STATUS_BASIC_RATE;
-      goto end;
-    }
-
-  if (ic->ic_flags & IEEE80211_F_RSNON)
-    {
-      const uint8_t *saveie;
-
-      /* A station should never include both a WPA and an RSN IE
-       * in its (Re)Association Requests, but if it does, we only
-       * consider the IE of the highest version of the protocol
-       * that is allowed (ie RSN over WPA).
-       */
-
-      if (rsnie != NULL && (ic->ic_rsnprotos & IEEE80211_PROTO_RSN))
-        {
-          status = ieee80211_parse_rsn(ic, rsnie, &rsn);
-          if (status != 0)
-            goto end;
-          ni->ni_rsnprotos = IEEE80211_PROTO_RSN;
-          saveie = rsnie;
-        }
-      else if (wpaie != NULL && (ic->ic_rsnprotos & IEEE80211_PROTO_WPA))
-        {
-          status = ieee80211_parse_wpa(ic, wpaie, &rsn);
-          if (status != 0)
-            goto end;
-          ni->ni_rsnprotos = IEEE80211_PROTO_WPA;
-          saveie = wpaie;
-        }
-      else
-        {
-          /* In an RSN, an AP shall not associate with STAs
-           * that fail to include the RSN IE in the
-           * (Re)Association Request.
-           */
-
-          status = IEEE80211_STATUS_IE_INVALID;
-          goto end;
-        }
-
-      /* The initiating STA's RSN IE shall include one authentication
-       * and pairwise cipher suite among those advertised by the
-       * targeted AP.  It shall also specify the group cipher suite
-       * specified by the targeted AP.
-       */
-
-      if (rsn.rsn_nakms != 1 || !(rsn.rsn_akms & ic->ic_bss->ni_rsnakms))
-        {
-          status = IEEE80211_STATUS_BAD_AKMP;
-          goto end;
-        }
-
-      if (rsn.rsn_nciphers != 1 ||
-          !(rsn.rsn_ciphers & ic->ic_bss->ni_rsnciphers))
-        {
-          status = IEEE80211_STATUS_BAD_PAIRWISE_CIPHER;
-          goto end;
-        }
-
-      if (rsn.rsn_groupcipher != ic->ic_bss->ni_rsngroupcipher)
-        {
-          status = IEEE80211_STATUS_BAD_GROUP_CIPHER;
-          goto end;
-        }
-
-      if ((ic->ic_bss->ni_rsncaps & IEEE80211_RSNCAP_MFPR) &&
-          !(rsn.rsn_caps & IEEE80211_RSNCAP_MFPC))
-        {
-          status = IEEE80211_STATUS_MFP_POLICY;
-          goto end;
-        }
-
-      if ((ic->ic_bss->ni_rsncaps & IEEE80211_RSNCAP_MFPC) &&
-          (rsn.rsn_caps & (IEEE80211_RSNCAP_MFPC |
-                           IEEE80211_RSNCAP_MFPR)) == IEEE80211_RSNCAP_MFPR)
-        {
-          /* STA advertises an invalid setting */
-
-          status = IEEE80211_STATUS_MFP_POLICY;
-          goto end;
-        }
-
-      /* A STA that has associated with Management Frame Protection enabled
-       * shall not use cipher suite pairwise selector WEP40, WEP104, TKIP, or
-       * "Use Group cipher suite".
-       */
-
-      if ((rsn.rsn_caps & IEEE80211_RSNCAP_MFPC) &&
-          (rsn.rsn_ciphers != IEEE80211_CIPHER_CCMP ||
-           rsn.rsn_groupmgmtcipher != ic->ic_bss->ni_rsngroupmgmtcipher))
-        {
-          status = IEEE80211_STATUS_MFP_POLICY;
-          goto end;
-        }
-
-      /* Disallow new associations using TKIP if countermeasures are active. */
-
-      if ((ic->ic_flags & IEEE80211_F_COUNTERM) &&
-          (rsn.rsn_ciphers == IEEE80211_CIPHER_TKIP ||
-           rsn.rsn_groupcipher == IEEE80211_CIPHER_TKIP))
-        {
-          status = IEEE80211_STATUS_CIPHER_REJ_POLICY;
-          goto end;
-        }
-
-      /* everything looks fine, save IE and parameters */
-
-      if (ieee80211_save_ie(saveie, &ni->ni_rsnie) != 0)
-        {
-          status = IEEE80211_STATUS_TOOMANY;
-          goto end;
-        }
-      ni->ni_rsnakms = rsn.rsn_akms;
-      ni->ni_rsnciphers = rsn.rsn_ciphers;
-      ni->ni_rsngroupcipher = ic->ic_bss->ni_rsngroupcipher;
-      ni->ni_rsngroupmgmtcipher = ic->ic_bss->ni_rsngroupmgmtcipher;
-      ni->ni_rsncaps = rsn.rsn_caps;
-
-      if (ieee80211_is_8021x_akm(ni->ni_rsnakms))
-        {
-          struct ieee80211_pmk *pmk = NULL;
-          const uint8_t *pmkid = rsn.rsn_pmkids;
-
-          /* Check if we have a cached PMK entry matching one of the PMKIDs
-           * specified in the RSN IE.
-           */
-
-          while (rsn.rsn_npmkids-- > 0)
-            {
-              pmk = ieee80211_pmksa_find(ic, ni, pmkid);
-              if (pmk != NULL)
-                {
-                  break;
-                }
-
-              pmkid += IEEE80211_PMKID_LEN;
-            }
-
-          if (pmk != NULL)
-            {
-              memcpy(ni->ni_pmk, pmk->pmk_key, IEEE80211_PMK_LEN);
-              memcpy(ni->ni_pmkid, pmk->pmk_pmkid, IEEE80211_PMKID_LEN);
-              ni->ni_flags |= IEEE80211_NODE_PMK;
-            }
-        }
-    }
-  else
-    ni->ni_rsnprotos = IEEE80211_PROTO_NONE;
-
-  ni->ni_rssi = rxi->rxi_rssi;
-  ni->ni_rstamp = rxi->rxi_tstamp;
-  ni->ni_intval = bintval;
-  ni->ni_capinfo = capinfo;
-  ni->ni_chan = ic->ic_bss->ni_chan;
-end:
-  if (status != 0)
-    {
-      IEEE80211_SEND_MGMT(ic, ni, resp, status);
-      ieee80211_node_leave(ic, ni);
-    }
-  else
-    ieee80211_node_join(ic, ni, resp);
-}
-#endif /* CONFIG_IEEE80211_AP */
 
 /* (Re)Association response frame format:
  * [2]   Capability information
@@ -2682,17 +1987,8 @@ void ieee80211_recv_deauth(struct ieee80211_s *ic, struct iob_s *iob,
     case IEEE80211_M_STA:
       ieee80211_new_state(ic, IEEE80211_S_AUTH, IEEE80211_FC0_SUBTYPE_DEAUTH);
       break;
-#ifdef CONFIG_IEEE80211_AP
-    case IEEE80211_M_HOSTAP:
-      if (ni != ic->ic_bss)
-        {
-          nvdbg("%s: station %s deauthenticated by peer (reason %d)\n",
-                ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), reason);
 
-          ieee80211_node_leave(ic, ni);
-        }
-      break;
-#endif
+    case IEEE80211_M_HOSTAP: /* AP only */
     default:
       break;
     }
@@ -2728,17 +2024,8 @@ void ieee80211_recv_disassoc(struct ieee80211_s *ic, struct iob_s *iob,
       ieee80211_new_state(ic, IEEE80211_S_ASSOC,
                           IEEE80211_FC0_SUBTYPE_DISASSOC);
       break;
-#ifdef CONFIG_IEEE80211_AP
-    case IEEE80211_M_HOSTAP:
-      if (ni != ic->ic_bss)
-        {
-          nvdbg("%s: station %s disassociated by peer (reason %d)\n",
-                ic->ic_ifname, ieee80211_addr2str(ni->ni_macaddr), reason);
 
-          ieee80211_node_leave(ic, ni);
-        }
-      break;
-#endif
+    case IEEE80211_M_HOSTAP: /* AP only */
     default:
       break;
     }
@@ -3117,53 +2404,6 @@ void ieee80211_recv_sa_query_req(struct ieee80211_s *ic, struct iob_s *iob,
                         IEEE80211_ACTION_SA_QUERY_RESP, 0);
 }
 
-#ifdef CONFIG_IEEE80211_AP
-
-/* SA Query Response frame format:
- * [1] Category
- * [1] Action
- * [2] Transaction Identifier
- */
-
-void ieee80211_recv_sa_query_resp(struct ieee80211_s *ic, struct iob_s *iob,
-                                  struct ieee80211_node *ni)
-{
-  const struct ieee80211_frame *wh;
-  const uint8_t *frm;
-
-  /* Ignore if we're not engaged in an SA Query with that STA */
-
-  if (!(ni->ni_flags & IEEE80211_NODE_SA_QUERY))
-    {
-      ndbg("ERROR: unexpected SA Query resp from %s\n",
-           ieee80211_addr2str(ni->ni_macaddr));
-      return;
-    }
-
-  if (iob->io_len < sizeof(*wh) + 4)
-    {
-      ndbg("ERROR: frame too short\n");
-      return;
-    }
-
-  wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
-  frm = (const uint8_t *)&wh[1];
-
-  /* Check that Transaction Identifier matches */
-
-  if (ni->ni_sa_query_trid != LE_READ_2(&frm[2]))
-    {
-      ndbg("ERROR: transaction identifier does not match\n");
-      return;
-    }
-
-  /* MLME-SAQuery.confirm */
-
-  wd_cancel(ni->ni_sa_query_to);
-  ni->ni_flags &= ~IEEE80211_NODE_SA_QUERY;
-}
-#endif
-
 /* Action frame format:
  * [1] Category
  * [1] Action
@@ -3208,13 +2448,10 @@ void ieee80211_recv_action(struct ieee80211_s *ic, struct iob_s *iob,
         case IEEE80211_ACTION_SA_QUERY_REQ:
           ieee80211_recv_sa_query_req(ic, iob, ni);
           break;
-#ifdef CONFIG_IEEE80211_AP
-        case IEEE80211_ACTION_SA_QUERY_RESP:
-          ieee80211_recv_sa_query_resp(ic, iob, ni);
-          break;
-#endif
         }
       break;
+
+    case IEEE80211_ACTION_SA_QUERY_RESP: /* AP only */
     default:
       ndbg("ERROR: action frame category %d not handled\n", frm[0]);
       break;
@@ -3233,22 +2470,9 @@ void ieee80211_recv_mgmt(struct ieee80211_s *ic, struct iob_s *iob,
     case IEEE80211_FC0_SUBTYPE_PROBE_RESP:
       ieee80211_recv_probe_resp(ic, iob, ni, rxi, 1);
       break;
-#ifdef CONFIG_IEEE80211_AP
-    case IEEE80211_FC0_SUBTYPE_PROBE_REQ:
-      ieee80211_recv_probe_req(ic, iob, ni, rxi);
-      break;
-#endif
     case IEEE80211_FC0_SUBTYPE_AUTH:
       ieee80211_recv_auth(ic, iob, ni, rxi);
       break;
-#ifdef CONFIG_IEEE80211_AP
-    case IEEE80211_FC0_SUBTYPE_ASSOC_REQ:
-      ieee80211_recv_assoc_req(ic, iob, ni, rxi, 0);
-      break;
-    case IEEE80211_FC0_SUBTYPE_REASSOC_REQ:
-      ieee80211_recv_assoc_req(ic, iob, ni, rxi, 1);
-      break;
-#endif
     case IEEE80211_FC0_SUBTYPE_ASSOC_RESP:
       ieee80211_recv_assoc_resp(ic, iob, ni, 0);
       break;
@@ -3264,77 +2488,15 @@ void ieee80211_recv_mgmt(struct ieee80211_s *ic, struct iob_s *iob,
     case IEEE80211_FC0_SUBTYPE_ACTION:
       ieee80211_recv_action(ic, iob, ni);
       break;
+
+    case IEEE80211_FC0_SUBTYPE_PROBE_REQ:   /* AP only */
+    case IEEE80211_FC0_SUBTYPE_ASSOC_REQ:   /* AP only */
+    case IEEE80211_FC0_SUBTYPE_REASSOC_REQ: /* AP only */
     default:
       ndbg("ERROR: mgmt frame with subtype 0x%x not handled\n", subtype);
       break;
     }
 }
-
-#ifdef CONFIG_IEEE80211_AP
-
-/* Process an incoming PS-Poll control frame (see 11.2) */
-
-void ieee80211_recv_pspoll(struct ieee80211_s *ic, struct iob_s *iob,
-                           struct ieee80211_node *ni)
-{
-  struct ieee80211_frame_pspoll *psp;
-  struct ieee80211_frame *wh;
-  uint16_t aid;
-
-  if (ic->ic_opmode != IEEE80211_M_HOSTAP ||
-      !(ic->ic_caps & IEEE80211_C_APPMGT) ||
-      ni->ni_state != IEEE80211_STA_ASSOC)
-    {
-      return;
-    }
-
-  if (iob->io_len < sizeof(*psp))
-    {
-      ndbg("ERROR: frame too short, len %u\n", iob->io_len);
-      return;
-    }
-
-  psp = (FAR struct ieee80211_frame_pspoll *)IOB_DATA(iob);
-  if (!IEEE80211_ADDR_EQ(psp->i_bssid, ic->ic_bss->ni_bssid))
-    {
-      ndbg("ERROR: discard pspoll frame to BSS %s\n",
-           ieee80211_addr2str(psp->i_bssid));
-      return;
-    }
-
-  aid = letoh16(*(uint16_t *) psp->i_aid);
-  if (aid != ni->ni_associd)
-    {
-      ndbg("ERROR: invalid pspoll aid %x from %s\n", aid,
-           ieee80211_addr2str(psp->i_ta));
-      return;
-    }
-
-  /* Take the first queued frame and put it out.. */
-
-  iob = iob_remove_queue(&ni->ni_savedq);
-  if (iob == NULL)
-    {
-      return;
-    }
-
-  if (IOB_QEMPTY(&ni->ni_savedq))
-    {
-      /* Last queued frame, turn off the TIM bit */
-
-      (*ic->ic_set_tim) (ic, ni->ni_associd, 0);
-    }
-  else
-    {
-      /* more queued frames, set the more data bit */
-
-      wh = (FAR struct ieee80211_frame *)IOB_DATA(iob);
-      wh->i_fc[1] |= IEEE80211_FC1_MORE_DATA;
-    }
-
-  iob_add_queue(iob, &ic->ic_pwrsaveq);
-}
-#endif /* CONFIG_IEEE80211_AP */
 
 #ifdef CONFIG_IEEE80211_HT
 
