@@ -13,16 +13,8 @@ config NET_IEEE80211
 
 if NET_IEEE80211
 
-config IEEE80211_AP
-	bool "Enable access point (AP) support"
-	default n
-
 config IEEE80211_HT
 	bool "Enable 802.11n High-Throughput (HT)"
-	default n
-
-config IEEE80211_BRIDGEPORT
-	bool "Parent interface is a bridge port"
 	default n
 
 config IEEE80211_NBUFFERS

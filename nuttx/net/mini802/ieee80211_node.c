@@ -51,10 +51,6 @@
 #  include <nuttx/net/uip/uip.h>
 #endif
 
-#ifdef CONFIG_IEEE80211_BRIDGEPORT
-#  include <net/if_bridge.h>
-#endif
-
 #include <nuttx/kmalloc.h>
 #include <nuttx/tree.h>
 
