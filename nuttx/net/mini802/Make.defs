@@ -49,8 +49,7 @@ endif
 
 # Include wireless build support
 
-DEPPATH += --dep-path ieee80211
-VPATH += :ieee80211
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)net$(DELIM)ieee80211}
+DEPPATH += --dep-path mini80
+VPATH += :mini802
 
 endif
