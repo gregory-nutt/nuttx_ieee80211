@@ -88,15 +88,6 @@ struct iob_s *ieee80211_get_assoc_req(struct ieee80211_s *,
                                       struct ieee80211_node *, int);
 struct iob_s *ieee80211_get_disassoc(struct ieee80211_s *,
                                      struct ieee80211_node *, uint16_t);
-#ifdef CONFIG_IEEE80211_HT
-struct iob_s *ieee80211_get_addba_req(struct ieee80211_s *,
-                                      struct ieee80211_node *, uint8_t);
-struct iob_s *ieee80211_get_addba_resp(struct ieee80211_s *,
-                                       struct ieee80211_node *, uint8_t,
-                                       uint8_t, uint16_t);
-struct iob_s *ieee80211_get_delba(struct ieee80211_s *, struct ieee80211_node *,
-                                  uint8_t, uint8_t, uint16_t);
-#endif
 struct iob_s *ieee80211_get_sa_query(struct ieee80211_s *,
                                      struct ieee80211_node *, uint8_t);
 struct iob_s *ieee80211_get_action(struct ieee80211_s *,
@@ -637,12 +628,6 @@ fallback:
         {
           qos |= IEEE80211_QOS_ACK_POLICY_NOACK;
         }
-#ifdef CONFIG_IEEE80211_HT
-      else if (ni->ni_tx_ba[tid].ba_state == IEEE80211_BA_AGREED)
-        {
-          qos |= IEEE80211_QOS_ACK_POLICY_BA;
-        }
-#endif
 
       qwh->i_fc[0] |= IEEE80211_FC0_SUBTYPE_QOS;
       *(uint16_t *) qwh->i_qos = htole16(qos);
@@ -966,29 +951,6 @@ uint8_t *ieee80211_add_xrates(uint8_t * frm,
   return frm + nrates;
 }
 
-#ifdef CONFIG_IEEE80211_HT
-
-/* Add an HT Capabilities element to a frame (see 7.3.2.57). */
-
-uint8_t *ieee80211_add_htcaps(uint8_t * frm, struct ieee80211_s * ic)
-{
-  *frm++ = IEEE80211_ELEMID_HTCAPS;
-  *frm++ = 26;
-  LE_WRITE_2(frm, ic->ic_htcaps);
-  frm += 2;
-  *frm++ = 0;
-  memcpy(frm, ic->ic_sup_mcs, 16);
-  frm += 16;
-  LE_WRITE_2(frm, ic->ic_htxcaps);
-  frm += 2;
-  LE_WRITE_4(frm, ic->ic_txbfcaps);
-  frm += 4;
-  *frm++ = ic->ic_aselcaps;
-  return frm;
-}
-
-#endif /* !CONFIG_IEEE80211_HT */
-
 struct iob_s *ieee80211_getmgmt(int type, unsigned int pktlen)
 {
   struct iob_s *iob;
@@ -1048,13 +1010,6 @@ struct iob_s *ieee80211_get_probe_req(FAR struct ieee80211_s *ic,
     {
       frm = ieee80211_add_xrates(frm, rs);
     }
-
-#ifdef CONFIG_IEEE80211_HT
-  if (ni->ni_flags & IEEE80211_NODE_HT)
-    {
-      frm = ieee80211_add_htcaps(frm, ic);
-    }
-#endif
 
   iob->io_pktlen = iob->io_len = frm - IOB_DATA(iob);
   return iob;
@@ -1187,10 +1142,6 @@ struct iob_s *ieee80211_get_assoc_req(struct ieee80211_s *ic,
   if ((ic->ic_flags & IEEE80211_F_RSNON) &&
       (ni->ni_rsnprotos & IEEE80211_PROTO_WPA))
     frm = ieee80211_add_wpa(frm, ic, ni);
-#ifdef CONFIG_IEEE80211_HT
-  if (ni->ni_flags & IEEE80211_NODE_HT)
-    frm = ieee80211_add_htcaps(frm, ic);
-#endif
 
   iob->io_pktlen = iob->io_len = frm - IOB_DATA(iob);
   return iob;
@@ -1218,141 +1169,7 @@ struct iob_s *ieee80211_get_disassoc(struct ieee80211_s *ic,
   return iob;
 }
 
-#ifdef CONFIG_IEEE80211_HT
-
-/* ADDBA Request frame format:
- * [1] Category
- * [1] Action
- * [1] Dialog Token
- * [2] Block Ack Parameter Set
- * [2] Block Ack Timeout Value
- * [2] Block Ack Starting Sequence Control
- */
-
-struct iob_s *ieee80211_get_addba_req(struct ieee80211_s *ic,
-                                      struct ieee80211_node *ni, uint8_t tid)
-{
-  struct ieee80211_tx_ba *ba = &ni->ni_tx_ba[tid];
-  struct iob_s *iob;
-  uint8_t *frm;
-  uint16_t params;
-
-  iob = ieee80211_getmgmt(MT_DATA, 9);
-  if (iob == NULL)
-    {
-      return iob;
-    }
-
-  frm = (FAR uint8_t *) IOB_DATA(iob);
-  *frm++ = IEEE80211_CATEG_BA;
-  *frm++ = IEEE80211_ACTION_ADDBA_REQ;
-  *frm++ = ba->ba_token;
-  params = ba->ba_winsize << 6 | tid << 2 | IEEE80211_BA_ACK_POLICY;
-  LE_WRITE_2(frm, params);
-  frm += 2;
-  LE_WRITE_2(frm, ba->ba_timeout_val);
-  frm += 2;
-  LE_WRITE_2(frm, ba->ba_winstart);
-  frm += 2;
-
-  iob->io_pktlen = iob->io_len = frm - IOB_DATA(iob);
-  return iob;
-}
-
-/* ADDBA Response frame format:
- * [1] Category
- * [1] Action
- * [1] Dialog Token
- * [2] Status Code
- * [2] Block Ack Parameter Set
- * [2] Block Ack Timeout Value
- */
-
-struct iob_s *ieee80211_get_addba_resp(struct ieee80211_s *ic,
-                                       struct ieee80211_node *ni, uint8_t tid,
-                                       uint8_t token, uint16_t status)
-{
-  struct ieee80211_rx_ba *ba = &ni->ni_rx_ba[tid];
-  struct iob_s *iob;
-  uint8_t *frm;
-  uint16_t params;
-
-  iob = ieee80211_getmgmt(MT_DATA, 9);
-  if (iob == NULL)
-    {
-      return iob;
-    }
-
-  frm = (FAR uint8_t *) IOB_DATA(iob);
-  *frm++ = IEEE80211_CATEG_BA;
-  *frm++ = IEEE80211_ACTION_ADDBA_RESP;
-  *frm++ = token;
-  LE_WRITE_2(frm, status);
-  frm += 2;
-  params = tid << 2 | IEEE80211_BA_ACK_POLICY;
-  if (status == 0)
-    {
-      params |= ba->ba_winsize << 6;
-    }
-
-  LE_WRITE_2(frm, params);
-  frm += 2;
-  if (status == 0)
-    {
-      LE_WRITE_2(frm, ba->ba_timeout_val);
-    }
-  else
-    {
-      LE_WRITE_2(frm, 0);
-    }
-
-  frm += 2;
-
-  iob->io_pktlen = iob->io_len = frm - IOB_DATA(iob);
-  return iob;
-}
-
-/* DELBA frame format:
- * [1] Category
- * [1] Action
- * [2] DELBA Parameter Set
- * [2] Reason Code
- */
-
-struct iob_s *ieee80211_get_delba(struct ieee80211_s *ic,
-                                  struct ieee80211_node *ni, uint8_t tid,
-                                  uint8_t dir, uint16_t reason)
-{
-  struct iob_s *iob;
-  uint8_t *frm;
-  uint16_t params;
-
-  iob = ieee80211_getmgmt(MT_DATA, 6);
-  if (iob == NULL)
-    {
-      return iob;
-    }
-
-  frm = (FAR uint8_t *) IOB_DATA(iob);
-  *frm++ = IEEE80211_CATEG_BA;
-  *frm++ = IEEE80211_ACTION_DELBA;
-  params = tid << 12;
-  if (dir)
-    {
-      params |= IEEE80211_DELBA_INITIATOR;
-    }
-
-  LE_WRITE_2(frm, params);
-  frm += 2;
-  LE_WRITE_2(frm, reason);
-  frm += 2;
-
-  iob->io_pktlen = iob->io_len = frm - IOB_DATA(iob);
-  return iob;
-}
-#endif /* !CONFIG_IEEE80211_HT */
-
-/* SA Query Request/Reponse frame format:
+/* SA Query Request/Response frame format:
  * [1]  Category
  * [1]  Action
  * [16] Transaction Identifier
@@ -1388,23 +1205,6 @@ struct iob_s *ieee80211_get_action(struct ieee80211_s *ic,
 
   switch (categ)
     {
-#ifdef CONFIG_IEEE80211_HT
-    case IEEE80211_CATEG_BA:
-      switch (action)
-        {
-        case IEEE80211_ACTION_ADDBA_REQ:
-          iob = ieee80211_get_addba_req(ic, ni, arg & 0xffff);
-          break;
-        case IEEE80211_ACTION_ADDBA_RESP:
-          iob = ieee80211_get_addba_resp(ic, ni, arg & 0xff,
-                                         arg >> 8, arg >> 16);
-          break;
-        case IEEE80211_ACTION_DELBA:
-          iob = ieee80211_get_delba(ic, ni, arg & 0xff, arg >> 8, arg >> 16);
-          break;
-        }
-      break;
-#endif
     case IEEE80211_CATEG_SA_QUERY:
       switch (action)
         {
@@ -1413,6 +1213,7 @@ struct iob_s *ieee80211_get_action(struct ieee80211_s *ic,
           break;
 
         case IEEE80211_ACTION_SA_QUERY_REQ: /* AP only */
+        case IEEE80211_CATEG_BA:  /* IEEE 802.11n only */
         default:
           break;
         }

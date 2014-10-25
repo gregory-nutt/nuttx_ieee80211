@@ -128,7 +128,6 @@ uint8_t *ieee80211_add_rsn(uint8_t *, struct ieee80211_s *,
 uint8_t *ieee80211_add_wpa(uint8_t *, struct ieee80211_s *,
                            const struct ieee80211_node *);
 uint8_t *ieee80211_add_xrates(uint8_t *, const struct ieee80211_rateset *);
-uint8_t *ieee80211_add_htcaps(uint8_t *, struct ieee80211_s *);
 
 int ieee80211_parse_rsn(struct ieee80211_s *, const uint8_t *,
                         struct ieee80211_rsnparams *);
@@ -147,15 +146,5 @@ void ieee80211_auth_open(struct ieee80211_s *,
                          struct ieee80211_node *, struct ieee80211_rxinfo *rs,
                          uint16_t, uint16_t);
 int ieee80211_keyrun(struct ieee80211_s *, uint8_t *);
-
-#ifdef CONFIG_IEEE80211_HT
-void ieee80211_tx_ba_timeout(void *);
-void ieee80211_rx_ba_timeout(void *);
-int ieee80211_addba_request(struct ieee80211_s *,
-                            struct ieee80211_node *, uint16_t, uint8_t);
-void ieee80211_delba_request(struct ieee80211_s *,
-                             struct ieee80211_node *, uint16_t, uint8_t,
-                             uint8_t);
-#endif
 
 #endif /* __NET_IEEE80211_IEEE80211_PROTO_H */
